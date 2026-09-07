@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ConfiguracaoClara>
+  <Servidor>
+    <UrlPublica>https://shareit-clara.onrender.com</UrlPublica>
+    <ExecutarMigracoesAutomaticamente>true</ExecutarMigracoesAutomaticamente>
+    <MinutosParaConsiderarOffline>3</MinutosParaConsiderarOffline>
+  </Servidor>
+  <Banco>
+    <StringConexaoVariavel>CLARA_POSTGRES</StringConexaoVariavel>
+    <NomeBanco>shareit_clara</NomeBanco>
+    <CriarAutomaticamente>true</CriarAutomaticamente>
+  </Banco>
+  <Bootstrap>
+    <NomeTenant>Share IT</NomeTenant>
+    <IdentificadorTenant>shareit</IdentificadorTenant>
+    <NomeAdministrador>Administrador</NomeAdministrador>
+    <EmailAdministrador>admin@exemplo.local</EmailAdministrador>
+    <SenhaAdministradorVariavel>CLARA_ADMIN_SENHA</SenhaAdministradorVariavel>
+  </Bootstrap>
+  <Agente>
+    <IntervaloHeartbeatSegundos>60</IntervaloHeartbeatSegundos>
+    <IntervaloSincronizacaoSegundos>30</IntervaloSincronizacaoSegundos>
+    <IntervaloAtualizacaoMinutos>15</IntervaloAtualizacaoMinutos>
+    <LimiarOciosidadeMinutos>5</LimiarOciosidadeMinutos>
+  </Agente>
+</ConfiguracaoClara>

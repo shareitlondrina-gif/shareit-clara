@@ -1,0 +1,46 @@
+@model DashboardAgora
+@{
+    ViewData["Title"] = "Agora";
+    var empresas = (IReadOnlyCollection<EmpresaBasica>)(ViewBag.Empresas ?? Array.Empty<EmpresaBasica>());
+}
+<section class="cabecalho-pagina">
+    <div><h1>Agora</h1><p>Visão operacional das estações monitoradas.</p></div>
+</section>
+<section class="cards">
+    <article><span>Total</span><strong>@Model.TotalAgentes</strong></article>
+    <article><span>Online</span><strong>@Model.Online</strong></article>
+    <article><span>Ativos</span><strong>@Model.Ativos</strong></article>
+    <article><span>Ociosos</span><strong>@Model.Ociosos</strong></article>
+    <article><span>Bloqueados</span><strong>@Model.Bloqueados</strong></article>
+    <article><span>Offline</span><strong>@Model.Offline</strong></article>
+</section>
+
+@if (TempData["TokenInstalacao"] is string token)
+{
+    <section class="aviso-token"><strong>Token temporário:</strong><code>@token</code><span>Expira em @TempData["TokenExpira"]</span></section>
+}
+
+<section class="painel">
+    <h2>Novo agente</h2>
+    <form method="post" action="/administracao/gerar-token" class="grade-formulario">
+        @Html.AntiForgeryToken()
+        <label>Empresa<select name="empresaId" required>@foreach (var empresa in empresas) { <option value="@empresa.Id">@empresa.Nome</option> }</select></label>
+        <label>Hostname<input name="hostname" required /></label>
+        <label>Responsável<input name="responsavel" /></label>
+        <label>Patrimônio<input name="patrimonio" /></label>
+        <button type="submit">Gerar token de instalação</button>
+    </form>
+</section>
+
+<section class="painel">
+    <h2>Estações</h2>
+    <div class="tabela-responsiva"><table>
+        <thead><tr><th>Máquina</th><th>Responsável</th><th>Status</th><th>Estado</th><th>Versão</th><th>Última comunicação</th></tr></thead>
+        <tbody>
+        @foreach (var agente in Model.Agentes)
+        {
+            <tr><td><a href="/timeline/@agente.AgenteId">@agente.Hostname</a></td><td>@(agente.Responsavel ?? "-")</td><td>@agente.Status</td><td>@(agente.EstadoAtual ?? "-")</td><td>@agente.Versao</td><td>@(agente.UltimaComunicacaoUtc?.ToLocalTime().ToString("dd/MM HH:mm:ss") ?? "-")</td></tr>
+        }
+        </tbody>
+    </table></div>
+</section>

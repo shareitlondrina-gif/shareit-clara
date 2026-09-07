@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ConfiguracaoPublicacao>
+  <RepositorioGitHub></RepositorioGitHub>
+  <Branch>main</Branch>
+  <PublicacaoAutomatica>true</PublicacaoAutomatica>
+  <ExecutarGitPush>true</ExecutarGitPush>
+  <ExecutarDeployHook>false</ExecutarDeployHook>
+  <UrlSistema>https://shareit-clara.onrender.com</UrlSistema>
+  <UrlHealth>https://shareit-clara.onrender.com/api/health</UrlHealth>
+  <AbrirNavegadorAposPublicacao>true</AbrirNavegadorAposPublicacao>
+  <TempoMaximoDeployMinutos>12</TempoMaximoDeployMinutos>
+  <ObrigarAtualizacaoAgente>false</ObrigarAtualizacaoAgente>
+</ConfiguracaoPublicacao>

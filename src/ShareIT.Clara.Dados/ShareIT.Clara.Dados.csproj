@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>ShareIT.Clara.Dados</AssemblyName>
+    <RootNamespace>ShareIT.Clara.Dados</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Npgsql" />
+    <ProjectReference Include="..\ShareIT.Clara.Dominio\ShareIT.Clara.Dominio.csproj" />
+    <ProjectReference Include="..\ShareIT.Clara.Comum\ShareIT.Clara.Comum.csproj" />
+    <EmbeddedResource Include="..\..\database\migrations\*.sql" Link="Migrations\%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>

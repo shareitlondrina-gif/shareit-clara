@@ -1,0 +1,26 @@
+@model TimelineAgente
+@{
+    ViewData["Title"] = "Timeline";
+}
+<section class="cabecalho-pagina">
+    <div><h1>Timeline — @Model.Hostname</h1><p>@(Model.Responsavel ?? "Sem responsável informado") · últimas 24 horas</p></div>
+    <a class="link-voltar" href="/">← Voltar</a>
+</section>
+<section class="painel timeline">
+@if (Model.Periodos.Count == 0)
+{
+    <p>Nenhum período recebido nas últimas 24 horas.</p>
+}
+else
+{
+    @foreach (var p in Model.Periodos)
+    {
+        <article class="linha-timeline">
+            <div class="hora">@p.InicioUtc.ToLocalTime().ToString("HH:mm:ss")<span>→ @p.FimUtc.ToLocalTime().ToString("HH:mm:ss")</span></div>
+            <strong>@p.Estado</strong>
+            <span>@(p.ProcessoExecutavel ?? "-")</span>
+            <small>@p.UsuarioWindows</small>
+        </article>
+    }
+}
+</section>

@@ -1,0 +1,9 @@
+.git
+.vs
+bin
+obj
+artifacts
+release
+**/*.local.xml
+**/*.local.json
+*.zip

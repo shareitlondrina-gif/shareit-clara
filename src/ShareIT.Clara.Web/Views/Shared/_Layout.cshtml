@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] - Share IT .Clara</title>
+    <link rel="stylesheet" href="~/css/clara.css" asp-append-version="true" />
+</head>
+<body>
+    <header class="topo">
+        <div class="marca"><strong>Share IT</strong> <span>.Clara</span></div>
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+            <div class="usuario">
+                <span>@User.Identity.Name</span>
+                <form method="post" action="/sair">@Html.AntiForgeryToken()<button class="botao-secundario" type="submit">Sair</button></form>
+            </div>
+        }
+    </header>
+    <main class="conteudo">@RenderBody()</main>
+</body>
+</html>

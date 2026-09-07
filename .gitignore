@@ -1,0 +1,15 @@
+bin/
+obj/
+.vs/
+*.user
+*.suo
+*.cache
+*.log
+*.tmp
+*.bak
+*.zip
+release/
+artifacts/
+**/Segredos*.local.xml
+**/*.local.json
+ConfigSys/Segredos*.xml

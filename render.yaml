@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: shareit-clara
+    runtime: docker
+    plan: free
+    region: virginia
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: CLARA_POSTGRES
+        sync: false
+      - key: CLARA_BANCO_NOME
+        value: "shareit_clara"
+      - key: CLARA_CRIAR_BANCO
+        value: "true"
+      - key: CLARA_ADMIN_SENHA
+        sync: false
+      - key: CLARA_ADMIN_EMAIL
+        sync: false
+      - key: CLARA_URL_PUBLICA
+        value: "https://shareit-clara.onrender.com"
+      - key: CLARA_EXECUTAR_MIGRACOES
+        value: "true"
+      - key: CLARA_TENANT_NOME
+        value: "Share IT"
+      - key: CLARA_TENANT_IDENTIFICADOR
+        value: "shareit"

@@ -1,0 +1,14 @@
+@{
+    ViewData["Title"] = "Entrar";
+}
+<div class="login">
+    <h1>Share IT .Clara</h1>
+    <p>Clareza sobre como o trabalho acontece.</p>
+    @if (ViewBag.Erro is not null) { <div class="erro">@ViewBag.Erro</div> }
+    <form method="post">
+        @Html.AntiForgeryToken()
+        <label>E-mail<input name="email" type="email" required autocomplete="username" /></label>
+        <label>Senha<input name="senha" type="password" required autocomplete="current-password" /></label>
+        <button type="submit">Entrar</button>
+    </form>
+</div>

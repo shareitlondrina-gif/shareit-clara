@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <AssemblyName>ShareIT.Clara.Sessao</AssemblyName>
+    <RootNamespace>ShareIT.Clara.Sessao</RootNamespace>
+    <OutputType>WinExe</OutputType>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ShareIT.Clara.Dominio\ShareIT.Clara.Dominio.csproj" />
+    <ProjectReference Include="..\ShareIT.Clara.Comum\ShareIT.Clara.Comum.csproj" />
+  </ItemGroup>
+</Project>
