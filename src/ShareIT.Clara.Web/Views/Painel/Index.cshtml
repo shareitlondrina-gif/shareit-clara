@@ -2,45 +2,108 @@
 @{
     ViewData["Title"] = "Agora";
     var empresas = (IReadOnlyCollection<EmpresaBasica>)(ViewBag.Empresas ?? Array.Empty<EmpresaBasica>());
+    string Tempo(long segundos)
+    {
+        var t = TimeSpan.FromSeconds(Math.Max(0, segundos));
+        return t.TotalHours >= 1 ? $"{(int)t.TotalHours}h {t.Minutes:00}m" : $"{t.Minutes}m";
+    }
+    string ClasseEstado(string? estado) => (estado ?? "").ToLowerInvariant() switch
+    {
+        "ativo" => "estado-ativo",
+        "ocioso" => "estado-ocioso",
+        "bloqueado" => "estado-bloqueado",
+        "reuniao" => "estado-reuniao",
+        "offline" => "estado-offline",
+        _ => "estado-neutro"
+    };
 }
 <section class="cabecalho-pagina">
-    <div><h1>Agora</h1><p>Visão operacional das estações monitoradas.</p></div>
+    <div><span class="sobrelinha">VISÃO OPERACIONAL</span><h1>Agora</h1><p>O que está acontecendo nas estações monitoradas neste momento.</p></div>
+    <span class="atualizado-agora">Atualização por heartbeat</span>
 </section>
-<section class="cards">
-    <article><span>Total</span><strong>@Model.TotalAgentes</strong></article>
-    <article><span>Online</span><strong>@Model.Online</strong></article>
-    <article><span>Ativos</span><strong>@Model.Ativos</strong></article>
-    <article><span>Ociosos</span><strong>@Model.Ociosos</strong></article>
-    <article><span>Bloqueados</span><strong>@Model.Bloqueados</strong></article>
-    <article><span>Offline</span><strong>@Model.Offline</strong></article>
+
+<section class="cards cards-agora">
+    <article><span>Online</span><strong>@Model.Online</strong><small>de @Model.TotalAgentes estações</small></article>
+    <article><span>Ativos</span><strong>@Model.Ativos</strong><small>em atividade</small></article>
+    <article><span>Reunião</span><strong>@Model.Reuniao</strong><small>Teams/Zoom/Webex</small></article>
+    <article><span>Ociosos</span><strong>@Model.Ociosos</strong><small>acima do limite</small></article>
+    <article><span>Offline</span><strong>@Model.Offline</strong><small>sem heartbeat</small></article>
+    <article class="card-atencao"><span>Cadastro pendente</span><strong>@Model.CadastroIncompleto</strong><small>completar patrimônio/contexto</small></article>
+</section>
+
+<section class="grade-destaques">
+    <article class="painel destaque-trabalho">
+        <div class="titulo-painel"><div><span class="sobrelinha">HOJE</span><h2>Uso observado</h2></div></div>
+        <div class="metricas-horizontais">
+            <div><span>Atividade + reunião</span><strong>@Tempo(Model.SegundosAtivosHoje)</strong></div>
+            <div><span>Ociosidade</span><strong>@Tempo(Model.SegundosOciososHoje)</strong></div>
+            <div><span>Aplicativo principal</span><strong class="texto-menor">@(Model.AplicativoMaisUsadoHoje ?? "Aguardando dados")</strong></div>
+        </div>
+    </article>
+
+    <article class="painel instalar-agente">
+        <div class="titulo-painel"><div><span class="sobrelinha">ONBOARDING</span><h2>Instalar nova estação</h2></div></div>
+        <p>Escolha apenas a empresa. O agente identifica hostname, usuário, serial, fabricante, modelo e Windows automaticamente.</p>
+        <form method="post" action="/administracao/gerar-token" class="formulario-token">
+            @Html.AntiForgeryToken()
+            <label>Empresa<select name="empresaId" required>@foreach (var empresa in empresas) { <option value="@empresa.Id">@empresa.Nome</option> }</select></label>
+            <button type="submit">Gerar instalação</button>
+        </form>
+    </article>
 </section>
 
 @if (TempData["TokenInstalacao"] is string token)
 {
-    <section class="aviso-token"><strong>Token temporário:</strong><code>@token</code><span>Expira em @TempData["TokenExpira"]</span></section>
+    var servidor = TempData["TokenServidor"]?.ToString() ?? "https://shareit-clara.onrender.com";
+    <section class="painel aviso-token">
+        <div><span class="sobrelinha">INSTALAÇÃO PRONTA</span><h2>Token temporário</h2><p>Válido até @TempData["TokenExpira"]. Execute o instalador como Administrador na máquina.</p></div>
+        <code>@token</code>
+        <div class="comando-instalacao">INSTALAR-AGENTE.cmd @token @servidor</div>
+    </section>
 }
 
-<section class="painel">
-    <h2>Novo agente</h2>
-    <form method="post" action="/administracao/gerar-token" class="grade-formulario">
-        @Html.AntiForgeryToken()
-        <label>Empresa<select name="empresaId" required>@foreach (var empresa in empresas) { <option value="@empresa.Id">@empresa.Nome</option> }</select></label>
-        <label>Hostname<input name="hostname" required /></label>
-        <label>Responsável<input name="responsavel" /></label>
-        <label>Patrimônio<input name="patrimonio" /></label>
-        <button type="submit">Gerar token de instalação</button>
-    </form>
-</section>
-
-<section class="painel">
-    <h2>Estações</h2>
-    <div class="tabela-responsiva"><table>
-        <thead><tr><th>Máquina</th><th>Responsável</th><th>Status</th><th>Estado</th><th>Versão</th><th>Última comunicação</th></tr></thead>
-        <tbody>
-        @foreach (var agente in Model.Agentes)
+<section class="grade-dashboard">
+    <article class="painel painel-estacoes-agora">
+        <div class="titulo-painel"><div><span class="sobrelinha">TEMPO REAL</span><h2>Estações</h2></div><a href="/estacoes">Ver todas →</a></div>
+        @if (Model.Agentes.Count == 0)
         {
-            <tr><td><a href="/timeline/@agente.AgenteId">@agente.Hostname</a></td><td>@(agente.Responsavel ?? "-")</td><td>@agente.Status</td><td>@(agente.EstadoAtual ?? "-")</td><td>@agente.Versao</td><td>@(agente.UltimaComunicacaoUtc?.ToLocalTime().ToString("dd/MM HH:mm:ss") ?? "-")</td></tr>
+            <div class="estado-vazio"><strong>Nenhuma estação registrada.</strong><span>Gere uma instalação acima para iniciar a coleta.</span></div>
         }
-        </tbody>
-    </table></div>
+        else
+        {
+            <div class="tabela-responsiva"><table>
+                <thead><tr><th>Estação</th><th>Pessoa</th><th>Estado</th><th>Atividade atual</th><th>Local</th><th>Última comunicação</th></tr></thead>
+                <tbody>
+                @foreach (var agente in Model.Agentes)
+                {
+                    <tr>
+                        <td><a class="link-principal" href="/timeline/@agente.AgenteId">@agente.Hostname</a><small class="subtexto-tabela">@(agente.NumeroSerie ?? "Serial aguardando")</small></td>
+                        <td>@(agente.Responsavel ?? agente.UsuarioWindows ?? "-")</td>
+                        <td><span class="estado @ClasseEstado(agente.EstadoAtual)"><i></i>@(agente.EstadoAtual ?? agente.Status)</span></td>
+                        <td>@(agente.ProcessoAtual ?? "-")</td>
+                        <td>@agente.LocalTrabalho</td>
+                        <td>@(agente.UltimaComunicacaoUtc?.ToLocalTime().ToString("dd/MM HH:mm:ss") ?? "-")</td>
+                    </tr>
+                }
+                </tbody>
+            </table></div>
+        }
+    </article>
+
+    <article class="painel painel-aplicativos-agora">
+        <div class="titulo-painel"><div><span class="sobrelinha">CONTEXTO</span><h2>Aplicativos hoje</h2></div><a href="/aplicativos">Analisar →</a></div>
+        @if (Model.AplicativosHoje.Count == 0)
+        {
+            <div class="estado-vazio compacto"><span>Aguardando períodos de atividade.</span></div>
+        }
+        else
+        {
+            <div class="lista-aplicativos">
+            @foreach (var app in Model.AplicativosHoje)
+            {
+                <div><span><strong>@app.ProcessoExecutavel</strong><small>@(app.Categoria ?? app.Classificacao)</small></span><b>@Tempo(app.Segundos)</b></div>
+            }
+            </div>
+        }
+    </article>
 </section>

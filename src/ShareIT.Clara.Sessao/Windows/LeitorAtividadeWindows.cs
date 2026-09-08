@@ -39,13 +39,18 @@ internal static partial class LeitorAtividadeWindows
         var ocioso = false;
         if (GetLastInputInfo(ref info))
         {
-            var agora = Environment.TickCount64;
-            var ultimo = info.dwTime;
-            var diferencaMs = agora >= ultimo ? agora - ultimo : 0;
+            // GetLastInputInfo trabalha com o contador de 32 bits do Windows.
+            // A subtração uint intencionalmente preserva o comportamento correto mesmo após o wrap (~49,7 dias).
+            var agora = unchecked((uint)Environment.TickCount);
+            var diferencaMs = unchecked(agora - info.dwTime);
             ocioso = diferencaMs >= TimeSpan.FromMinutes(Math.Max(1, limiarOciosidadeMinutos)).TotalMilliseconds;
         }
 
-        return (ocioso ? EstadoAtividade.Ocioso : EstadoAtividade.Ativo, ObterProcessoPrimeiroPlano());
+        var processo = ObterProcessoPrimeiroPlano();
+        if (!ocioso && EhAplicativoReuniao(processo))
+            return (EstadoAtividade.Reuniao, processo);
+
+        return (ocioso ? EstadoAtividade.Ocioso : EstadoAtividade.Ativo, processo);
     }
 
     private static bool EstaBloqueado()
@@ -55,6 +60,17 @@ internal static partial class LeitorAtividadeWindows
             return Process.GetProcessesByName("LogonUI").Length > 0 || Process.GetProcessesByName("LockApp").Length > 0;
         }
         catch { return false; }
+    }
+
+    private static bool EhAplicativoReuniao(string? processo)
+    {
+        if (string.IsNullOrWhiteSpace(processo)) return false;
+        return processo.Equals("ms-teams", StringComparison.OrdinalIgnoreCase)
+            || processo.Equals("teams", StringComparison.OrdinalIgnoreCase)
+            || processo.Equals("zoom", StringComparison.OrdinalIgnoreCase)
+            || processo.Equals("zoomhost", StringComparison.OrdinalIgnoreCase)
+            || processo.Equals("webexmta", StringComparison.OrdinalIgnoreCase)
+            || processo.Equals("webex", StringComparison.OrdinalIgnoreCase);
     }
 
     private static string? ObterProcessoPrimeiroPlano()

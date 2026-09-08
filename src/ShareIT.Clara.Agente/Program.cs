@@ -2,6 +2,7 @@ using ShareIT.Clara.Agente.Atualizacao;
 using ShareIT.Clara.Agente.Comunicacao;
 using ShareIT.Clara.Agente.Configuracao;
 using ShareIT.Clara.Agente.Identidade;
+using ShareIT.Clara.Agente.Inventario;
 using ShareIT.Clara.Agente.Servicos;
 using ShareIT.Clara.Agente.Telemetria;
 
@@ -17,6 +18,7 @@ builder.Services.AddWindowsService(opcoes => opcoes.ServiceName = "Share IT .Cla
 builder.Services.AddSingleton(configuracao);
 builder.Services.AddSingleton(http);
 builder.Services.AddSingleton<GerenciadorIdentidadeAgente>();
+builder.Services.AddSingleton<ColetorInventarioWindows>();
 builder.Services.AddSingleton<FilaOffline>();
 builder.Services.AddSingleton<ClienteApiClara>();
 builder.Services.AddHostedService<ServidorPipeSessao>();

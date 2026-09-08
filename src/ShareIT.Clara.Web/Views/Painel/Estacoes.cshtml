@@ -1,0 +1,34 @@
+@model PainelEstacoes
+@{
+    ViewData["Title"] = "Estações";
+}
+<section class="cabecalho-pagina">
+    <div><span class="sobrelinha">INVENTÁRIO AUTOMÁTICO</span><h1>Estações</h1><p>Dados técnicos chegam do agente; você completa somente as informações administrativas.</p></div>
+    <a class="botao-link" href="/">+ Nova instalação</a>
+</section>
+<section class="painel">
+    @if (Model.Estacoes.Count == 0)
+    {
+        <div class="estado-vazio"><strong>Nenhuma estação encontrada.</strong><span>Instale o agente em uma máquina para o .Clara descobri-la automaticamente.</span></div>
+    }
+    else
+    {
+        <div class="tabela-responsiva"><table>
+            <thead><tr><th>Máquina</th><th>Inventário</th><th>Empresa</th><th>Responsável</th><th>Cadastro</th><th>Status</th><th>Versão</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var e in Model.Estacoes)
+            {
+                <tr>
+                    <td><strong>@e.Hostname</strong><small class="subtexto-tabela">@(e.UsuarioWindows ?? "Usuário aguardando")</small></td>
+                    <td>@(e.Fabricante ?? "-") @(e.Modelo ?? "")<small class="subtexto-tabela">Serial: @(e.NumeroSerie ?? "-")</small></td>
+                    <td>@e.Empresa<small class="subtexto-tabela">@(e.Departamento ?? e.Unidade ?? "-")</small></td>
+                    <td>@(e.Responsavel ?? "-")</td>
+                    <td><span class="selo @(e.CadastroCompleto ? "selo-ok" : "selo-atencao")">@(e.CadastroCompleto ? "Completo" : "Completar")</span></td>
+                    <td>@e.Status</td><td>@(e.Versao ?? "-")</td>
+                    <td><a class="link-principal" href="/estacoes/@e.AtivoId">Abrir →</a></td>
+                </tr>
+            }
+            </tbody>
+        </table></div>
+    }
+</section>

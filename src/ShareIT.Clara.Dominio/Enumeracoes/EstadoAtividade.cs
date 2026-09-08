@@ -13,5 +13,6 @@ public enum EstadoAtividade : short
     Ativo = 1,
     Ocioso = 2,
     Bloqueado = 3,
-    Offline = 4
+    Offline = 4,
+    Reuniao = 5
 }

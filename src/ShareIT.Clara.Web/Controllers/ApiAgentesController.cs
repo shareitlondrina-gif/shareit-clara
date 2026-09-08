@@ -23,7 +23,7 @@ public sealed class ApiAgentesController(RepositorioAgentes repositorio, Configu
     [HttpPost("registrar")]
     public async Task<IActionResult> Registrar(RegistroAgenteSolicitacao solicitacao, CancellationToken ct)
     {
-        var resposta = await repositorio.RegistrarAsync(solicitacao, ct);
+        var resposta = await repositorio.RegistrarAsync(solicitacao, ObterIpOrigem(), ct);
         return resposta is null ? Unauthorized(new { erro = "Token de instalação inválido, expirado ou já utilizado." }) : Ok(resposta);
     }
 
@@ -32,7 +32,7 @@ public sealed class ApiAgentesController(RepositorioAgentes repositorio, Configu
     {
         var contexto = await AutenticarAsync(ct);
         if (contexto is null) return Unauthorized();
-        await repositorio.RegistrarHeartbeatAsync(contexto, heartbeat, ct);
+        await repositorio.RegistrarHeartbeatAsync(contexto, heartbeat, ObterIpOrigem(), ct);
         return Ok(new { servidorUtc = DateTimeOffset.UtcNow });
     }
 
@@ -77,6 +77,14 @@ public sealed class ApiAgentesController(RepositorioAgentes repositorio, Configu
         if (contexto is null) return Unauthorized();
         await repositorio.RegistrarStatusAtualizacaoAsync(contexto, status, ct);
         return Ok();
+    }
+
+    private string? ObterIpOrigem()
+    {
+        var encaminhado = Request.Headers["X-Forwarded-For"].FirstOrDefault();
+        if (!string.IsNullOrWhiteSpace(encaminhado))
+            return encaminhado.Split(',')[0].Trim();
+        return HttpContext.Connection.RemoteIpAddress?.ToString();
     }
 
     private async Task<ContextoAgente?> AutenticarAsync(CancellationToken ct)

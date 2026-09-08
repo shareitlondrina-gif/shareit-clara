@@ -1,22 +1,57 @@
+@{
+    var autenticado = User.Identity?.IsAuthenticated == true;
+    var caminho = Context.Request.Path.Value?.ToLowerInvariant() ?? "/";
+    string Ativo(string prefixo) => caminho == prefixo || caminho.StartsWith(prefixo + "/") ? "ativo" : "";
+}
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0f2d5c" />
     <title>@ViewData["Title"] - Share IT .Clara</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="~/img/favicon.png" />
+    <link rel="icon" href="~/img/favicon.ico" />
+    <link rel="manifest" href="~/img/site.webmanifest" />
     <link rel="stylesheet" href="~/css/clara.css" asp-append-version="true" />
 </head>
-<body>
-    <header class="topo">
-        <div class="marca"><strong>Share IT</strong> <span>.Clara</span></div>
-        @if (User.Identity?.IsAuthenticated == true)
-        {
-            <div class="usuario">
-                <span>@User.Identity.Name</span>
-                <form method="post" action="/sair">@Html.AntiForgeryToken()<button class="botao-secundario" type="submit">Sair</button></form>
-            </div>
-        }
-    </header>
+<body class="@(autenticado ? "com-navegacao" : "sem-navegacao")">
+@if (autenticado)
+{
+    <aside class="barra-lateral">
+        <a class="marca-lateral" href="/" aria-label="Share IT .Clara">
+            <img src="~/img/logo-clara.png" alt="Share IT .Clara" />
+        </a>
+        <nav class="menu-principal">
+            <span class="grupo-menu">Visão</span>
+            <a class="@(caminho == "/" ? "ativo" : "")" href="/"><span class="icone-menu">◉</span>Agora</a>
+            <a class='@Ativo("/estacoes")' href="/estacoes"><span class="icone-menu">▣</span>Estações</a>
+            <a class='@Ativo("/aplicativos")' href="/aplicativos"><span class="icone-menu">▥</span>Aplicativos</a>
+
+            <span class="grupo-menu">Contexto</span>
+            <a class='@Ativo("/locais")' href="/locais"><span class="icone-menu">⌂</span>Home x Escritório</a>
+            <a class='@Ativo("/integracoes")' href="/integracoes"><span class="icone-menu">◇</span>Integrações</a>
+
+            <span class="grupo-menu">Inteligência</span>
+            <a class='@Ativo("/indice-geral")' href="/indice-geral"><span class="icone-menu">◎</span>Índice Geral</a>
+            <span class="menu-futuro"><span class="icone-menu">◌</span>Oportunidades</span>
+            <span class="menu-futuro"><span class="icone-menu">▧</span>Evidências</span>
+        </nav>
+        <div class="rodape-menu">
+            <div class="usuario-menu"><span>@User.Identity?.Name</span><small>Ambiente de homologação</small></div>
+            <form method="post" action="/sair">@Html.AntiForgeryToken()<button class="botao-sair" type="submit">Sair</button></form>
+        </div>
+    </aside>
+}
+<div class="estrutura-principal">
+    @if (autenticado)
+    {
+        <header class="topo">
+            <div><strong>Share IT .Clara</strong><span class="slogan-topo">Veja. Entenda. Melhore.</span></div>
+            <span class="selo-versao">v0.2.2</span>
+        </header>
+    }
     <main class="conteudo">@RenderBody()</main>
+</div>
 </body>
 </html>

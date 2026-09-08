@@ -2,6 +2,6 @@ namespace ShareIT.Clara.Dominio.Contratos;
 
 public sealed record HeartbeatAgente(
     string VersaoAgente,
-    string Hostname,
-    string? UsuarioWindows,
+    InventarioEquipamento Inventario,
+    string? ProcessoAtual,
     DateTimeOffset MomentoUtc);

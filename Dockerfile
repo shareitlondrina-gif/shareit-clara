@@ -20,6 +20,9 @@ RUN VERSION=$(cat VERSAO.txt | tr -d '\r\n') \
     && printf '{\n  "versao": "%s",\n  "urlPacote": "/api/v1/agentes/atualizacao/pacote/%s",\n  "sha256": "%s",\n  "obrigatoria": false,\n  "publicadaEmUtc": "%s"\n}\n' "$VERSION" "$VERSION" "$SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > /out/web/atualizacoes/agente/manifesto.json
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libgssapi-krb5-2 \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=build /out/web .
 ENV ASPNETCORE_URLS=http://0.0.0.0:8080

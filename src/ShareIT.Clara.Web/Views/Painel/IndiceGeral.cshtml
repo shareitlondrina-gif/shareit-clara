@@ -1,0 +1,26 @@
+@model PainelIndiceGeral
+@{
+    ViewData["Title"] = "Índice Geral";
+    string Tempo(long segundos){var t=TimeSpan.FromSeconds(segundos);return t.TotalHours>=1?$"{(int)t.TotalHours}h {t.Minutes:00}m":$"{t.Minutes}m";}
+}
+<section class="cabecalho-pagina">
+    <div><span class="sobrelinha">INTELIGÊNCIA EXPLICÁVEL</span><h1>Índice Geral</h1><p>Síntese dos sinais disponíveis, com pesos visíveis e confiança separada do resultado.</p></div>
+</section>
+<section class="grade-indice">
+    <article class="painel card-indice-principal"><span class="sobrelinha">ÍNDICE GERAL HOJE</span><strong>@Model.IndiceGeral</strong><small>/100</small><p>@Model.Explicacao</p></article>
+    <article class="painel card-confianca"><span class="sobrelinha">CONFIANÇA DOS DADOS</span><strong>@Model.ConfiancaDados%</strong><p>@Model.EstacoesComDados de @Model.TotalEstacoes estações com dados hoje · @Tempo(Model.SegundosObservados) observados.</p></article>
+</section>
+<section class="painel">
+    <div class="titulo-painel"><div><span class="sobrelinha">COMPOSIÇÃO</span><h2>Como o índice foi calculado</h2></div></div>
+    <div class="componentes-indice">
+    @foreach(var c in Model.Componentes)
+    {
+        <article class="componente-indice @(c.Disponivel ? "" : "indisponivel")">
+            <div><strong>@c.Nome</strong><span>@c.Descricao</span></div>
+            <div class="valor-componente"><b>@(c.Disponivel ? c.Valor : 0)</b><small>@(c.PesoAplicado > 0 ? $"peso {c.PesoAplicado}%" : "sem peso")</small></div>
+            <div class="barra-indice"><i style="width:@(c.Disponivel ? c.Valor : 0)%"></i></div>
+        </article>
+    }
+    </div>
+</section>
+<section class="painel nota-tecnica"><strong>Leitura correta do indicador</strong><p>O .Clara não classifica automaticamente uma pessoa como “boa” ou “ruim”. O Índice Geral ajuda a encontrar mudanças e padrões; cargo, atividade externa, reuniões, sistemas lentos e contexto operacional continuam exigindo interpretação humana.</p></section>

@@ -16,6 +16,14 @@ public sealed class ConfiguracaoClara
     public ConfiguracaoAgente Agente { get; init; } = new();
 }
 
+/// <summary>
+/// Objetivo: representar parâmetros não secretos do servidor Web/API.
+/// Origem: configuração local e variáveis de ambiente normalizadas.
+/// Destino: inicialização da aplicação, health e cálculo de status online/offline.
+/// Dependências: CarregadorConfiguracaoClara.
+/// Impacto: define URLs e comportamento operacional do servidor.
+/// Desenvolvedor: Paulo Andrade
+/// </summary>
 public sealed class ConfiguracaoServidor
 {
     public string UrlPublica { get; init; } = "http://localhost:5080";
@@ -23,6 +31,14 @@ public sealed class ConfiguracaoServidor
     public int MinutosParaConsiderarOffline { get; init; } = 3;
 }
 
+/// <summary>
+/// Objetivo: representar exclusivamente a referência ao segredo de conexão e o banco lógico autorizado.
+/// Origem: configuração não secreta do ambiente.
+/// Destino: FabricaConexoesClara, PreparadorBancoClara e MigradorBancoClara.
+/// Dependências: variável de ambiente contendo a connection string real.
+/// Impacto: protege o isolamento do banco shareit_clara.
+/// Desenvolvedor: Paulo Andrade
+/// </summary>
 public sealed class ConfiguracaoBanco
 {
     public string StringConexaoVariavel { get; init; } = "CLARA_POSTGRES";
@@ -30,6 +46,14 @@ public sealed class ConfiguracaoBanco
     public bool CriarAutomaticamente { get; init; } = true;
 }
 
+/// <summary>
+/// Objetivo: representar os parâmetros do tenant e administrador iniciais de homologação.
+/// Origem: ConfigSys/variáveis de ambiente.
+/// Destino: RepositorioBootstrap.
+/// Dependências: senha fornecida exclusivamente por variável de ambiente.
+/// Impacto: permite bootstrap idempotente sem persistir senha no código.
+/// Desenvolvedor: Paulo Andrade
+/// </summary>
 public sealed class ConfiguracaoBootstrap
 {
     public string NomeTenant { get; init; } = "Share IT";
@@ -39,6 +63,14 @@ public sealed class ConfiguracaoBootstrap
     public string SenhaAdministradorVariavel { get; init; } = "CLARA_ADMIN_SENHA";
 }
 
+/// <summary>
+/// Objetivo: representar intervalos e limites operacionais distribuídos ao ecossistema do agente.
+/// Origem: configuração do ambiente Share IT .Clara.
+/// Destino: heartbeat, sincronização, atualização e ociosidade.
+/// Dependências: CarregadorConfiguracaoClara e instalador.
+/// Impacto: centraliza parâmetros de coleta sem codificação dispersa.
+/// Desenvolvedor: Paulo Andrade
+/// </summary>
 public sealed class ConfiguracaoAgente
 {
     public int IntervaloHeartbeatSegundos { get; init; } = 60;

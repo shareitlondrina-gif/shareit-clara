@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.HttpOverrides;
 using Npgsql;
 using ShareIT.Clara.Comum.Configuracao;
 using ShareIT.Clara.Dados.Banco;
@@ -19,8 +20,16 @@ builder.Services.AddScoped<RepositorioBootstrap>();
 builder.Services.AddScoped<RepositorioAgentes>();
 builder.Services.AddScoped<RepositorioAdministracao>();
 builder.Services.AddScoped<RepositorioDashboard>();
+builder.Services.AddScoped<RepositorioContexto>();
 
 builder.Services.AddControllersWithViews();
+builder.Services.Configure<ForwardedHeadersOptions>(opcoes =>
+{
+    opcoes.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    opcoes.KnownIPNetworks.Clear();
+    opcoes.KnownProxies.Clear();
+});
+
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(opcoes =>
     {
@@ -73,6 +82,7 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
+app.UseForwardedHeaders();
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
@@ -150,4 +160,4 @@ app.MapControllerRoute(name: "padrao", pattern: "{controller=Painel}/{action=Ind
 await app.RunAsync();
 
 static string ObterVersaoAplicacao()
-    => Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.1.2";
+    => Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.2.2";

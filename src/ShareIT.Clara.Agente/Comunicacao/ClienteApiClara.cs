@@ -2,6 +2,7 @@ using System.Net.Http.Json;
 using System.Reflection;
 using ShareIT.Clara.Agente.Configuracao;
 using ShareIT.Clara.Agente.Identidade;
+using ShareIT.Clara.Agente.Inventario;
 using ShareIT.Clara.Dominio.Contratos;
 using ShareIT.Clara.Dominio.Modelos;
 
@@ -9,27 +10,25 @@ namespace ShareIT.Clara.Agente.Comunicacao;
 
 /// <summary>
 /// Objetivo: centralizar toda comunicação HTTPS/JSON do agente com o servidor.
-/// Origem: serviços do agente.
+/// Origem: serviços do agente e inventário automático da estação.
 /// Destino: API /api/v1/agentes.
-/// Dependências: HttpClient e identidade protegida do dispositivo.
-/// Impacto: mantém autenticação e contratos de rede em um único componente.
+/// Dependências: HttpClient, identidade protegida do dispositivo e ColetorInventarioWindows.
+/// Impacto: mantém autenticação, inventário e contratos de rede em um único componente.
 /// Desenvolvedor: Paulo Andrade
 /// </summary>
-public sealed class ClienteApiClara(HttpClient http, ConfiguracaoAgenteLocal configuracao, GerenciadorIdentidadeAgente identidade)
+public sealed class ClienteApiClara(
+    HttpClient http,
+    ConfiguracaoAgenteLocal configuracao,
+    GerenciadorIdentidadeAgente identidade,
+    ColetorInventarioWindows inventario)
 {
-    public string VersaoAtual => Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.1.1";
+    public string VersaoAtual => Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.2.2";
 
     public async Task<RegistroAgenteResposta?> RegistrarAsync(CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(configuracao.TokenInstalacao)) return null;
-        var solicitacao = new RegistroAgenteSolicitacao(
-            configuracao.TokenInstalacao,
-            Environment.MachineName,
-            null,
-            Environment.OSVersion.VersionString,
-            VersaoAtual,
-            null,
-            null);
+        var dados = await inventario.ObterAsync(false, ct);
+        var solicitacao = new RegistroAgenteSolicitacao(configuracao.TokenInstalacao, VersaoAtual, dados);
         var resposta = await http.PostAsJsonAsync("api/v1/agentes/registrar", solicitacao, ct);
         if (!resposta.IsSuccessStatusCode) return null;
         return await resposta.Content.ReadFromJsonAsync<RegistroAgenteResposta>(cancellationToken: ct);
@@ -38,7 +37,8 @@ public sealed class ClienteApiClara(HttpClient http, ConfiguracaoAgenteLocal con
     public async Task<bool> EnviarHeartbeatAsync(CancellationToken ct)
     {
         using var req = Criar(HttpMethod.Post, "api/v1/agentes/heartbeat");
-        req.Content = JsonContent.Create(new HeartbeatAgente(VersaoAtual, Environment.MachineName, null, DateTimeOffset.UtcNow));
+        var dados = await inventario.ObterAsync(false, ct);
+        req.Content = JsonContent.Create(new HeartbeatAgente(VersaoAtual, dados, null, DateTimeOffset.UtcNow));
         using var resposta = await http.SendAsync(req, ct);
         return resposta.IsSuccessStatusCode;
     }
@@ -59,7 +59,6 @@ public sealed class ClienteApiClara(HttpClient http, ConfiguracaoAgenteLocal con
         resposta.EnsureSuccessStatusCode();
         return await resposta.Content.ReadFromJsonAsync<ManifestoAtualizacaoAgente>(cancellationToken: ct);
     }
-
 
     public async Task BaixarPacoteAtualizacaoAsync(string url, string destino, CancellationToken ct)
     {

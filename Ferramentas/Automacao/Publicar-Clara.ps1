@@ -8,6 +8,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $Raiz = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $Versao = (Get-Content (Join-Path $Raiz 'VERSAO.txt') -Raw).Trim()
+$MigracoesEsperadas = @(Get-ChildItem (Join-Path $Raiz 'database\migrations') -Filter '*.sql' -File).Count
 $ConfigDir = 'C:\ConfigSys\Clara'
 $ConfigClara = Join-Path $ConfigDir 'ConfiguracaoClara.xml'
 $ConfigPub = Join-Path $ConfigDir 'Publicacao\ConfiguracaoPublicacao.xml'
@@ -86,11 +87,12 @@ function Testar-Health([string]$Url, [int]$Tentativas, [int]$EsperaSegundos) {
             $versaoRemota = [string]$resposta.versao
             $banco = [string]$resposta.banco
             $nomeBanco = [string]$resposta.nomeBanco
-            if ($banco -eq 'ok' -and $nomeBanco -eq 'shareit_clara' -and $versaoRemota -eq $Versao) {
-                Ok "Health confirmado na versao $versaoRemota, banco $nomeBanco."
+            $migracoesRemotas = [int]$resposta.migracoes
+            if ($banco -eq 'ok' -and $nomeBanco -eq 'shareit_clara' -and $versaoRemota -eq $Versao -and $migracoesRemotas -eq $MigracoesEsperadas) {
+                Ok "Health confirmado na versao $versaoRemota, banco $nomeBanco, $migracoesRemotas migrations."
                 return $true
             }
-            Aviso "Health respondeu, mas ainda nao esta na versao esperada. Remota='$versaoRemota', esperada='$Versao', banco='$banco'. Tentativa $i/$Tentativas."
+            Aviso "Health respondeu, mas ainda nao esta na baseline esperada. Remota='$versaoRemota', esperada='$Versao', banco='$banco', migrations='$migracoesRemotas/$MigracoesEsperadas'. Tentativa $i/$Tentativas."
         }
         catch {
             $status = $_.Exception.Response.StatusCode.value__ 2>$null
@@ -145,6 +147,7 @@ try {
     Ok 'Banco de destino protegido: shareit_clara'
     Info "Criacao automatica do banco: $criarBanco"
     Info 'A conexao pode apontar para o PostgreSQL compartilhado do .VISÃO; migrations do .Clara so executam em shareit_clara.'
+    Info "Migrations versionadas esperadas nesta release: $MigracoesEsperadas"
 
     Etapa 'Validando prerequisitos'
     Garantir-Comando 'dotnet.exe' 'Microsoft.DotNet.SDK.10' '.NET SDK 10'
@@ -236,21 +239,53 @@ try {
             if (-not (Test-Path '.git')) {
                 & git.exe init
                 if ($LASTEXITCODE -ne 0) { Falhar 'git init falhou.' }
+            }
+
+            # O pacote de release nao leva a pasta .git. Portanto, cada nova versao pode
+            # ser executada em uma pasta limpa. Antes de criar o commit local, vinculamos
+            # esta copia ao historico remoto para evitar non-fast-forward/fetch first.
+            $remotes = @(& git.exe remote 2>$null)
+            if ($remotes -contains 'origin') {
+                & git.exe remote set-url origin $repo
+                if ($LASTEXITCODE -ne 0) { Falhar 'Nao foi possivel atualizar o remote origin.' }
+            } else {
                 & git.exe remote add origin $repo
                 if ($LASTEXITCODE -ne 0) { Falhar 'Nao foi possivel configurar o remote origin.' }
             }
-            & git.exe add .
+
+            Etapa 'Sincronizando historico Git remoto'
+            & git.exe ls-remote --exit-code --heads origin $branch *> $null
+            $resultadoRemote = $LASTEXITCODE
+            if ($resultadoRemote -eq 0) {
+                & git.exe fetch origin $branch --prune
+                if ($LASTEXITCODE -ne 0) { Falhar 'git fetch falhou. O historico remoto nao foi alterado.' }
+
+                # Mantem os arquivos da release atual no disco, mas posiciona o HEAD no
+                # ultimo commit remoto. Assim o novo commit e criado por cima do historico
+                # existente sem merge artificial e sem usar push --force.
+                & git.exe reset --mixed ("origin/{0}" -f $branch)
+                if ($LASTEXITCODE -ne 0) { Falhar 'Nao foi possivel sincronizar a base local com o historico remoto.' }
+                Ok "Historico remoto sincronizado com origin/$branch; arquivos da release atual preservados."
+            }
+            elseif ($resultadoRemote -eq 2) {
+                Info "A branch remota '$branch' ainda nao existe; sera criada no primeiro push."
+            }
+            else {
+                Falhar 'Nao foi possivel consultar a branch remota no GitHub. Verifique autenticacao e permissao do repositorio.'
+            }
+
+            & git.exe add -A
             & git.exe diff --cached --quiet
             if ($LASTEXITCODE -ne 0) {
                 & git.exe commit -m ("Share IT .Clara v{0}" -f $Versao)
                 if ($LASTEXITCODE -ne 0) { Falhar 'git commit falhou.' }
             } else {
-                Info 'Nenhuma alteracao nova para commit; sera feito push da branch atual.'
+                Info 'Nenhuma alteracao nova para commit; sera validado o estado da branch remota.'
             }
             & git.exe branch -M $branch
             if ($LASTEXITCODE -ne 0) { Falhar 'Falha ao ajustar branch Git.' }
             & git.exe push -u origin $branch
-            if ($LASTEXITCODE -ne 0) { Falhar 'Git push falhou.' }
+            if ($LASTEXITCODE -ne 0) { Falhar 'Git push falhou mesmo apos sincronizacao segura do historico remoto.' }
             Ok "Codigo enviado ao GitHub: $repo ($branch)."
         } finally { Pop-Location }
     } else {
@@ -294,6 +329,7 @@ try {
     Write-Host "Compilacao:   OK"
     Write-Host "Testes:       OK"
     Write-Host "Banco alvo:   shareit_clara"
+    Write-Host ("Migrations:    {0}" -f $MigracoesEsperadas)
     Write-Host ("ZIP:          {0}" -f $ZipFinal)
     Write-Host ("Log:          {0}" -f $LogAtual)
     if ($OnlineValidado) {

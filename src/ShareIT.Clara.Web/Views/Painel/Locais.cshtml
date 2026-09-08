@@ -1,0 +1,24 @@
+@model IReadOnlyCollection<RegraLocalTrabalho>
+@{
+    ViewData["Title"] = "Home x Escritório";
+}
+<section class="cabecalho-pagina">
+    <div><span class="sobrelinha">CONTEXTO DE LOCAL</span><h1>Home x Escritório</h1><p>Cadastre as faixas públicas da empresa. Estações dentro delas são identificadas como escritório; as demais ficam como remoto/externo até haver regra específica.</p></div>
+</section>
+<section class="grade-detalhe">
+    <article class="painel">
+        <div class="titulo-painel"><div><span class="sobrelinha">REGRAS ATIVAS</span><h2>Redes conhecidas</h2></div></div>
+        @if (Model.Count == 0) { <div class="estado-vazio compacto"><span>Nenhuma rede corporativa cadastrada.</span></div> }
+        else { <div class="lista-regras">@foreach(var r in Model){<div><span><strong>@r.Nome</strong><small>@r.FaixaIp</small></span><b>@r.Tipo</b></div>}</div> }
+    </article>
+    <article class="painel">
+        <div class="titulo-painel"><div><span class="sobrelinha">NOVA REGRA</span><h2>Adicionar local</h2></div></div>
+        <form method="post" action="/locais/adicionar" class="formulario-vertical">
+            @Html.AntiForgeryToken()
+            <label>Nome<input name="nome" placeholder="Escritório Londrina" required /></label>
+            <label>Faixa de IP/CIDR<input name="faixaIp" placeholder="200.100.50.0/24" required /></label>
+            <label>Tipo<select name="tipo"><option value="Escritorio">Escritório</option><option value="HomeOffice">Home office</option><option value="Externo">Externo</option><option value="Outro">Outro</option></select></label>
+            <button type="submit">Adicionar regra</button>
+        </form>
+    </article>
+</section>

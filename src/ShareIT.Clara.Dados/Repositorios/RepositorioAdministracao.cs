@@ -1,19 +1,22 @@
 using System.Security.Cryptography;
 using Npgsql;
+using NpgsqlTypes;
+using ShareIT.Clara.Comum.Configuracao;
 using ShareIT.Clara.Comum.Seguranca;
 using ShareIT.Clara.Dados.Banco;
+using ShareIT.Clara.Dominio.Contratos;
 
 namespace ShareIT.Clara.Dados.Repositorios;
 
 /// <summary>
-/// Objetivo: executar operações administrativas iniciais de ativos e instalação de agentes.
-/// Origem: dashboard autenticado.
-/// Destino: ativos e tokens_instalacao.
+/// Objetivo: executar operações administrativas de onboarding, estações, patrimônio e organização do tenant.
+/// Origem: painel autenticado e descoberta automática do agente.
+/// Destino: ativos, tokens_instalacao, empresas, unidades e departamentos.
 /// Dependências: PostgreSQL e geração criptográfica de tokens.
-/// Impacto: vincula cada instalação ao tenant correto sem expor lista global de clientes no instalador.
+/// Impacto: simplifica a implantação: o administrador escolhe a empresa e o agente descobre os dados técnicos da máquina.
 /// Desenvolvedor: Paulo Andrade
 /// </summary>
-public sealed class RepositorioAdministracao(FabricaConexoesClara fabrica)
+public sealed class RepositorioAdministracao(FabricaConexoesClara fabrica, ConfiguracaoClara configuracao)
 {
     public async Task<IReadOnlyCollection<EmpresaBasica>> ListarEmpresasAsync(Guid tenantId, CancellationToken ct = default)
     {
@@ -28,7 +31,7 @@ public sealed class RepositorioAdministracao(FabricaConexoesClara fabrica)
         return lista;
     }
 
-    public async Task<TokenInstalacaoGerado> CriarAtivoETokenAsync(Guid tenantId, Guid usuarioId, Guid empresaId, string hostname, string? responsavel, string? patrimonio, CancellationToken ct = default)
+    public async Task<TokenInstalacaoGerado> CriarTokenInstalacaoAsync(Guid tenantId, Guid usuarioId, Guid empresaId, CancellationToken ct = default)
     {
         var token = Convert.ToHexString(RandomNumberGenerator.GetBytes(24)).ToLowerInvariant();
         var hash = HashSeguro.Sha256Texto(token);
@@ -36,53 +39,176 @@ public sealed class RepositorioAdministracao(FabricaConexoesClara fabrica)
 
         await using var conexao = fabrica.Criar();
         await conexao.OpenAsync(ct);
-        await using var transacao = await conexao.BeginTransactionAsync(ct);
-
-        const string ativoSql = """
-            INSERT INTO ativos(tenant_id,empresa_id,hostname,responsavel,patrimonio)
-            VALUES(@tenant,@empresa,@hostname,@responsavel,@patrimonio)
-            ON CONFLICT(tenant_id,hostname) DO UPDATE SET
-                empresa_id=EXCLUDED.empresa_id,
-                responsavel=EXCLUDED.responsavel,
-                patrimonio=EXCLUDED.patrimonio,
-                ativo=true
-            RETURNING id;
-            """;
-        Guid ativoId;
-        await using (var comando = new NpgsqlCommand(ativoSql, conexao, transacao))
-        {
-            comando.Parameters.AddWithValue("tenant", tenantId);
-            comando.Parameters.AddWithValue("empresa", empresaId);
-            comando.Parameters.AddWithValue("hostname", hostname.Trim());
-            comando.Parameters.AddWithValue("responsavel", (object?)responsavel?.Trim() ?? DBNull.Value);
-            comando.Parameters.AddWithValue("patrimonio", (object?)patrimonio?.Trim() ?? DBNull.Value);
-            ativoId = (Guid)(await comando.ExecuteScalarAsync(ct) ?? throw new InvalidOperationException("Não foi possível criar o ativo."));
-        }
-
-        await using (var invalidar = new NpgsqlCommand("UPDATE tokens_instalacao SET usado_em_utc=now() WHERE ativo_id=@ativo AND usado_em_utc IS NULL", conexao, transacao))
-        {
-            invalidar.Parameters.AddWithValue("ativo", ativoId);
-            await invalidar.ExecuteNonQueryAsync(ct);
-        }
-
-        const string tokenSql = """
-            INSERT INTO tokens_instalacao(tenant_id,ativo_id,token_hash,expira_em_utc,criado_por_usuario_id)
-            VALUES(@tenant,@ativo,@hash,@expira,@usuario);
-            """;
-        await using (var comando = new NpgsqlCommand(tokenSql, conexao, transacao))
-        {
-            comando.Parameters.AddWithValue("tenant", tenantId);
-            comando.Parameters.AddWithValue("ativo", ativoId);
-            comando.Parameters.AddWithValue("hash", hash);
-            comando.Parameters.AddWithValue("expira", expira);
-            comando.Parameters.AddWithValue("usuario", usuarioId);
-            await comando.ExecuteNonQueryAsync(ct);
-        }
-
-        await transacao.CommitAsync(ct);
-        return new TokenInstalacaoGerado(ativoId, token, expira);
+        await using var comando = new NpgsqlCommand("""
+            INSERT INTO tokens_instalacao(tenant_id,empresa_id,ativo_id,token_hash,expira_em_utc,criado_por_usuario_id)
+            SELECT @tenant,e.id,NULL,@hash,@expira,@usuario
+            FROM empresas e
+            WHERE e.id=@empresa AND e.tenant_id=@tenant AND e.ativo=true;
+            """, conexao);
+        comando.Parameters.AddWithValue("tenant", tenantId);
+        comando.Parameters.AddWithValue("empresa", empresaId);
+        comando.Parameters.AddWithValue("hash", hash);
+        comando.Parameters.AddWithValue("expira", expira);
+        comando.Parameters.AddWithValue("usuario", usuarioId);
+        if (await comando.ExecuteNonQueryAsync(ct) != 1)
+            throw new InvalidOperationException("Empresa não encontrada para este tenant.");
+        return new TokenInstalacaoGerado(token, expira, configuracao.Servidor.UrlPublica);
     }
+
+    public async Task<PainelEstacoes> ListarEstacoesAsync(Guid tenantId, CancellationToken ct = default)
+    {
+        const string sql = """
+            SELECT at.id,a.id,at.hostname,COALESCE(a.usuario_windows,at.usuario_windows_detectado),at.numero_serie,
+                   at.fabricante,at.modelo,at.sistema_operacional,at.patrimonio,at.responsavel,
+                   e.nome,u.nome,d.nome,at.cadastro_completo,a.versao,a.ultima_comunicacao_utc,
+                   CASE WHEN a.id IS NULL THEN 'Sem agente'
+                        WHEN a.ultima_comunicacao_utc >= now() - (@offlineMinutos * interval '1 minute') THEN 'Online'
+                        ELSE 'Offline' END AS status
+            FROM ativos at
+            JOIN empresas e ON e.id=at.empresa_id AND e.tenant_id=at.tenant_id
+            LEFT JOIN unidades u ON u.id=at.unidade_id AND u.tenant_id=at.tenant_id
+            LEFT JOIN departamentos d ON d.id=at.departamento_id AND d.tenant_id=at.tenant_id
+            LEFT JOIN agentes a ON a.ativo_id=at.id AND a.tenant_id=at.tenant_id AND a.ativo=true
+            WHERE at.tenant_id=@tenant AND at.ativo=true
+            ORDER BY at.cadastro_completo, status DESC, at.hostname;
+            """;
+        var estacoes = new List<EstacaoResumo>();
+        await using var conexao = fabrica.Criar();
+        await conexao.OpenAsync(ct);
+        await using (var comando = new NpgsqlCommand(sql, conexao))
+        {
+            comando.Parameters.AddWithValue("tenant", tenantId);
+            comando.Parameters.AddWithValue("offlineMinutos", configuracao.Servidor.MinutosParaConsiderarOffline);
+            await using var leitor = await comando.ExecuteReaderAsync(ct);
+            while (await leitor.ReadAsync(ct))
+            {
+                estacoes.Add(new EstacaoResumo(
+                    leitor.GetGuid(0),
+                    leitor.IsDBNull(1) ? null : leitor.GetGuid(1),
+                    leitor.GetString(2),
+                    leitor.IsDBNull(3) ? null : leitor.GetString(3),
+                    leitor.IsDBNull(4) ? null : leitor.GetString(4),
+                    leitor.IsDBNull(5) ? null : leitor.GetString(5),
+                    leitor.IsDBNull(6) ? null : leitor.GetString(6),
+                    leitor.IsDBNull(7) ? null : leitor.GetString(7),
+                    leitor.IsDBNull(8) ? null : leitor.GetString(8),
+                    leitor.IsDBNull(9) ? null : leitor.GetString(9),
+                    leitor.GetString(10),
+                    leitor.IsDBNull(11) ? null : leitor.GetString(11),
+                    leitor.IsDBNull(12) ? null : leitor.GetString(12),
+                    leitor.GetBoolean(13),
+                    leitor.GetString(16),
+                    leitor.IsDBNull(14) ? null : leitor.GetString(14),
+                    leitor.IsDBNull(15) ? null : ComoDataHora(leitor, 15)));
+            }
+        }
+
+        var empresas = await ListarOpcoesAsync(conexao, "SELECT id,nome FROM empresas WHERE tenant_id=@tenant AND ativo=true ORDER BY nome", tenantId, ct);
+        var unidades = await ListarOpcoesComEmpresaAsync(conexao, "SELECT id,nome,empresa_id FROM unidades WHERE tenant_id=@tenant AND ativo=true ORDER BY nome", tenantId, ct);
+        var departamentos = await ListarOpcoesComEmpresaAsync(conexao, "SELECT id,nome,empresa_id FROM departamentos WHERE tenant_id=@tenant AND ativo=true ORDER BY nome", tenantId, ct);
+        return new PainelEstacoes(estacoes, empresas, unidades, departamentos);
+    }
+
+    public async Task<DetalheEstacao?> ObterEstacaoAsync(Guid tenantId, Guid ativoId, CancellationToken ct = default)
+    {
+        const string sql = """
+            SELECT at.id,at.empresa_id,at.unidade_id,at.departamento_id,at.hostname,
+                   COALESCE(a.usuario_windows,at.usuario_windows_detectado),at.numero_serie,at.uuid_equipamento,
+                   at.fabricante,at.modelo,at.sistema_operacional,at.arquitetura,at.memoria_total_bytes,at.disco_total_bytes,
+                   at.endereco_ip_local,host(at.endereco_ip_publico),at.patrimonio,at.responsavel,at.cadastro_completo,
+                   at.primeira_comunicacao_utc,a.ultima_comunicacao_utc,a.versao
+            FROM ativos at
+            LEFT JOIN agentes a ON a.ativo_id=at.id AND a.tenant_id=at.tenant_id AND a.ativo=true
+            WHERE at.tenant_id=@tenant AND at.id=@ativo AND at.ativo=true
+            LIMIT 1;
+            """;
+        await using var conexao = fabrica.Criar();
+        await conexao.OpenAsync(ct);
+        await using var comando = new NpgsqlCommand(sql, conexao);
+        comando.Parameters.AddWithValue("tenant", tenantId);
+        comando.Parameters.AddWithValue("ativo", ativoId);
+        await using var leitor = await comando.ExecuteReaderAsync(ct);
+        if (!await leitor.ReadAsync(ct)) return null;
+        return new DetalheEstacao(
+            leitor.GetGuid(0), leitor.GetGuid(1), leitor.IsDBNull(2) ? null : leitor.GetGuid(2), leitor.IsDBNull(3) ? null : leitor.GetGuid(3),
+            leitor.GetString(4), leitor.IsDBNull(5) ? null : leitor.GetString(5), leitor.IsDBNull(6) ? null : leitor.GetString(6), leitor.IsDBNull(7) ? null : leitor.GetString(7),
+            leitor.IsDBNull(8) ? null : leitor.GetString(8), leitor.IsDBNull(9) ? null : leitor.GetString(9), leitor.IsDBNull(10) ? null : leitor.GetString(10), leitor.IsDBNull(11) ? null : leitor.GetString(11),
+            leitor.IsDBNull(12) ? null : leitor.GetInt64(12), leitor.IsDBNull(13) ? null : leitor.GetInt64(13), leitor.IsDBNull(14) ? null : leitor.GetString(14), leitor.IsDBNull(15) ? null : leitor.GetString(15),
+            leitor.IsDBNull(16) ? null : leitor.GetString(16), leitor.IsDBNull(17) ? null : leitor.GetString(17), leitor.GetBoolean(18),
+            leitor.IsDBNull(19) ? null : ComoDataHora(leitor, 19), leitor.IsDBNull(20) ? null : ComoDataHora(leitor, 20), leitor.IsDBNull(21) ? null : leitor.GetString(21));
+    }
+
+    public async Task AtualizarCadastroEstacaoAsync(Guid tenantId, Guid ativoId, Guid empresaId, Guid? unidadeId, Guid? departamentoId, string? patrimonio, string? responsavel, CancellationToken ct = default)
+    {
+        const string sql = """
+            UPDATE ativos SET
+                empresa_id=@empresa,
+                unidade_id=@unidade,
+                departamento_id=@departamento,
+                patrimonio=@patrimonio,
+                responsavel=@responsavel,
+                cadastro_completo=true,
+                atualizado_em_utc=now()
+            WHERE tenant_id=@tenant AND id=@ativo AND ativo=true
+              AND EXISTS (SELECT 1 FROM empresas e WHERE e.id=@empresa AND e.tenant_id=@tenant AND e.ativo=true)
+              AND (@unidade IS NULL OR EXISTS (
+                    SELECT 1 FROM unidades u WHERE u.id=@unidade AND u.tenant_id=@tenant AND u.empresa_id=@empresa AND u.ativo=true))
+              AND (@departamento IS NULL OR EXISTS (
+                    SELECT 1 FROM departamentos d WHERE d.id=@departamento AND d.tenant_id=@tenant AND d.empresa_id=@empresa AND d.ativo=true));
+            """;
+        await using var conexao = fabrica.Criar();
+        await conexao.OpenAsync(ct);
+        await using var comando = new NpgsqlCommand(sql, conexao);
+        comando.Parameters.AddWithValue("tenant", tenantId);
+        comando.Parameters.AddWithValue("ativo", ativoId);
+        comando.Parameters.AddWithValue("empresa", empresaId);
+        comando.Parameters.Add("unidade", NpgsqlDbType.Uuid).Value = (object?)unidadeId ?? DBNull.Value;
+        comando.Parameters.Add("departamento", NpgsqlDbType.Uuid).Value = (object?)departamentoId ?? DBNull.Value;
+        comando.Parameters.Add("patrimonio", NpgsqlDbType.Varchar).Value = (object?)Limpar(patrimonio) ?? DBNull.Value;
+        comando.Parameters.Add("responsavel", NpgsqlDbType.Varchar).Value = (object?)Limpar(responsavel) ?? DBNull.Value;
+        if (await comando.ExecuteNonQueryAsync(ct) == 0) throw new InvalidOperationException("Estação não encontrada para este tenant.");
+    }
+
+    public async Task<IReadOnlyCollection<OpcaoCadastro>> ListarUnidadesAsync(Guid tenantId, CancellationToken ct = default)
+    {
+        await using var conexao = fabrica.Criar();
+        await conexao.OpenAsync(ct);
+        return await ListarOpcoesComEmpresaAsync(conexao, "SELECT id,nome,empresa_id FROM unidades WHERE tenant_id=@tenant AND ativo=true ORDER BY nome", tenantId, ct);
+    }
+
+    public async Task<IReadOnlyCollection<OpcaoCadastro>> ListarDepartamentosAsync(Guid tenantId, CancellationToken ct = default)
+    {
+        await using var conexao = fabrica.Criar();
+        await conexao.OpenAsync(ct);
+        return await ListarOpcoesComEmpresaAsync(conexao, "SELECT id,nome,empresa_id FROM departamentos WHERE tenant_id=@tenant AND ativo=true ORDER BY nome", tenantId, ct);
+    }
+
+    private static async Task<IReadOnlyCollection<OpcaoCadastro>> ListarOpcoesAsync(NpgsqlConnection conexao, string sql, Guid tenantId, CancellationToken ct)
+    {
+        var lista = new List<OpcaoCadastro>();
+        await using var comando = new NpgsqlCommand(sql, conexao);
+        comando.Parameters.AddWithValue("tenant", tenantId);
+        await using var leitor = await comando.ExecuteReaderAsync(ct);
+        while (await leitor.ReadAsync(ct)) lista.Add(new OpcaoCadastro(leitor.GetGuid(0), leitor.GetString(1)));
+        return lista;
+    }
+
+
+    private static async Task<IReadOnlyCollection<OpcaoCadastro>> ListarOpcoesComEmpresaAsync(NpgsqlConnection conexao, string sql, Guid tenantId, CancellationToken ct)
+    {
+        var lista = new List<OpcaoCadastro>();
+        await using var comando = new NpgsqlCommand(sql, conexao);
+        comando.Parameters.AddWithValue("tenant", tenantId);
+        await using var leitor = await comando.ExecuteReaderAsync(ct);
+        while (await leitor.ReadAsync(ct)) lista.Add(new OpcaoCadastro(leitor.GetGuid(0), leitor.GetString(1), leitor.GetGuid(2)));
+        return lista;
+    }
+
+    private static DateTimeOffset ComoDataHora(NpgsqlDataReader leitor, int indice)
+        => new(DateTime.SpecifyKind(leitor.GetDateTime(indice), DateTimeKind.Utc));
+
+    private static string? Limpar(string? valor) => string.IsNullOrWhiteSpace(valor) ? null : valor.Trim();
 }
 
 public sealed record EmpresaBasica(Guid Id, string Nome);
-public sealed record TokenInstalacaoGerado(Guid AtivoId, string Token, DateTimeOffset ExpiraEmUtc);
+public sealed record TokenInstalacaoGerado(string Token, DateTimeOffset ExpiraEmUtc, string UrlServidor);

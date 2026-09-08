@@ -1,0 +1,40 @@
+@model PainelAplicativos
+@{
+    ViewData["Title"] = "Aplicativos";
+    var categorias = (IReadOnlyCollection<CategoriaAtividadeBasica>)(ViewBag.Categorias ?? Array.Empty<CategoriaAtividadeBasica>());
+    var dias = (int)(ViewBag.Dias ?? 7);
+    string Tempo(long segundos) { var t=TimeSpan.FromSeconds(segundos); return t.TotalHours >= 1 ? $"{(int)t.TotalHours}h {t.Minutes:00}m" : $"{t.Minutes}m"; }
+}
+<section class="cabecalho-pagina">
+    <div><span class="sobrelinha">CONTEXTO DIGITAL</span><h1>Aplicativos</h1><p>Tempo em primeiro plano. O .Clara não lê conteúdo digitado nem conteúdo da tela.</p></div>
+    <div class="filtro-periodo"><a class="@(dias==1?"ativo":"")" href="/aplicativos?dias=1">Hoje</a><a class="@(dias==7?"ativo":"")" href="/aplicativos?dias=7">7 dias</a><a class="@(dias==30?"ativo":"")" href="/aplicativos?dias=30">30 dias</a></div>
+</section>
+<section class="painel">
+@if (Model.Aplicativos.Count == 0)
+{
+    <div class="estado-vazio"><strong>Ainda não há aplicativos suficientes para analisar.</strong><span>Os processos em primeiro plano aparecerão conforme as estações enviarem atividade.</span></div>
+}
+else
+{
+    <div class="tabela-responsiva"><table>
+        <thead><tr><th>Aplicativo/processo</th><th>Tempo</th><th>Estações</th><th>Classificação</th><th>Categoria</th><th>Ajustar</th></tr></thead>
+        <tbody>
+        @foreach (var app in Model.Aplicativos)
+        {
+            <tr>
+                <td><strong>@app.ProcessoExecutavel</strong></td><td>@Tempo(app.Segundos)</td><td>@app.Estacoes</td>
+                <td><span class="selo selo-@app.Classificacao.ToLowerInvariant()">@app.Classificacao</span></td><td>@(app.Categoria ?? "Não classificado")</td>
+                <td>
+                    <form method="post" action="/aplicativos/classificar" class="form-inline">
+                        @Html.AntiForgeryToken()<input type="hidden" name="processo" value="@app.ProcessoExecutavel" /><input type="hidden" name="dias" value="@dias" />
+                        <select name="classificacao"><option selected="@(app.Classificacao == "Produtivo" ? "selected" : null)">Produtivo</option><option selected="@(app.Classificacao == "Neutro" ? "selected" : null)">Neutro</option><option value="Atencao" selected="@(app.Classificacao == "Atencao" ? "selected" : null)">Atenção</option></select>
+                        <select name="categoriaId"><option value="">Sem categoria</option>@foreach (var c in categorias) { <option value="@c.Id">@c.Nome</option> }</select>
+                        <button type="submit">Salvar</button>
+                    </form>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table></div>
+}
+</section>

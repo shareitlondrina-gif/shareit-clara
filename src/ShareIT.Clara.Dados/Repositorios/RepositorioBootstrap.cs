@@ -27,6 +27,7 @@ public sealed class RepositorioBootstrap(FabricaConexoesClara fabrica, Configura
         var tenantId = await ObterOuCriarTenantAsync(conexao, transacao, ct);
         await GarantirEmpresaInicialAsync(conexao, transacao, tenantId, ct);
         await GarantirAdministradorAsync(conexao, transacao, tenantId, senha, ct);
+        await GarantirContextoInicialAsync(conexao, transacao, tenantId, ct);
         await transacao.CommitAsync(ct);
     }
 
@@ -55,6 +56,38 @@ public sealed class RepositorioBootstrap(FabricaConexoesClara fabrica, Configura
         criar.Parameters.AddWithValue("tenant", tenantId);
         criar.Parameters.AddWithValue("nome", configuracao.Bootstrap.NomeTenant);
         await criar.ExecuteNonQueryAsync(ct);
+    }
+
+    private static async Task GarantirContextoInicialAsync(NpgsqlConnection c, NpgsqlTransaction t, Guid tenantId, CancellationToken ct)
+    {
+        const string categorias = """
+            INSERT INTO categorias_atividade(tenant_id,nome,classificacao)
+            SELECT @tenant,x.nome,x.classificacao
+            FROM (VALUES
+                ('Trabalho','Produtivo'),('Comunicacao','Neutro'),('Desenvolvimento','Produtivo'),
+                ('Administrativo','Produtivo'),('Navegacao','Neutro'),('Entretenimento','Atencao'),('Nao classificado','Neutro')
+            ) AS x(nome,classificacao)
+            ON CONFLICT DO NOTHING;
+            """;
+        await using (var cmd = new NpgsqlCommand(categorias, c, t))
+        {
+            cmd.Parameters.AddWithValue("tenant", tenantId);
+            await cmd.ExecuteNonQueryAsync(ct);
+        }
+
+        const string integracoes = """
+            INSERT INTO integracoes(tenant_id,provedor,nome_exibicao,status)
+            SELECT @tenant,x.provedor,x.nome,'NaoConfigurada'
+            FROM (VALUES
+                ('Microsoft','Microsoft 365 / Outlook / Teams'),
+                ('Google','Google Workspace / Gmail / Meet'),
+                ('Zoom','Zoom')
+            ) AS x(provedor,nome)
+            ON CONFLICT DO NOTHING;
+            """;
+        await using var integrar = new NpgsqlCommand(integracoes, c, t);
+        integrar.Parameters.AddWithValue("tenant", tenantId);
+        await integrar.ExecuteNonQueryAsync(ct);
     }
 
     private async Task GarantirAdministradorAsync(NpgsqlConnection c, NpgsqlTransaction t, Guid tenantId, string senha, CancellationToken ct)

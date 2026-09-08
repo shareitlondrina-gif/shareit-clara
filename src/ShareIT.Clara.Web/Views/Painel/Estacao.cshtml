@@ -1,0 +1,69 @@
+@model DetalheEstacao
+@{
+    ViewData["Title"] = Model.Hostname;
+    var empresas = (IReadOnlyCollection<EmpresaBasica>)(ViewBag.Empresas ?? Array.Empty<EmpresaBasica>());
+    var unidades = (IReadOnlyCollection<OpcaoCadastro>)(ViewBag.Unidades ?? Array.Empty<OpcaoCadastro>());
+    var departamentos = (IReadOnlyCollection<OpcaoCadastro>)(ViewBag.Departamentos ?? Array.Empty<OpcaoCadastro>());
+    string Bytes(long? valor)
+    {
+        if (!valor.HasValue || valor.Value <= 0) return "-";
+        var gb = valor.Value / 1024d / 1024d / 1024d;
+        return $"{gb:0.#} GB";
+    }
+}
+<section class="cabecalho-pagina">
+    <div><span class="sobrelinha">ESTAÇÃO</span><h1>@Model.Hostname</h1><p>@(Model.Fabricante ?? "Equipamento") @(Model.Modelo ?? "") · Serial @(Model.NumeroSerie ?? "aguardando")</p></div>
+    <a class="botao-link" href="/estacoes">← Estações</a>
+</section>
+@if (TempData["Mensagem"] is string mensagem) { <div class="mensagem-ok">@mensagem</div> }
+<section class="grade-detalhe">
+    <article class="painel">
+        <div class="titulo-painel"><div><span class="sobrelinha">COLETADO PELO AGENTE</span><h2>Inventário</h2></div><span class="selo selo-info">Automático</span></div>
+        <dl class="lista-detalhes">
+            <div><dt>Usuário Windows</dt><dd>@(Model.UsuarioWindows ?? "-")</dd></div>
+            <div><dt>Número de série</dt><dd>@(Model.NumeroSerie ?? "-")</dd></div>
+            <div><dt>UUID</dt><dd>@(Model.UuidEquipamento ?? "-")</dd></div>
+            <div><dt>Sistema operacional</dt><dd>@(Model.SistemaOperacional ?? "-")</dd></div>
+            <div><dt>Arquitetura</dt><dd>@(Model.Arquitetura ?? "-")</dd></div>
+            <div><dt>Memória</dt><dd>@Bytes(Model.MemoriaTotalBytes)</dd></div>
+            <div><dt>Disco total</dt><dd>@Bytes(Model.DiscoTotalBytes)</dd></div>
+            <div><dt>IP local</dt><dd>@(Model.EnderecoIpLocal ?? "-")</dd></div>
+            <div><dt>IP público observado</dt><dd>@(Model.EnderecoIpPublico ?? "-")</dd></div>
+            <div><dt>Agente</dt><dd>@(Model.VersaoAgente ?? "-")</dd></div>
+            <div><dt>Primeira comunicação</dt><dd>@(Model.PrimeiraComunicacaoUtc?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "-")</dd></div>
+            <div><dt>Última comunicação</dt><dd>@(Model.UltimaComunicacaoUtc?.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss") ?? "-")</dd></div>
+        </dl>
+    </article>
+    <article class="painel">
+        <div class="titulo-painel"><div><span class="sobrelinha">COMPLEMENTO ADMINISTRATIVO</span><h2>Cadastro</h2></div></div>
+        <form method="post" action="/estacoes/@Model.AtivoId/salvar" class="formulario-vertical">
+            @Html.AntiForgeryToken()
+            <label>Empresa<select id="empresaId" name="empresaId" required>@foreach (var e in empresas) { <option selected="@(e.Id == Model.EmpresaId ? "selected" : null)" value="@e.Id">@e.Nome</option> }</select></label>
+            <label>Unidade<select id="unidadeId" name="unidadeId"><option value="">Não informada</option>@foreach (var u in unidades) { <option data-empresa="@u.EmpresaId" selected="@(u.Id == Model.UnidadeId ? "selected" : null)" value="@u.Id">@u.Nome</option> }</select></label>
+            <label>Departamento<select id="departamentoId" name="departamentoId"><option value="">Não informado</option>@foreach (var d in departamentos) { <option data-empresa="@d.EmpresaId" selected="@(d.Id == Model.DepartamentoId ? "selected" : null)" value="@d.Id">@d.Nome</option> }</select></label>
+            <label>Responsável<input name="responsavel" value="@Model.Responsavel" /></label>
+            <label>Patrimônio<input name="patrimonio" value="@Model.Patrimonio" /></label>
+            <button type="submit">Salvar cadastro</button>
+        </form>
+    </article>
+</section>
+
+<script>
+(() => {
+    const empresa = document.getElementById('empresaId');
+    const filtrar = (id) => {
+        for (const seletorId of ['unidadeId', 'departamentoId']) {
+            const seletor = document.getElementById(seletorId);
+            for (const opcao of seletor.options) {
+                if (!opcao.value) continue;
+                const visivel = opcao.dataset.empresa === id;
+                opcao.hidden = !visivel;
+                opcao.disabled = !visivel;
+                if (!visivel && opcao.selected) seletor.value = '';
+            }
+        }
+    };
+    empresa?.addEventListener('change', () => filtrar(empresa.value));
+    if (empresa) filtrar(empresa.value);
+})();
+</script>

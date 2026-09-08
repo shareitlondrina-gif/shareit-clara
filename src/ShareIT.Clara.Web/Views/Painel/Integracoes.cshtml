@@ -1,0 +1,21 @@
+@model PainelIntegracoes
+@{
+    ViewData["Title"] = "Integrações";
+}
+<section class="cabecalho-pagina">
+    <div><span class="sobrelinha">CONTEXTO CORPORATIVO</span><h1>Integrações</h1><p>Agenda, reuniões e métricas de uso de e-mail serão correlacionadas com a atividade local sem armazenar o corpo das mensagens.</p></div>
+</section>
+<section class="grade-integracoes">
+@foreach (var item in Model.Integracoes)
+{
+    <article class="painel card-integracao">
+        <div class="icone-integracao">@(item.Provedor == "Microsoft" ? "M" : item.Provedor == "Google" ? "G" : "Z")</div>
+        <div><span class="sobrelinha">@item.Provedor</span><h2>@item.NomeExibicao</h2>
+            <p>@(item.Provedor == "Microsoft" ? "Outlook Calendar, Teams, reuniões e métricas de e-mail." : item.Provedor == "Google" ? "Calendar, Meet e métricas de uso do Gmail." : "Reuniões, presença e duração quando a licença permitir.")</p>
+        </div>
+        <span class="selo selo-info">@item.Status</span>
+        <small>Para ativar a sincronização é necessário cadastrar as credenciais/consentimento administrativo do tenant. Segredos não serão gravados nesta tabela.</small>
+    </article>
+}
+</section>
+<section class="painel nota-tecnica"><strong>Fundação pronta na v0.2.2.</strong><p>As estruturas de agenda, participação em reunião e métricas de e-mail já fazem parte do banco. A autorização real de Microsoft, Google e Zoom depende das credenciais de aplicativo e do consentimento administrativo de cada empresa.</p></section>

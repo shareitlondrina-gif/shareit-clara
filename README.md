@@ -1,177 +1,254 @@
-# Share IT .Clara v0.1.2
+# Share IT .Clara v0.2.2
 
-**Produto novo**, dedicado exclusivamente à inteligência de performance de pessoas em estações Windows. Não reutiliza código, banco, migrations, entidades, Service Desk, projetos, CMDB, RMM ou suporte remoto do antigo Monitor.
+Baseline funcional do **Share IT .Clara**, plataforma multiempresa de inteligência do trabalho e monitoramento autorizado de performance em estações Windows.
 
-## Entrega desta versão
+## Princípios de produto
 
-- ASP.NET Core / C# / .NET 10 LTS;
-- PostgreSQL lógico novo (`shareit_clara`), com criação automática inclusive quando a homologação compartilha a mesma instância PostgreSQL do .VISÃO;
-- multiempresa desde a primeira migration;
-- login administrativo por cookie;
-- bootstrap inicial de tenant/empresa/administrador por ConfigSys + variáveis de ambiente;
-- cadastro de ativo e geração de token temporário de instalação;
-- agente Windows Service;
-- processo interativo de sessão separado do serviço;
-- registro seguro do agente com token de dispositivo protegido por DPAPI;
+- produto independente do Share IT .VISÃO e de qualquer Monitor legado;
+- foco exclusivo em jornada digital observada, atividade/ociosidade, contexto de aplicativos, localização de trabalho e indicadores;
+- sem Service Desk, projetos, CMDB, RMM técnico ou suporte remoto;
+- sem keylogger, captura de senha ou conteúdo digitado;
+- sem bloqueio de sites;
+- evidências visuais não fazem parte desta entrega e continuam sujeitas a política/RBAC/auditoria nas etapas futuras.
+
+## Correção de compilação
+
+A v0.2.2 mantém o escopo funcional da v0.2.1 e corrige o fluxo Git do publicador para sincronizar com o histórico remoto antes do push, sem usar `--force`. Nenhuma migration foi modificada.
+
+## Novidades da v0.2.2
+
+### Identidade e experiência
+
+- identidade oficial **Share IT .Clara** aplicada ao sistema;
+- nuvem azul da família Share IT como logo e favicon;
+- fundo creme/off-white e hierarquia visual revisada;
+- navegação lateral preparada para expansão do produto;
+- tela **Agora** redesenhada para leitura executiva.
+
+### Onboarding automático da estação
+
+O administrador escolhe somente a empresa e gera um token temporário. Após a instalação, o agente coleta e envia automaticamente, quando disponível:
+
+- hostname;
+- usuário Windows detectado;
+- número de série;
+- UUID do equipamento;
+- fabricante e modelo;
+- sistema operacional e arquitetura;
+- memória total;
+- capacidade total de discos locais;
+- IP local e IP público observado;
+- versão do agente;
+- primeira e última comunicação.
+
+O administrador complementa depois somente informações administrativas, como patrimônio, responsável, unidade e departamento.
+
+### Monitoramento e contexto
+
 - heartbeat e online/offline;
-- atividade/ociosidade/bloqueio em nível de presença;
-- processo em primeiro plano sem capturar conteúdo digitado, senhas ou texto da tela;
-- fila offline local;
-- timeline das últimas 24 horas;
-- dashboard “Agora”;
-- atualização automática do agente com download autenticado, SHA-256, backup, atualizador externo e rollback;
-- instalador do agente por CMD;
-- diagnóstico do agente por CMD;
-- `PUBLICAR-CLARA.cmd` como entrada única de compilação/publicação;
-- proteção explícita que impede migrations do .Clara em `shareit_visao`, `monitor`, `postgres` ou qualquer banco diferente de `shareit_clara`.
+- Ativo, Ocioso, Bloqueado e Reunião;
+- processo/aplicativo em primeiro plano;
+- timeline por estação;
+- painel de aplicativos por período;
+- classificação configurável de aplicativos como Produtivo, Neutro ou Atenção;
+- categorias de atividade por tenant;
+- cadastro de faixas IP/CIDR para contexto **Home x Escritório**;
+- tela de gestão das estações e inventário descoberto pelo agente.
 
-## Estrutura
+### Inteligência inicial
 
-```text
-ShareIT.Clara.sln
-src/
-  ShareIT.Clara.Dominio
-  ShareIT.Clara.Comum
-  ShareIT.Clara.Dados
-  ShareIT.Clara.Web
-  ShareIT.Clara.Agente
-  ShareIT.Clara.Sessao
-  ShareIT.Clara.Atualizador
-database/migrations
-Ferramentas/
-ConfigSys/
-docs/
-```
+A v0.2.2 inclui um **Índice Geral preliminar e explicável**, separado da confiança dos dados. O índice usa apenas sinais disponíveis e mostra os pesos aplicados. Ele não deve ser interpretado como julgamento automático sobre pessoas.
 
-## Configuração inicial do servidor
+### Integrações corporativas
 
-O publicador cria, se ainda não existirem:
+O banco e a interface já possuem fundação para:
 
-```text
-C:\ConfigSys\Clara\ConfiguracaoClara.xml
-C:\ConfigSys\Clara\Publicacao\ConfiguracaoPublicacao.xml
-```
+- Microsoft 365 / Outlook / Teams;
+- Google Workspace / Gmail / Meet;
+- Zoom.
 
-Defina os segredos por variável de ambiente no servidor/publicação:
+Também existem estruturas de dados para eventos de agenda, participações em reuniões e métricas agregadas de e-mail. **A sincronização externa real não é ativada automaticamente nesta versão**, pois depende das credenciais de aplicativo e do consentimento administrativo de cada tenant. Segredos dessas integrações não devem ser gravados nas tabelas de configuração pública.
 
-```text
-CLARA_POSTGRES=<conexão PostgreSQL da instância>
-CLARA_ADMIN_SENHA=<senha inicial forte>
-CLARA_URL_PUBLICA=https://clara.shareitbrasil.com.br
-```
+### Atualização automática do agente
 
-### Render gratuito compartilhando a instância do .VISÃO
+Permanece requisito estrutural e funcional:
 
-Na homologação, `CLARA_POSTGRES` pode receber diretamente a **Internal Database URL** atual do `shareit-visao-db`, mesmo que essa URL termine no banco `shareit_visao`.
+1. agente consulta manifesto;
+2. identifica versão mais nova;
+3. baixa pacote autenticado;
+4. valida SHA-256;
+5. inicia atualizador fora da pasta instalada;
+6. faz backup local;
+7. substitui arquivos;
+8. reinicia serviço/sessão;
+9. restaura a versão anterior em caso de falha;
+10. reporta o resultado ao servidor.
 
-O .Clara usa essa conexão somente como ponto administrativo da instância, executa automaticamente:
+## Arquitetura
 
 ```text
-verifica shareit_clara
-→ se não existir: CREATE DATABASE shareit_clara
-→ reconecta obrigatoriamente em shareit_clara
-→ valida current_database()
-→ aplica migrations apenas em shareit_clara
-→ cria bootstrap inicial
+Windows
+  ├─ ShareIT.Clara.Agente     Windows Service
+  │    ├─ heartbeat
+  │    ├─ fila offline
+  │    ├─ inventário
+  │    ├─ sincronização
+  │    └─ atualização automática
+  │
+  └─ ShareIT.Clara.Sessao     sessão interativa
+       ├─ atividade/ociosidade
+       ├─ bloqueio
+       ├─ app em primeiro plano
+       └─ detecção inicial de apps de reunião
+              │
+              └─ Named Pipe
+                    ↓
+             ShareIT.Clara.Agente
+                    ↓ HTTPS/JSON
+             ShareIT.Clara.Web/API
+                    ↓
+               PostgreSQL
+              shareit_clara
 ```
 
-Não é necessário liberar IP público, usar PSQL manualmente, restaurar backup, executar `DROP DATABASE` ou alterar tabelas do `.VISÃO`.
+## Banco
 
-A senha inicial só é utilizada para criar o primeiro administrador se ainda não existir. Ela não é armazenada em texto puro no PostgreSQL.
+Banco lógico oficial:
+
+```text
+shareit_clara
+```
+
+Em homologação ele pode compartilhar a mesma **instância física PostgreSQL** usada pelo .VISÃO, mas o banco lógico é totalmente separado. O preparador valida o destino antes de aplicar migrations.
+
+Migrations desta baseline:
+
+```text
+0001_base_operacional.sql
+0002_indices_dashboard.sql
+0003_contexto_inventario_integracoes.sql
+```
+
+Migrations publicadas são imutáveis.
+
+## Render / GitHub homologados
+
+```text
+GitHub:
+https://github.com/shareitlondrina-gif/shareit-clara.git
+
+Render Web:
+https://shareit-clara.onrender.com
+
+Health:
+https://shareit-clara.onrender.com/api/health
+
+Versão:
+https://shareit-clara.onrender.com/api/versao
+```
+
+O serviço Web deve permanecer na mesma região do PostgreSQL durante a homologação.
+
+## Variáveis do Render
+
+A conexão do banco fica no ambiente do Render, e não em XML versionado:
+
+```text
+CLARA_POSTGRES
+CLARA_ADMIN_EMAIL
+CLARA_ADMIN_SENHA
+CLARA_EXECUTAR_MIGRACOES=true
+CLARA_TENANT_NOME=Share IT
+CLARA_TENANT_IDENTIFICADOR=shareit
+CLARA_URL_PUBLICA=https://shareit-clara.onrender.com
+```
+
+`CLARA_POSTGRES` pode apontar para a conexão interna da instância física compartilhada. O código troca/valida o destino para `shareit_clara` antes das migrations.
+
+## Caminhos locais oficiais
+
+Fonte/release/publicação:
+
+```text
+C:\SysRelease\Clara
+```
+
+Configuração persistente local:
+
+```text
+C:\ConfigSys\Clara
+```
+
+Instalação nas estações:
+
+```text
+C:\Program Files\Share IT\Clara
+```
+
+Dados persistentes do agente:
+
+```text
+C:\ProgramData\ShareIT\Clara
+```
 
 ## Publicação
 
-Execute no Windows:
+Entrada única:
 
 ```text
 PUBLICAR-CLARA.cmd
 ```
 
-O script valida/instala o SDK .NET 10 via winget quando necessário, restaura pacotes, compila, executa a etapa de testes, publica Web/API e componentes Windows, gera o pacote automático do agente, calcula SHA-256, monta o manifesto de atualização e gera:
+O publicador executa restore, build, testes, publish dos componentes Windows, pacote de atualização do agente, SHA-256, validação de segredos, Git push, aguarda Render, valida health e versão online, gera ZIP final e abre o navegador quando a publicação estiver saudável.
+
+Configuração persistente do publicador:
 
 ```text
-artifacts\Clara-v0.1.2.zip
+C:\ConfigSys\Clara\Publicacao\ConfiguracaoPublicacao.xml
 ```
 
-Git push e deploy hook podem ser ligados em `ConfiguracaoPublicacao.xml`. O segredo do deploy hook deve ser fornecido pela variável `CLARA_RENDER_DEPLOY_HOOK`.
-
-Quando o Web/API inicia no Render com `CLARA_CRIAR_BANCO=true`, a preparação do banco acontece automaticamente pela rede interna antes das migrations. O `PUBLICAR-CLARA.cmd` dispara o fluxo de build/deploy e o health check confirma que o banco efetivamente aberto é `shareit_clara`.
-
-Para GitHub/Render, o `Dockerfile` recompila Web/API e também cross-publica Agente/Sessão/Atualizador para `win-x64`, gera o ZIP do agente, calcula o SHA-256 e incorpora o manifesto/pacote na imagem do servidor. Assim a atualização automática continua funcionando mesmo quando o deploy é feito a partir do repositório.
-
-## Instalação de um agente
-
-No painel Web:
-
-1. informe empresa, hostname, responsável e patrimônio;
-2. gere o token temporário, válido por 30 minutos;
-3. no pacote do agente execute como Administrador:
+Repositório esperado:
 
 ```text
-INSTALAR-AGENTE.cmd <TOKEN> https://seu-clara.exemplo.com.br
+https://github.com/shareitlondrina-gif/shareit-clara.git
 ```
 
-O instalador cria:
+## Instalação do agente
+
+No painel **Agora**:
+
+1. selecionar a empresa;
+2. clicar em **Gerar instalação**;
+3. copiar o token temporário;
+4. na estação, executar como Administrador:
 
 ```text
-C:\Program Files\Share IT\Clara
-C:\ProgramData\ShareIT\Clara
-Serviço: ShareIT.Clara.Agente
-Tarefa:  Share IT .Clara - Sessao
+INSTALAR-AGENTE.cmd TOKEN https://shareit-clara.onrender.com
 ```
 
-## Atualização automática
+A estação é criada/identificada automaticamente. Depois, em **Estações**, completar patrimônio, responsável, unidade e departamento.
 
-Fluxo implementado:
+## Segurança de escopo
 
-```text
-Agente consulta manifesto autenticado
-→ identifica versão superior
-→ baixa pacote autenticado
-→ valida SHA-256
-→ copia atualizador para fora da instalação
-→ atualizador para serviço e sessão
-→ cria backup local
-→ substitui arquivos
-→ reinicia serviço/sessão
-→ em falha restaura backup
-→ nova execução reporta resultado ao servidor
-```
+Não implementar no .Clara:
 
-O pacote de atualização **não é publicado como arquivo estático aberto**; o download passa por endpoint autenticado do agente.
+- keylogger;
+- conteúdo digitado;
+- captura de senha;
+- controle remoto de mouse/teclado;
+- suporte remoto;
+- Service Desk;
+- gestão de projetos;
+- CMDB/RMM técnico;
+- bloqueio de sites;
+- julgamento automático de desempenho humano.
 
-## Proteção do banco
+## Próximos marcos
 
-Esta baseline possui três barreiras:
+- ampliar contexto de sites/navegadores;
+- ativar autorização e sincronização Microsoft/Google/Zoom após disponibilização das credenciais de aplicativo;
+- evoluir agenda, reuniões e métricas de e-mail;
+- aprofundar Índice Geral, confiança, foco, fragmentação, comunicação, capacidade, custos, oportunidades e adoção de IA;
+- depois: screenshots, tela ao vivo somente leitura, gravação e armazenamento externo com governança.
 
-1. o nome configurado precisa ser exatamente `shareit_clara`;
-2. a fábrica de conexões sempre troca o database de destino para `shareit_clara`, mesmo quando `CLARA_POSTGRES` aponta inicialmente para `shareit_visao`;
-3. antes de qualquer migration, o migrador executa `SELECT current_database()` e interrompe a aplicação se o resultado não for `shareit_clara`.
-
-A aplicação não possui `DROP DATABASE` e não executa migrations no banco `shareit_visao`.
-
-## Limites desta versão
-
-- não existe Android;
-- não existe keylogger;
-- não existe captura de senha ou conteúdo digitado;
-- não existe controle remoto;
-- não existe suporte remoto;
-- não existe bloqueio de sites;
-- integrações Microsoft/Google/Zoom entram na v0.2.0;
-- Índice Geral/analytics executivos entram na v0.3.0;
-- screenshots/live/gravação/evidências entram na v1.0.0.
-
-## Observação de compilação desta entrega
-
-A estrutura, XML/JSON e balanceamento sintático dos arquivos C# foram validados no ambiente de geração. Esse ambiente não possui o SDK .NET instalado e não permite acesso direto ao NuGet, portanto a compilação real deve ser executada pelo `PUBLICAR-CLARA.cmd` em um Windows com internet/winget antes da homologação.
-
-
-## Publicação online — v0.1.2
-
-O endpoint oficial de saúde é `https://shareit-clara.onrender.com/api/health`.
-Também existem `/api/health/live` (processo Web) e `/api/versao` (versão implantada).
-
-O `PUBLICAR-CLARA.cmd` agora mantém a janela aberta, grava log em `artifacts\logs`, valida se a versão online é exatamente a de `VERSAO.txt` e abre o navegador quando a publicação é confirmada.
-
-Para deploy automático, o Web Service do Render precisa estar conectado ao mesmo repositório GitHub/branch do projeto. O `render.yaml` utiliza `autoDeploy: true`.
+Consulte também `docs/ALTERACOES-v0.2.2.md`, `docs/VALIDACAO-v0.2.2.md` e `docs/ROADMAP.md`.
