@@ -13,6 +13,7 @@
         <h2>Acessar o .Clara</h2>
         <p>Entre com sua conta administrativa.</p>
         @if (ViewBag.Erro is not null) { <div class="erro">@ViewBag.Erro</div> }
+        @if (ViewBag.Aviso is not null) { <div class="aviso-login">@ViewBag.Aviso</div> }
         <form method="post">
             @Html.AntiForgeryToken()
             <label>E-mail<input name="email" type="email" required autocomplete="username" /></label>

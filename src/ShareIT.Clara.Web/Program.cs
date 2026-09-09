@@ -218,4 +218,4 @@ else
 await app.WaitForShutdownAsync();
 
 static string ObterVersaoAplicacao()
-    => Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.3.1";
+    => Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.3.2";

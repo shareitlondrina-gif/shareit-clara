@@ -1,4 +1,4 @@
-# Share IT .Clara v0.3.1
+# Share IT .Clara v0.3.2
 
 Baseline funcional do **Share IT .Clara**, plataforma multiempresa de inteligência do trabalho e monitoramento autorizado de performance em estações Windows.
 
@@ -13,7 +13,19 @@ Baseline funcional do **Share IT .Clara**, plataforma multiempresa de inteligên
 
 ## Correção de compilação
 
-A v0.3.1 preserva as funcionalidades da v0.3.0 e corrige o fluxo de publicação/diagnóstico no Render. A Web/API passa a responder ao liveness antes da inicialização do banco, o health completo continua validando banco e migrations, e o publicador diferencia claramente liveness de readiness.
+A v0.3.2 preserva as funcionalidades da v0.3.1 e adiciona a correção do fluxo de autenticação observado após o deploy. A Web/API continua respondendo ao liveness antes da inicialização do banco, enquanto o login agora trata explicitamente banco em atualização/falha e sincroniza a senha do Master de bootstrap com o ambiente.
+
+
+## Correção de autenticação da v0.3.2
+
+A v0.3.2 corrige o cenário observado em produção no qual a página de login era exibida, mas o POST de autenticação retornava HTTP 500 após o envio da senha.
+
+Principais ajustes:
+- o login verifica o estado de inicialização do banco antes de consultar tabelas novas;
+- falhas de banco/schema durante a autenticação deixam de gerar uma página HTTP 500 genérica e passam a retornar uma mensagem controlada na própria tela de login;
+- o administrador Master de bootstrap tem sua senha sincronizada com `CLARA_ADMIN_SENHA` em cada inicialização bem-sucedida, evitando hash antigo/incompatível após mudanças de ambiente;
+- foi incluída uma rota de erro real (`/erro`) para o middleware de exceções;
+- nenhuma migration publicada foi alterada; permanecem `0001` a `0004`.
 
 ## Correção de publicação da v0.3.1
 

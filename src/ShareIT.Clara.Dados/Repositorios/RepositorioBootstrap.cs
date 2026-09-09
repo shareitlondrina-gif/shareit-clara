@@ -98,9 +98,10 @@ public sealed class RepositorioBootstrap(FabricaConexoesClara fabrica, Configura
         verificar.Parameters.AddWithValue("email", configuracao.Bootstrap.EmailAdministrador);
         var existeUsuario = (bool)(await verificar.ExecuteScalarAsync(ct) ?? false);
 
+        var (hash, sal) = SenhaSegura.Criar(senha);
+
         if (!existeUsuario)
         {
-            var (hash, sal) = SenhaSegura.Criar(senha);
             const string inserir = """
                 INSERT INTO usuarios(tenant_id,nome,email,senha_hash,senha_sal,perfil)
                 VALUES(@tenant,@nome,@email,@hash,@sal,'Master');
@@ -115,14 +116,20 @@ public sealed class RepositorioBootstrap(FabricaConexoesClara fabrica, Configura
         }
         else
         {
-            const string promover = """
+            // O usuário Master de bootstrap é controlado pelas variáveis do ambiente do servidor.
+            // Reaplicar hash/sal aqui garante que CLARA_ADMIN_SENHA continue sendo a senha efetiva
+            // após alteração de ambiente ou após uma baseline antiga ter usado credenciais incompatíveis.
+            const string sincronizar = """
                 UPDATE usuarios
-                SET perfil='Master'
+                SET nome=@nome, senha_hash=@hash, senha_sal=@sal, perfil='Master', ativo=true
                 WHERE tenant_id=@tenant AND lower(email)=lower(@email);
                 """;
-            await using var cmd = new NpgsqlCommand(promover, c, t);
+            await using var cmd = new NpgsqlCommand(sincronizar, c, t);
             cmd.Parameters.AddWithValue("tenant", tenantId);
+            cmd.Parameters.AddWithValue("nome", configuracao.Bootstrap.NomeAdministrador);
             cmd.Parameters.AddWithValue("email", configuracao.Bootstrap.EmailAdministrador);
+            cmd.Parameters.AddWithValue("hash", hash);
+            cmd.Parameters.AddWithValue("sal", sal);
             await cmd.ExecuteNonQueryAsync(ct);
         }
     }

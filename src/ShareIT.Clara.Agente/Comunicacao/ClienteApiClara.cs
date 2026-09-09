@@ -22,7 +22,7 @@ public sealed class ClienteApiClara(
     GerenciadorIdentidadeAgente identidade,
     ColetorInventarioWindows inventario)
 {
-    public string VersaoAtual => Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.3.1";
+    public string VersaoAtual => Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.3.2";
 
     public async Task<RegistroAgenteResposta?> RegistrarAsync(CancellationToken ct)
     {
