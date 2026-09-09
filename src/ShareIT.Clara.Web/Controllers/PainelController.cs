@@ -20,6 +20,7 @@ public sealed class PainelController(
 {
     public async Task<IActionResult> Index(CancellationToken ct)
     {
+        if (!TemModulo("agora")) return Forbid();
         var tenantId = ObterGuid("tenant_id");
         ViewBag.Empresas = await administracao.ListarEmpresasAsync(tenantId, ct);
         return View(await dashboard.ObterAgoraAsync(tenantId, ct));
@@ -28,6 +29,7 @@ public sealed class PainelController(
     [HttpGet("timeline/{agenteId:guid}")]
     public async Task<IActionResult> Timeline(Guid agenteId, CancellationToken ct)
     {
+        if (!TemModulo("estacoes")) return Forbid();
         var modelo = await dashboard.ObterTimelineAsync(ObterGuid("tenant_id"), agenteId, DateTimeOffset.UtcNow.AddHours(-24), ct);
         return modelo is null ? NotFound() : View(modelo);
     }
@@ -36,6 +38,7 @@ public sealed class PainelController(
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> GerarToken(Guid empresaId, CancellationToken ct)
     {
+        if (!TemModulo("estacoes")) return Forbid();
         var token = await administracao.CriarTokenInstalacaoAsync(
             ObterGuid("tenant_id"), ObterGuid(System.Security.Claims.ClaimTypes.NameIdentifier), empresaId, ct);
         TempData["TokenInstalacao"] = token.Token;
@@ -46,11 +49,15 @@ public sealed class PainelController(
 
     [HttpGet("estacoes")]
     public async Task<IActionResult> Estacoes(CancellationToken ct)
-        => View(await administracao.ListarEstacoesAsync(ObterGuid("tenant_id"), ct));
+    {
+        if (!TemModulo("estacoes")) return Forbid();
+        return View(await administracao.ListarEstacoesAsync(ObterGuid("tenant_id"), ct));
+    }
 
     [HttpGet("estacoes/{ativoId:guid}")]
     public async Task<IActionResult> Estacao(Guid ativoId, CancellationToken ct)
     {
+        if (!TemModulo("estacoes")) return Forbid();
         var tenant = ObterGuid("tenant_id");
         var modelo = await administracao.ObterEstacaoAsync(tenant, ativoId, ct);
         if (modelo is null) return NotFound();
@@ -64,6 +71,7 @@ public sealed class PainelController(
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> SalvarEstacao(Guid ativoId, Guid empresaId, Guid? unidadeId, Guid? departamentoId, string? patrimonio, string? responsavel, CancellationToken ct)
     {
+        if (!TemModulo("estacoes")) return Forbid();
         await administracao.AtualizarCadastroEstacaoAsync(ObterGuid("tenant_id"), ativoId, empresaId, unidadeId, departamentoId, patrimonio, responsavel, ct);
         TempData["Mensagem"] = "Cadastro da estação atualizado.";
         return RedirectToAction(nameof(Estacao), new { ativoId });
@@ -72,6 +80,7 @@ public sealed class PainelController(
     [HttpGet("aplicativos")]
     public async Task<IActionResult> Aplicativos(int dias = 7, CancellationToken ct = default)
     {
+        if (!TemModulo("aplicativos")) return Forbid();
         var tenant = ObterGuid("tenant_id");
         ViewBag.Categorias = await contexto.ListarCategoriasAsync(tenant, ct);
         ViewBag.Dias = Math.Clamp(dias, 1, 90);
@@ -82,29 +91,42 @@ public sealed class PainelController(
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ClassificarAplicativo(string processo, string classificacao, Guid? categoriaId, int dias = 7, CancellationToken ct = default)
     {
+        if (!TemModulo("aplicativos")) return Forbid();
         await contexto.ClassificarAplicativoAsync(ObterGuid("tenant_id"), processo, classificacao, categoriaId, ct);
         return RedirectToAction(nameof(Aplicativos), new { dias });
     }
 
     [HttpGet("indice-geral")]
     public async Task<IActionResult> IndiceGeral(CancellationToken ct)
-        => View(await dashboard.ObterIndiceGeralAsync(ObterGuid("tenant_id"), ct));
+    {
+        if (!TemModulo("indice-geral")) return Forbid();
+        return View(await dashboard.ObterIndiceGeralAsync(ObterGuid("tenant_id"), ct));
+    }
 
     [HttpGet("integracoes")]
     public async Task<IActionResult> Integracoes(CancellationToken ct)
-        => View(await dashboard.ObterIntegracoesAsync(ObterGuid("tenant_id"), ct));
+    {
+        if (!TemModulo("integracoes")) return Forbid();
+        return View(await dashboard.ObterIntegracoesAsync(ObterGuid("tenant_id"), ct));
+    }
 
     [HttpGet("locais")]
     public async Task<IActionResult> Locais(CancellationToken ct)
-        => View(await contexto.ListarLocaisAsync(ObterGuid("tenant_id"), ct));
+    {
+        if (!TemModulo("locais")) return Forbid();
+        return View(await contexto.ListarLocaisAsync(ObterGuid("tenant_id"), ct));
+    }
 
     [HttpPost("locais/adicionar")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> AdicionarLocal(string nome, string faixaIp, string tipo, CancellationToken ct)
     {
+        if (!TemModulo("locais")) return Forbid();
         await contexto.AdicionarLocalAsync(ObterGuid("tenant_id"), nome, faixaIp, tipo, ct);
         return RedirectToAction(nameof(Locais));
     }
+
+    private bool TemModulo(string codigo) => User.IsInRole("Master") || User.HasClaim("modulo", codigo);
 
     private Guid ObterGuid(string tipoClaim)
     {

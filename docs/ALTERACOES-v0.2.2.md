@@ -1,6 +1,6 @@
-# Share IT .Clara v0.2.2 — Alterações
+# Share IT .Clara v0.3.0 — Alterações
 
-## Correções da v0.2.2
+## Correções da v0.3.0
 
 - corrigido o contrato `OpcaoCadastro` para aceitar o vínculo opcional com `EmpresaId`, usado pelos seletores de unidade e departamento;
 - corrigido o parâmetro de IP público no repositório de agentes (`ipPublico`), eliminando referência a identificador inexistente;

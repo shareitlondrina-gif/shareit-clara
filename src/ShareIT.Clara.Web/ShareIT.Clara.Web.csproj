@@ -8,4 +8,7 @@
     <ProjectReference Include="..\ShareIT.Clara.Comum\ShareIT.Clara.Comum.csproj" />
     <ProjectReference Include="..\ShareIT.Clara.Dados\ShareIT.Clara.Dados.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="../../database/demo/CRIAR-EMPRESA-DEMONSTRACAO.sql" Link="database/demo/CRIAR-EMPRESA-DEMONSTRACAO.sql" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

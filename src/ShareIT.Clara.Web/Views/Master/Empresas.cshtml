@@ -1,0 +1,43 @@
+@model IReadOnlyCollection<ShareIT.Clara.Dominio.Contratos.EmpresaMasterResumo>
+@{
+    ViewData["Title"] = "Empresas";
+}
+<div class="cabecalho-pagina">
+    <div><span class="sobretitulo">ADMINISTRAÇÃO MASTER</span><h1>Empresas</h1><p>Crie clientes do .Clara e defina o primeiro administrador de cada empresa.</p></div>
+</div>
+@if (TempData["Mensagem"] is string mensagem) { <div class="mensagem-sucesso">@mensagem</div> }
+@if (TempData["Erro"] is string erro) { <div class="erro">@erro</div> }
+<section class="cartao-clara">
+    <h2>Nova empresa</h2>
+    <form method="post" action="/master/empresas/criar" class="grade-formulario">
+        @Html.AntiForgeryToken()
+        <label>Empresa<input name="nomeEmpresa" required maxlength="200" placeholder="Nome da empresa" /></label>
+        <label>CNPJ/Documento<input name="documento" maxlength="30" placeholder="Opcional" /></label>
+        <label>Administrador<input name="nomeAdministrador" required maxlength="200" placeholder="Nome do administrador" /></label>
+        <label>E-mail do administrador<input name="emailAdministrador" type="email" required maxlength="320" /></label>
+        <label>Senha inicial<input name="senhaAdministrador" type="password" required minlength="8" autocomplete="new-password" /></label>
+        <div class="campo-acao"><button type="submit">Criar empresa</button></div>
+    </form>
+</section>
+<section class="cartao-clara destaque-demo">
+    <div class="titulo-cartao"><div><h2>Empresa demonstração</h2><p>Gera 15 estações, usuários fictícios, histórico de atividade, aplicativos, sites, reuniões e e-mail para apresentação comercial.</p></div><span class="selo-neutro">Dados fictícios</span></div>
+    <form method="post" action="/master/demonstracao/criar">
+        @Html.AntiForgeryToken()
+        <button type="submit">Criar / atualizar demonstração</button>
+    </form>
+    <p class="texto-secundario"><strong>Login:</strong> demonstracao@clara.local &nbsp; <strong>Senha:</strong> demonstracao</p>
+</section>
+<section class="cartao-clara">
+    <div class="titulo-cartao"><div><h2>Empresas cadastradas</h2><p>Cada cliente possui tenant isolado, empresa principal e usuários próprios.</p></div><span class="selo-neutro">@Model.Count empresa(s)</span></div>
+    <div class="tabela-responsiva">
+        <table class="tabela-clara">
+            <thead><tr><th>Empresa</th><th>Identificador</th><th>Documento</th><th>Usuários</th><th>Estações</th><th>Status</th></tr></thead>
+            <tbody>
+            @foreach (var item in Model)
+            {
+                <tr><td><strong>@item.Nome</strong></td><td>@item.Identificador</td><td>@(item.Documento ?? "—")</td><td>@item.Usuarios</td><td>@item.Estacoes</td><td><span class="status-pill @(item.Ativo ? "status-ok" : "status-off")">@(item.Ativo ? "Ativa" : "Inativa")</span></td></tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</section>

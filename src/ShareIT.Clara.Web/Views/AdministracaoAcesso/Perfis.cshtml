@@ -1,0 +1,30 @@
+@model IReadOnlyCollection<ShareIT.Clara.Dominio.Contratos.PerfilAcessoResumo>
+@{
+    ViewData["Title"] = "Perfis de acesso";
+}
+<div class="cabecalho-pagina">
+    <div><span class="sobretitulo">ADMINISTRAÇÃO</span><h1>Perfis de acesso</h1><p>Defina quais módulos cada perfil pode visualizar e utilizar.</p></div>
+</div>
+@if (TempData["Mensagem"] is string mensagem) { <div class="mensagem-sucesso">@mensagem</div> }
+@if (TempData["Erro"] is string erro) { <div class="erro">@erro</div> }
+@foreach (var perfil in Model)
+{
+    <section class="cartao-clara perfil-acesso">
+        <div class="titulo-cartao"><div><h2>@perfil.Nome</h2><p>@(perfil.Codigo == "ADMINISTRADOR" ? "Perfil de sistema com acesso administrativo completo." : "Perfil padrão atribuído aos novos usuários.")</p></div>@if (perfil.Padrao) { <span class="selo-neutro">Padrão</span> }</div>
+        <form method="post" action="/administracao/perfis/@perfil.Id/modulos">
+            @Html.AntiForgeryToken()
+            <div class="grade-modulos">
+            @foreach (var grupo in perfil.Modulos.GroupBy(m => m.Grupo))
+            {
+                <div class="grupo-modulos"><strong>@grupo.Key</strong>
+                @foreach (var modulo in grupo)
+                {
+                    <label class="modulo-check"><input type="checkbox" name="modulos" value="@modulo.Codigo" checked="@modulo.Permitido" disabled="@(perfil.Codigo == "ADMINISTRADOR")" /><span>@modulo.Nome</span></label>
+                }
+                </div>
+            }
+            </div>
+            @if (perfil.Codigo != "ADMINISTRADOR") { <button type="submit">Salvar permissões</button> }
+        </form>
+    </section>
+}

@@ -5,6 +5,7 @@ using Npgsql;
 using ShareIT.Clara.Comum.Configuracao;
 using ShareIT.Clara.Dados.Banco;
 using ShareIT.Clara.Dados.Repositorios;
+using ShareIT.Clara.Web.Servicos;
 using System.Reflection;
 using System.Threading.RateLimiting;
 
@@ -21,6 +22,9 @@ builder.Services.AddScoped<RepositorioAgentes>();
 builder.Services.AddScoped<RepositorioAdministracao>();
 builder.Services.AddScoped<RepositorioDashboard>();
 builder.Services.AddScoped<RepositorioContexto>();
+builder.Services.AddScoped<RepositorioMaster>();
+builder.Services.AddScoped<RepositorioUsuariosAcesso>();
+builder.Services.AddScoped<ServicoEmpresaDemonstracao>();
 
 builder.Services.AddControllersWithViews();
 builder.Services.Configure<ForwardedHeadersOptions>(opcoes =>
@@ -160,4 +164,4 @@ app.MapControllerRoute(name: "padrao", pattern: "{controller=Painel}/{action=Ind
 await app.RunAsync();
 
 static string ObterVersaoAplicacao()
-    => Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.2.2";
+    => Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.3.0";

@@ -1,4 +1,4 @@
-# Share IT .Clara v0.2.2
+# Share IT .Clara v0.3.0
 
 Baseline funcional do **Share IT .Clara**, plataforma multiempresa de inteligência do trabalho e monitoramento autorizado de performance em estações Windows.
 
@@ -13,9 +13,9 @@ Baseline funcional do **Share IT .Clara**, plataforma multiempresa de inteligên
 
 ## Correção de compilação
 
-A v0.2.2 mantém o escopo funcional da v0.2.1 e corrige o fluxo Git do publicador para sincronizar com o histórico remoto antes do push, sem usar `--force`. Nenhuma migration foi modificada.
+A v0.3.0 preserva a baseline funcional da v0.2.2 e adiciona gestão multiempresa, usuário Master, perfis por módulo e empresa demonstração. O fluxo Git seguro da v0.2.2 foi mantido, sem uso de `--force`.
 
-## Novidades da v0.2.2
+## Novidades da v0.3.0
 
 ### Identidade e experiência
 
@@ -57,7 +57,7 @@ O administrador complementa depois somente informações administrativas, como p
 
 ### Inteligência inicial
 
-A v0.2.2 inclui um **Índice Geral preliminar e explicável**, separado da confiança dos dados. O índice usa apenas sinais disponíveis e mostra os pesos aplicados. Ele não deve ser interpretado como julgamento automático sobre pessoas.
+A v0.3.0 inclui um **Índice Geral preliminar e explicável**, separado da confiança dos dados. O índice usa apenas sinais disponíveis e mostra os pesos aplicados. Ele não deve ser interpretado como julgamento automático sobre pessoas.
 
 ### Integrações corporativas
 
@@ -251,4 +251,61 @@ Não implementar no .Clara:
 - aprofundar Índice Geral, confiança, foco, fragmentação, comunicação, capacidade, custos, oportunidades e adoção de IA;
 - depois: screenshots, tela ao vivo somente leitura, gravação e armazenamento externo com governança.
 
-Consulte também `docs/ALTERACOES-v0.2.2.md`, `docs/VALIDACAO-v0.2.2.md` e `docs/ROADMAP.md`.
+Consulte também `docs/ALTERACOES-v0.3.0.md`, `docs/VALIDACAO-v0.3.0.md` e `docs/ROADMAP.md`.
+
+## v0.3.0 - Multiempresa, Master e demonstração
+
+A v0.3.0 consolida a operação SaaS multiempresa:
+
+- o primeiro usuário configurado no bootstrap (`CLARA_ADMIN_EMAIL`) passa a ser **Master**;
+- somente o Master cria novos clientes/empresas;
+- cada nova empresa recebe um **tenant isolado**, empresa principal, perfis padrão, categorias e integrações próprias;
+- o Master informa o primeiro administrador da empresa no momento do cadastro;
+- o Administrador da empresa cria os demais usuários que terão acesso à plataforma;
+- novos usuários recebem inicialmente o perfil **Padrão**;
+- cada perfil possui matriz de módulos permitidos; alterações passam a valer no próximo login;
+- acesso direto às rotas também é validado por módulo, não apenas ocultado no menu.
+
+### Área Master
+
+```text
+/master/empresas
+```
+
+Permite cadastrar empresa, CNPJ/documento e o primeiro administrador.
+
+### Administração do cliente
+
+```text
+/administracao/usuarios
+/administracao/perfis
+```
+
+O administrador cria usuários e ajusta os módulos do perfil Padrão. O perfil Administrador é de sistema e mantém acesso administrativo completo.
+
+### Empresa demonstração
+
+O pacote inclui o script idempotente:
+
+```text
+database/demo/CRIAR-EMPRESA-DEMONSTRACAO.sql
+```
+
+O Master também possui o botão **Criar / atualizar demonstração**, que executa esse script no banco `shareit_clara`.
+
+Login demonstrativo:
+
+```text
+E-mail: demonstracao@clara.local
+Senha:  demonstracao
+```
+
+A demonstração gera dados totalmente fictícios para 15 estações, incluindo atividade/ociosidade, aplicativos, sites, Home x Escritório, reuniões, integrações e métricas agregadas de e-mail. A tela Agora também apresenta distribuição visual dos estados e barras de uso dos principais aplicativos. Nunca utilizar a conta demonstração como conta real de produção.
+
+### Migration
+
+```text
+0004_multiempresa_perfis_acesso.sql
+```
+
+As migrations 0001, 0002 e 0003 permanecem imutáveis.

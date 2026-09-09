@@ -96,19 +96,34 @@ public sealed class RepositorioBootstrap(FabricaConexoesClara fabrica, Configura
         await using var verificar = new NpgsqlCommand(existe, c, t);
         verificar.Parameters.AddWithValue("tenant", tenantId);
         verificar.Parameters.AddWithValue("email", configuracao.Bootstrap.EmailAdministrador);
-        if ((bool)(await verificar.ExecuteScalarAsync(ct) ?? false)) return;
+        var existeUsuario = (bool)(await verificar.ExecuteScalarAsync(ct) ?? false);
 
-        var (hash, sal) = SenhaSegura.Criar(senha);
-        const string inserir = """
-            INSERT INTO usuarios(tenant_id,nome,email,senha_hash,senha_sal,perfil)
-            VALUES(@tenant,@nome,@email,@hash,@sal,'Administrador');
-            """;
-        await using var cmd = new NpgsqlCommand(inserir, c, t);
-        cmd.Parameters.AddWithValue("tenant", tenantId);
-        cmd.Parameters.AddWithValue("nome", configuracao.Bootstrap.NomeAdministrador);
-        cmd.Parameters.AddWithValue("email", configuracao.Bootstrap.EmailAdministrador);
-        cmd.Parameters.AddWithValue("hash", hash);
-        cmd.Parameters.AddWithValue("sal", sal);
-        await cmd.ExecuteNonQueryAsync(ct);
+        if (!existeUsuario)
+        {
+            var (hash, sal) = SenhaSegura.Criar(senha);
+            const string inserir = """
+                INSERT INTO usuarios(tenant_id,nome,email,senha_hash,senha_sal,perfil)
+                VALUES(@tenant,@nome,@email,@hash,@sal,'Master');
+                """;
+            await using var cmd = new NpgsqlCommand(inserir, c, t);
+            cmd.Parameters.AddWithValue("tenant", tenantId);
+            cmd.Parameters.AddWithValue("nome", configuracao.Bootstrap.NomeAdministrador);
+            cmd.Parameters.AddWithValue("email", configuracao.Bootstrap.EmailAdministrador);
+            cmd.Parameters.AddWithValue("hash", hash);
+            cmd.Parameters.AddWithValue("sal", sal);
+            await cmd.ExecuteNonQueryAsync(ct);
+        }
+        else
+        {
+            const string promover = """
+                UPDATE usuarios
+                SET perfil='Master'
+                WHERE tenant_id=@tenant AND lower(email)=lower(@email);
+                """;
+            await using var cmd = new NpgsqlCommand(promover, c, t);
+            cmd.Parameters.AddWithValue("tenant", tenantId);
+            cmd.Parameters.AddWithValue("email", configuracao.Bootstrap.EmailAdministrador);
+            await cmd.ExecuteNonQueryAsync(ct);
+        }
     }
 }

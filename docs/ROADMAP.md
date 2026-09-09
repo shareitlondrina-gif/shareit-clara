@@ -15,7 +15,7 @@ O projeto usa poucos marcos grandes para reduzir versionamento artificial.
 - atualização automática com hash/backup/rollback;
 - publicação GitHub → Render → health validada.
 
-## v0.2.2 — Contexto, experiência e onboarding automático — ESTA ENTREGA
+## v0.3.0 — Contexto, experiência e onboarding automático — ESTA ENTREGA
 
 - identidade visual/favicons;
 - UX off-white e navegação lateral;

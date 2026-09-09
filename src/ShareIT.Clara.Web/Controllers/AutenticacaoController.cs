@@ -10,9 +10,9 @@ namespace ShareIT.Clara.Web.Controllers;
 /// <summary>
 /// Objetivo: controlar login e logout do painel administrativo.
 /// Origem: formulário Web.
-/// Destino: cookie autenticado com usuário, tenant e perfil.
+/// Destino: cookie autenticado com usuário, tenant, perfil e módulos permitidos.
 /// Dependências: RepositorioAutenticacao e ASP.NET Core Cookie Authentication.
-/// Impacto: protege dashboard e operações administrativas.
+/// Impacto: protege dashboard, gestão Master e módulos administrativos.
 /// Desenvolvedor: Paulo Andrade
 /// </summary>
 public sealed class AutenticacaoController(RepositorioAutenticacao repositorio) : Controller
@@ -32,18 +32,26 @@ public sealed class AutenticacaoController(RepositorioAutenticacao repositorio) 
             return View();
         }
 
-        var claims = new[]
+        var claims = new List<Claim>
         {
-            new Claim(ClaimTypes.NameIdentifier, usuario.Id.ToString()),
-            new Claim(ClaimTypes.Name, usuario.Nome),
-            new Claim(ClaimTypes.Email, usuario.Email),
-            new Claim(ClaimTypes.Role, usuario.Perfil),
-            new Claim("tenant_id", usuario.TenantId.ToString())
+            new(ClaimTypes.NameIdentifier, usuario.Id.ToString()),
+            new(ClaimTypes.Name, usuario.Nome),
+            new(ClaimTypes.Email, usuario.Email),
+            new(ClaimTypes.Role, usuario.Perfil),
+            new("tenant_id", usuario.TenantId.ToString())
         };
+        if (usuario.EmpresaId is not null) claims.Add(new Claim("empresa_id", usuario.EmpresaId.Value.ToString()));
+        claims.AddRange(usuario.Modulos.Select(m => new Claim("modulo", m)));
+
         var identidade = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
         await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identidade));
-        return RedirectToAction("Index", "Painel");
+        return usuario.Perfil.Equals("Master", StringComparison.OrdinalIgnoreCase)
+            ? RedirectToAction("Empresas", "Master")
+            : RedirectToAction("Index", "Painel");
     }
+
+    [HttpGet("acesso-negado")]
+    public IActionResult AcessoNegado() => View();
 
     [HttpPost("sair")]
     [ValidateAntiForgeryToken]

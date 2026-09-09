@@ -1,12 +1,12 @@
-# Validação — Share IT .Clara v0.2.2
+# Validação — Share IT .Clara v0.3.0
 
 ## Baseline de origem
 
-A v0.2.2 evolui a baseline online v0.1.2. Não utiliza código do Monitor legado, módulos do .VISÃO, Service Desk, projetos, CMDB ou suporte remoto.
+A v0.3.0 evolui a baseline online v0.1.2. Não utiliza código do Monitor legado, módulos do .VISÃO, Service Desk, projetos, CMDB ou suporte remoto.
 
 ## Validações estruturais executadas na geração
 
-- `VERSAO.txt` = `0.2.2`;
+- `VERSAO.txt` = `0.3.0`;
 - 7 projetos C# presentes e referenciados pela solution;
 - 108 arquivos na baseline;
 - 50 arquivos C# / aproximadamente 3.470 linhas C#;
@@ -73,15 +73,15 @@ PUBLICAR-CLARA.cmd
 
 O publicador interrompe o fluxo se `restore`, `build`, `test` ou qualquer `publish` falhar. Após o Git push, aguarda o Render e só considera a publicação saudável quando `/api/health` confirma simultaneamente:
 
-- versão `0.2.2`;
+- versão `0.3.0`;
 - banco `shareit_clara`;
 - banco `ok`;
 - **3 migrations aplicadas**.
 
-## Critérios de homologação v0.2.2
+## Critérios de homologação v0.3.0
 
 1. `https://shareit-clara.onrender.com/api/health` deve responder `aplicacao=ok`, `banco=ok`, `nomeBanco=shareit_clara` e `migracoes=3`;
-2. `/api/versao` deve responder `0.2.2`;
+2. `/api/versao` deve responder `0.3.0`;
 3. login deve carregar a nova identidade visual;
 4. tela Agora deve abrir sem agentes e com a nova hierarquia visual;
 5. geração de instalação deve exigir somente a empresa;
@@ -91,5 +91,5 @@ O publicador interrompe o fluxo se `restore`, `build`, `test` ou qualquer `publi
 9. classificação de aplicativo deve persistir por tenant;
 10. regras Home x Escritório devem aceitar CIDR válido e classificar o local;
 11. Índice Geral deve abrir de forma explicável e acompanhado da confiança dos dados;
-12. atualização automática deve reconhecer a v0.2.2, validar SHA-256 e preservar rollback;
+12. atualização automática deve reconhecer a v0.3.0, validar SHA-256 e preservar rollback;
 13. publicação a partir de pasta nova/sem `.git` deve sincronizar o histórico remoto e realizar push fast-forward sem `--force`.

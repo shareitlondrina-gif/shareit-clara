@@ -7,6 +7,8 @@
         var t = TimeSpan.FromSeconds(Math.Max(0, segundos));
         return t.TotalHours >= 1 ? $"{(int)t.TotalHours}h {t.Minutes:00}m" : $"{t.Minutes}m";
     }
+    var totalEstados = Math.Max(1, Model.Ativos + Model.Reuniao + Model.Ociosos + Model.Bloqueados + Model.Offline);
+    var maiorApp = Math.Max(1L, Model.AplicativosHoje.Select(a => a.Segundos).DefaultIfEmpty(1).Max());
     string ClasseEstado(string? estado) => (estado ?? "").ToLowerInvariant() switch
     {
         "ativo" => "estado-ativo",
@@ -29,6 +31,18 @@
     <article><span>Ociosos</span><strong>@Model.Ociosos</strong><small>acima do limite</small></article>
     <article><span>Offline</span><strong>@Model.Offline</strong><small>sem heartbeat</small></article>
     <article class="card-atencao"><span>Cadastro pendente</span><strong>@Model.CadastroIncompleto</strong><small>completar patrimônio/contexto</small></article>
+</section>
+
+<section class="painel painel-grafico-resumo">
+    <div class="titulo-painel"><div><span class="sobrelinha">DISTRIBUIÇÃO ATUAL</span><h2>Estado das estações</h2></div><small>@Model.TotalAgentes monitoradas</small></div>
+    <div class="barra-distribuicao" aria-label="Distribuição atual das estações">
+        @if (Model.Ativos > 0) { <span class="seg-ativo" style="width:@(Model.Ativos * 100.0 / totalEstados)%" title="Ativos: @Model.Ativos"></span> }
+        @if (Model.Reuniao > 0) { <span class="seg-reuniao" style="width:@(Model.Reuniao * 100.0 / totalEstados)%" title="Em reunião: @Model.Reuniao"></span> }
+        @if (Model.Ociosos > 0) { <span class="seg-ocioso" style="width:@(Model.Ociosos * 100.0 / totalEstados)%" title="Ociosos: @Model.Ociosos"></span> }
+        @if (Model.Bloqueados > 0) { <span class="seg-bloqueado" style="width:@(Model.Bloqueados * 100.0 / totalEstados)%" title="Bloqueados: @Model.Bloqueados"></span> }
+        @if (Model.Offline > 0) { <span class="seg-offline" style="width:@(Model.Offline * 100.0 / totalEstados)%" title="Offline: @Model.Offline"></span> }
+    </div>
+    <div class="legenda-distribuicao"><span><i class="leg-ativo"></i>Ativos @Model.Ativos</span><span><i class="leg-reuniao"></i>Reunião @Model.Reuniao</span><span><i class="leg-ocioso"></i>Ociosos @Model.Ociosos</span><span><i class="leg-bloqueado"></i>Bloqueados @Model.Bloqueados</span><span><i class="leg-offline"></i>Offline @Model.Offline</span></div>
 </section>
 
 <section class="grade-destaques">
@@ -98,10 +112,13 @@
         }
         else
         {
-            <div class="lista-aplicativos">
+            <div class="lista-aplicativos lista-aplicativos-grafico">
             @foreach (var app in Model.AplicativosHoje)
             {
-                <div><span><strong>@app.ProcessoExecutavel</strong><small>@(app.Categoria ?? app.Classificacao)</small></span><b>@Tempo(app.Segundos)</b></div>
+                <div class="linha-app-grafico">
+                    <span><strong>@app.ProcessoExecutavel</strong><small>@(app.Categoria ?? app.Classificacao)</small></span><b>@Tempo(app.Segundos)</b>
+                    <div class="trilho-app"><i style="width:@(Math.Max(4, app.Segundos * 100.0 / maiorApp))%"></i></div>
+                </div>
             }
             </div>
         }

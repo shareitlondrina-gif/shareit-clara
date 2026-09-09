@@ -1,0 +1,29 @@
+@model IReadOnlyCollection<ShareIT.Clara.Dominio.Contratos.UsuarioAcessoResumo>
+@{
+    ViewData["Title"] = "Usuários";
+}
+<div class="cabecalho-pagina">
+    <div><span class="sobretitulo">ADMINISTRAÇÃO</span><h1>Usuários</h1><p>Crie contas individuais para as pessoas que terão acesso à plataforma.</p></div>
+</div>
+@if (TempData["Mensagem"] is string mensagem) { <div class="mensagem-sucesso">@mensagem</div> }
+@if (TempData["Erro"] is string erro) { <div class="erro">@erro</div> }
+<section class="cartao-clara">
+    <h2>Novo usuário</h2>
+    <p class="texto-secundario">Nesta etapa, novos usuários recebem automaticamente o perfil <strong>Padrão</strong>. Outros perfis poderão ser adicionados depois.</p>
+    <form method="post" action="/administracao/usuarios/criar" class="grade-formulario">
+        @Html.AntiForgeryToken()
+        <label>Nome<input name="nome" required maxlength="200" /></label>
+        <label>E-mail<input name="email" type="email" required maxlength="320" /></label>
+        <label>Senha inicial<input name="senha" type="password" required minlength="8" autocomplete="new-password" /></label>
+        <div class="campo-acao"><button type="submit">Criar usuário</button></div>
+    </form>
+</section>
+<section class="cartao-clara">
+    <h2>Contas da empresa</h2>
+    <div class="tabela-responsiva"><table class="tabela-clara"><thead><tr><th>Nome</th><th>E-mail</th><th>Tipo</th><th>Perfil</th><th>Status</th></tr></thead><tbody>
+    @foreach (var item in Model)
+    {
+        <tr><td><strong>@item.Nome</strong></td><td>@item.Email</td><td>@item.PerfilSistema</td><td>@(item.PerfilAcesso ?? "—")</td><td><span class="status-pill @(item.Ativo ? "status-ok" : "status-off")">@(item.Ativo ? "Ativo" : "Inativo")</span></td></tr>
+    }
+    </tbody></table></div>
+</section>
