@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.RateLimiting;
 using Npgsql;
 using ShareIT.Clara.Comum.Configuracao;
 using ShareIT.Clara.Dados.Banco;
@@ -16,6 +16,7 @@ builder.Services.AddSingleton(configuracaoClara);
 builder.Services.AddSingleton<FabricaConexoesClara>();
 builder.Services.AddSingleton<PreparadorBancoClara>();
 builder.Services.AddSingleton<MigradorBancoClara>();
+builder.Services.AddSingleton<EstadoInicializacaoBanco>();
 builder.Services.AddScoped<RepositorioAutenticacao>();
 builder.Services.AddScoped<RepositorioBootstrap>();
 builder.Services.AddScoped<RepositorioAgentes>();
@@ -94,16 +95,8 @@ app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 
-if (configuracaoClara.Servidor.ExecutarMigracoesAutomaticamente)
-{
-    using var escopo = app.Services.CreateScope();
-    await escopo.ServiceProvider.GetRequiredService<PreparadorBancoClara>().GarantirAsync();
-    await escopo.ServiceProvider.GetRequiredService<MigradorBancoClara>().AplicarAsync();
-    await escopo.ServiceProvider.GetRequiredService<RepositorioBootstrap>().GarantirAsync();
-}
-
-// Rotas técnicas são mapeadas diretamente para não depender de descoberta de controllers.
-// Isso permite ao Render e ao PUBLICAR-CLARA.cmd distinguir aplicação online, versão publicada e saúde do banco.
+// Rotas tecnicas ficam disponiveis antes da inicializacao do banco.
+// Assim o Render consegue confirmar que o processo Web esta vivo mesmo enquanto migrations/bootstrap executam.
 app.MapGet("/api/versao", () => Results.Ok(new
 {
     produto = "Share IT .Clara",
@@ -111,16 +104,44 @@ app.MapGet("/api/versao", () => Results.Ok(new
     utc = DateTimeOffset.UtcNow
 }));
 
-app.MapGet("/api/health/live", () => Results.Ok(new
+app.MapGet("/api/health/live", (EstadoInicializacaoBanco estado) => Results.Ok(new
 {
     produto = "Share IT .Clara",
     versao = ObterVersaoAplicacao(),
     aplicacao = "ok",
+    inicializacaoBanco = estado.Situacao,
     utc = DateTimeOffset.UtcNow
 }));
 
-app.MapGet("/api/health", async (FabricaConexoesClara fabrica, CancellationToken ct) =>
+app.MapGet("/api/health", async (FabricaConexoesClara fabrica, EstadoInicializacaoBanco estado, CancellationToken ct) =>
 {
+    if (estado.Falhou)
+    {
+        return Results.Json(new
+        {
+            produto = "Share IT .Clara",
+            versao = ObterVersaoAplicacao(),
+            aplicacao = "ok",
+            banco = "erro",
+            inicializacaoBanco = estado.Situacao,
+            erro = "Falha na inicializacao do banco. Consulte os logs do Render.",
+            utc = DateTimeOffset.UtcNow
+        }, statusCode: StatusCodes.Status503ServiceUnavailable);
+    }
+
+    if (!estado.ConcluidaComSucesso)
+    {
+        return Results.Json(new
+        {
+            produto = "Share IT .Clara",
+            versao = ObterVersaoAplicacao(),
+            aplicacao = "ok",
+            banco = "inicializando",
+            inicializacaoBanco = estado.Situacao,
+            utc = DateTimeOffset.UtcNow
+        }, statusCode: StatusCodes.Status503ServiceUnavailable);
+    }
+
     try
     {
         await using var conexao = fabrica.Criar();
@@ -140,6 +161,7 @@ app.MapGet("/api/health", async (FabricaConexoesClara fabrica, CancellationToken
             versao = ObterVersaoAplicacao(),
             aplicacao = "ok",
             banco = "ok",
+            inicializacaoBanco = estado.Situacao,
             nomeBanco,
             migracoes,
             utc = DateTimeOffset.UtcNow
@@ -147,13 +169,15 @@ app.MapGet("/api/health", async (FabricaConexoesClara fabrica, CancellationToken
     }
     catch (Exception ex)
     {
+        app.Logger.LogWarning(ex, "Health de readiness encontrou falha no banco do Share IT .Clara.");
         return Results.Json(new
         {
             produto = "Share IT .Clara",
             versao = ObterVersaoAplicacao(),
             aplicacao = "ok",
             banco = "erro",
-            erro = ex.Message,
+            inicializacaoBanco = estado.Situacao,
+            erro = "Banco indisponivel. Consulte os logs do Render.",
             utc = DateTimeOffset.UtcNow
         }, statusCode: StatusCodes.Status503ServiceUnavailable);
     }
@@ -161,7 +185,37 @@ app.MapGet("/api/health", async (FabricaConexoesClara fabrica, CancellationToken
 
 app.MapControllers();
 app.MapControllerRoute(name: "padrao", pattern: "{controller=Painel}/{action=Index}/{id?}");
-await app.RunAsync();
+
+// Primeiro coloca a Web/API no ar; depois prepara banco/migrations/bootstrap.
+// Isso evita que uma falha de banco deixe o processo totalmente invisivel ao health de liveness.
+await app.StartAsync();
+
+var estadoInicializacao = app.Services.GetRequiredService<EstadoInicializacaoBanco>();
+if (configuracaoClara.Servidor.ExecutarMigracoesAutomaticamente)
+{
+    estadoInicializacao.Iniciar();
+    try
+    {
+        using var escopo = app.Services.CreateScope();
+        await escopo.ServiceProvider.GetRequiredService<PreparadorBancoClara>().GarantirAsync();
+        await escopo.ServiceProvider.GetRequiredService<MigradorBancoClara>().AplicarAsync();
+        await escopo.ServiceProvider.GetRequiredService<RepositorioBootstrap>().GarantirAsync();
+        estadoInicializacao.Concluir();
+        app.Logger.LogInformation("Inicializacao do banco Share IT .Clara concluida com sucesso.");
+    }
+    catch (Exception ex)
+    {
+        estadoInicializacao.Falhar(ex);
+        app.Logger.LogError(ex, "Falha na inicializacao do banco Share IT .Clara. A Web continuara online para diagnostico via /api/health/live.");
+    }
+}
+else
+{
+    estadoInicializacao.MarcarDesabilitada();
+    app.Logger.LogWarning("Migrations automaticas do Share IT .Clara estao desabilitadas por configuracao.");
+}
+
+await app.WaitForShutdownAsync();
 
 static string ObterVersaoAplicacao()
-    => Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.3.0";
+    => Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.3.1";

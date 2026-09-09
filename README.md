@@ -1,4 +1,4 @@
-# Share IT .Clara v0.3.0
+# Share IT .Clara v0.3.1
 
 Baseline funcional do **Share IT .Clara**, plataforma multiempresa de inteligência do trabalho e monitoramento autorizado de performance em estações Windows.
 
@@ -13,7 +13,19 @@ Baseline funcional do **Share IT .Clara**, plataforma multiempresa de inteligên
 
 ## Correção de compilação
 
-A v0.3.0 preserva a baseline funcional da v0.2.2 e adiciona gestão multiempresa, usuário Master, perfis por módulo e empresa demonstração. O fluxo Git seguro da v0.2.2 foi mantido, sem uso de `--force`.
+A v0.3.1 preserva as funcionalidades da v0.3.0 e corrige o fluxo de publicação/diagnóstico no Render. A Web/API passa a responder ao liveness antes da inicialização do banco, o health completo continua validando banco e migrations, e o publicador diferencia claramente liveness de readiness.
+
+## Correção de publicação da v0.3.1
+
+- `/api/health/live` fica disponível assim que a Web/API inicia, sem depender do PostgreSQL;
+- o Render passa a usar `/api/health/live` como `healthCheckPath`;
+- migrations e bootstrap executam depois que o servidor Web já está respondendo;
+- falha de banco não derruba a Web de diagnóstico: `/api/health` retorna 503 e os detalhes ficam nos logs;
+- o `PUBLICAR-CLARA.cmd` valida primeiro liveness e depois readiness;
+- timeouts do publicador são menores e controlados por uma janela total de tempo;
+- o ZIP local é gerado antes da validação online, portanto é preservado mesmo se o Render não confirmar o deploy.
+
+Não há nova migration nesta versão. O esperado continua sendo **4 migrations**.
 
 ## Novidades da v0.3.0
 

@@ -80,30 +80,61 @@ function Obter-RepositorioGit([xml]$Publicacao) {
     }
     return ''
 }
-function Testar-Health([string]$Url, [int]$Tentativas, [int]$EsperaSegundos) {
-    for ($i = 1; $i -le $Tentativas; $i++) {
+function Testar-PublicacaoOnline([string]$UrlLive, [string]$UrlHealth, [int]$TempoMaximoMinutos) {
+    $limite = (Get-Date).AddMinutes([Math]::Max(2, $TempoMaximoMinutos))
+    $tentativa = 0
+    $livenessConfirmado = $false
+
+    while ((Get-Date) -lt $limite) {
+        $tentativa++
         try {
-            $resposta = Invoke-RestMethod -Uri $Url -TimeoutSec 20 -Headers @{ 'Cache-Control' = 'no-cache' }
-            $versaoRemota = [string]$resposta.versao
-            $banco = [string]$resposta.banco
-            $nomeBanco = [string]$resposta.nomeBanco
-            $migracoesRemotas = [int]$resposta.migracoes
-            if ($banco -eq 'ok' -and $nomeBanco -eq 'shareit_clara' -and $versaoRemota -eq $Versao -and $migracoesRemotas -eq $MigracoesEsperadas) {
-                Ok "Health confirmado na versao $versaoRemota, banco $nomeBanco, $migracoesRemotas migrations."
-                return $true
+            $live = Invoke-RestMethod -Uri $UrlLive -TimeoutSec 8 -Headers @{ 'Cache-Control' = 'no-cache' }
+            $versaoLive = [string]$live.versao
+            $aplicacaoLive = [string]$live.aplicacao
+            $estadoBanco = [string]$live.inicializacaoBanco
+
+            if ($versaoLive -eq $Versao -and $aplicacaoLive -eq 'ok') {
+                if (-not $livenessConfirmado) {
+                    Ok "Web/API v$versaoLive respondeu ao liveness. Estado do banco: '$estadoBanco'."
+                    $livenessConfirmado = $true
+                }
+
+                try {
+                    $resposta = Invoke-RestMethod -Uri $UrlHealth -TimeoutSec 8 -Headers @{ 'Cache-Control' = 'no-cache' }
+                    $versaoRemota = [string]$resposta.versao
+                    $banco = [string]$resposta.banco
+                    $nomeBanco = [string]$resposta.nomeBanco
+                    $migracoesRemotas = [int]$resposta.migracoes
+                    if ($banco -eq 'ok' -and $nomeBanco -eq 'shareit_clara' -and $versaoRemota -eq $Versao -and $migracoesRemotas -eq $MigracoesEsperadas) {
+                        Ok "Health completo confirmado na versao $versaoRemota, banco $nomeBanco, $migracoesRemotas migrations."
+                        return $true
+                    }
+                    Aviso "Web/API esta online, mas o health completo ainda nao confirmou a baseline. Versao='$versaoRemota', banco='$banco', migrations='$migracoesRemotas/$MigracoesEsperadas'."
+                }
+                catch {
+                    $statusHealth = $_.Exception.Response.StatusCode.value__ 2>$null
+                    if ($statusHealth -eq 503) {
+                        Aviso "Web/API v$Versao esta online, mas o banco ainda esta inicializando ou apresentou falha. Consulte /api/health e os Logs do Render."
+                    } else {
+                        Aviso "Web/API v$Versao esta online, mas o health completo ainda esta indisponivel: $($_.Exception.Message)"
+                    }
+                }
+            } else {
+                Aviso "Liveness respondeu, mas ainda nao esta na versao esperada. Remota='$versaoLive', esperada='$Versao'. Tentativa $tentativa."
             }
-            Aviso "Health respondeu, mas ainda nao esta na baseline esperada. Remota='$versaoRemota', esperada='$Versao', banco='$banco', migrations='$migracoesRemotas/$MigracoesEsperadas'. Tentativa $i/$Tentativas."
         }
         catch {
             $status = $_.Exception.Response.StatusCode.value__ 2>$null
             if ($status -eq 404) {
-                Aviso "O endereco respondeu HTTP 404. O servico existe, mas esta versao do .Clara ainda nao foi implantada. Tentativa $i/$Tentativas."
+                Aviso "Liveness respondeu HTTP 404; o deploy novo ainda nao assumiu o servico. Tentativa $tentativa."
             } else {
-                Aviso "Health ainda indisponivel: $($_.Exception.Message). Tentativa $i/$Tentativas."
+                Aviso "Liveness ainda indisponivel: $($_.Exception.Message). Tentativa $tentativa."
             }
         }
-        if ($i -lt $Tentativas) { Start-Sleep -Seconds $EsperaSegundos }
+
+        if ((Get-Date) -lt $limite) { Start-Sleep -Seconds 6 }
     }
+
     return $false
 }
 
@@ -126,6 +157,7 @@ try {
     if ([string]::IsNullOrWhiteSpace($health) -or $health.Contains('exemplo.com.br')) {
         $health = $urlSistema.TrimEnd('/') + '/api/health'
     }
+    $healthLive = $urlSistema.TrimEnd('/') + '/api/health/live'
     $abrirNavegador = XmlBool $pub.ConfiguracaoPublicacao 'AbrirNavegadorAposPublicacao' $true
     $tempoDeploy = [Math]::Max(2, (XmlInt $pub.ConfiguracaoPublicacao 'TempoMaximoDeployMinutos' 12))
     $publicacaoAutomatica = XmlBool $pub.ConfiguracaoPublicacao 'PublicacaoAutomatica' $true
@@ -227,6 +259,12 @@ try {
     if ($arquivosSuspeitos) { Falhar ('Arquivo potencialmente secreto incluido no release: ' + (($arquivosSuspeitos.FullName) -join ', ')) }
     Ok 'Release sem arquivos locais de segredos conhecidos.'
 
+    Etapa 'Gerando ZIP local antes da publicacao online'
+    $ZipFinal = Join-Path $Artefatos ("Clara-v{0}.zip" -f $Versao)
+    if (Test-Path $ZipFinal) { Remove-Item $ZipFinal -Force }
+    Compress-Archive -Path (Join-Path $Release '*') -DestinationPath $ZipFinal -CompressionLevel Optimal
+    Ok "ZIP local gerado: $ZipFinal"
+
     if ($executarGit) {
         Etapa 'Publicando codigo no GitHub'
         $repo = Obter-RepositorioGit $pub
@@ -304,23 +342,20 @@ try {
 
     if ($PublicacaoOnlineSolicitada -and -not $SemDeploy) {
         Etapa "Aguardando o Render publicar v$Versao"
-        $tentativas = [Math]::Max(6, [int](($tempoDeploy * 60) / 10))
-        $OnlineValidado = Testar-Health -Url $health -Tentativas $tentativas -EsperaSegundos 10
+        Info "Liveness: $healthLive"
+        Info "Readiness: $health"
+        Info "Tempo maximo total de validacao: $tempoDeploy minuto(s)."
+        $OnlineValidado = Testar-PublicacaoOnline -UrlLive $healthLive -UrlHealth $health -TempoMaximoMinutos $tempoDeploy
         if (-not $OnlineValidado) {
-            Falhar "A compilacao e o envio terminaram, mas o endereco '$health' nao confirmou a versao $Versao. Verifique no Render se o servico shareit-clara esta ligado ao repositorio/branch corretos e se o deploy terminou."
+            Falhar "A compilacao e o envio terminaram e o ZIP local foi preservado em '$ZipFinal', mas o Render nao confirmou a baseline v$Versao dentro do tempo configurado. Verifique /api/health/live, /api/health e os Logs do servico shareit-clara."
         }
     } elseif (-not [string]::IsNullOrWhiteSpace($health)) {
         Etapa 'Verificando endereco configurado sem exigir nova publicacao'
-        $OnlineValidado = Testar-Health -Url $health -Tentativas 1 -EsperaSegundos 1
+        $OnlineValidado = Testar-PublicacaoOnline -UrlLive $healthLive -UrlHealth $health -TempoMaximoMinutos 2
         if (-not $OnlineValidado) {
             Aviso 'A release local foi concluida, mas a versao online nao foi confirmada nesta execucao.'
         }
     }
-
-    Etapa 'Gerando ZIP final de implantacao'
-    $ZipFinal = Join-Path $Artefatos ("Clara-v{0}.zip" -f $Versao)
-    if (Test-Path $ZipFinal) { Remove-Item $ZipFinal -Force }
-    Compress-Archive -Path (Join-Path $Release '*') -DestinationPath $ZipFinal -CompressionLevel Optimal
 
     Write-Host "`n====================================================" -ForegroundColor Green
     Write-Host " SHARE IT .CLARA - RESULTADO DA PUBLICACAO" -ForegroundColor Green

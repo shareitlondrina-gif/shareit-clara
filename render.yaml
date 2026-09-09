@@ -5,7 +5,7 @@ services:
     plan: free
     region: virginia
     dockerfilePath: ./Dockerfile
-    healthCheckPath: /api/health
+    healthCheckPath: /api/health/live
     autoDeploy: true
     envVars:
       - key: CLARA_POSTGRES
