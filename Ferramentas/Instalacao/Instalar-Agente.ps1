@@ -12,7 +12,11 @@ $Destino = 'C:\Program Files\Share IT\Clara'
 $Dados = 'C:\ProgramData\ShareIT\Clara'
 $Servico = 'ShareIT.Clara.Agente'
 $Tarefa = 'Share IT .Clara - Sessao'
+$HostNativoNome = 'br.com.shareit.clara'
+$ExtensaoId = 'diidcakejmmckhhbggepbblogonddjml'
 if (-not (Test-Path (Join-Path $Origem 'Agente\ShareIT.Clara.Agente.exe'))) { throw 'Pacote do agente nao encontrado.' }
+if (-not (Test-Path (Join-Path $Origem 'NavegadorHost\ShareIT.Clara.NavegadorHost.exe'))) { throw 'Native Messaging Host do navegador nao encontrado.' }
+
 New-Item -ItemType Directory -Force -Path $Destino,$Dados | Out-Null
 $Segredos = Join-Path $Dados 'segredos'
 New-Item -ItemType Directory -Force -Path $Segredos | Out-Null
@@ -24,6 +28,7 @@ $config = [ordered]@{
     intervaloSincronizacaoSegundos=30
     intervaloAtualizacaoMinutos=15
     limiarOciosidadeMinutos=5
+    monitorarUrlsDominios=$false
 }
 $config | ConvertTo-Json | Set-Content (Join-Path $Dados 'configuracao-agente.json') -Encoding UTF8
 Set-Content -Path (Join-Path $Segredos 'token-instalacao.txt') -Value $TokenInstalacao -Encoding ASCII -NoNewline
@@ -44,6 +49,29 @@ $gatilho = New-ScheduledTaskTrigger -AtLogOn
 $principal = New-ScheduledTaskPrincipal -GroupId 'BUILTIN\Users' -RunLevel Limited
 Register-ScheduledTask -TaskName $Tarefa -Action $acao -Trigger $gatilho -Principal $principal -Description 'Coletor de sessao do Share IT .Clara' | Out-Null
 
+# Native Messaging Host: o executavel recebe SOMENTE dominio/navegador da extensao e encaminha ao agente por Named Pipe.
+$PastaManifesto = Join-Path $Dados 'navegador'
+New-Item -ItemType Directory -Force -Path $PastaManifesto | Out-Null
+$HostExe = Join-Path $Destino 'NavegadorHost\ShareIT.Clara.NavegadorHost.exe'
+$ManifestoHost = Join-Path $PastaManifesto ($HostNativoNome + '.json')
+$Manifesto = [ordered]@{
+    name = $HostNativoNome
+    description = 'Share IT .Clara - Contexto web autorizado'
+    path = $HostExe
+    type = 'stdio'
+    allowed_origins = @("chrome-extension://$ExtensaoId/")
+}
+$Manifesto | ConvertTo-Json -Depth 4 | Set-Content $ManifestoHost -Encoding UTF8
+foreach ($Chave in @(
+    "HKLM:\SOFTWARE\Google\Chrome\NativeMessagingHosts\$HostNativoNome",
+    "HKLM:\SOFTWARE\Microsoft\Edge\NativeMessagingHosts\$HostNativoNome"
+)) {
+    New-Item -Path $Chave -Force | Out-Null
+    Set-Item -Path $Chave -Value $ManifestoHost
+}
+
 & sc.exe start $Servico | Out-Null
 try { Start-ScheduledTask -TaskName $Tarefa } catch { }
 Write-Host 'Agente instalado e iniciado. O token sera consumido automaticamente no primeiro registro.' -ForegroundColor Green
+Write-Host 'Host nativo do Chrome/Edge registrado. A coleta web somente sera processada se a politica do tenant habilitar Monitorar URLs/dominios.' -ForegroundColor Cyan
+Write-Host ("Extensao para homologacao: {0}" -f (Join-Path $Destino 'NavegadorExtensao')) -ForegroundColor Cyan

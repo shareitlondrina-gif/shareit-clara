@@ -31,6 +31,26 @@ public sealed class RepositorioAdministracao(FabricaConexoesClara fabrica, Confi
         return lista;
     }
 
+    public async Task<(AssinaturaTenantResumo Assinatura, int EstacoesAtivas)> ObterAssinaturaAsync(Guid tenantId, CancellationToken ct = default)
+    {
+        const string sql = """
+            SELECT COALESCE(s.plano,'Gestão'),COALESCE(s.status,'Ativa'),COALESCE(s.limite_estacoes,15),
+                   COALESCE(s.retencao_dias,90),COALESCE(s.armazenamento_gb,5),s.vencimento,s.observacao,
+                   (SELECT count(*) FROM ativos a WHERE a.tenant_id=t.id AND a.ativo=true)
+            FROM tenants t
+            LEFT JOIN assinaturas_tenant s ON s.tenant_id=t.id
+            WHERE t.id=@tenant;
+            """;
+        await using var conexao = fabrica.Criar();
+        await conexao.OpenAsync(ct);
+        await using var comando = new NpgsqlCommand(sql, conexao);
+        comando.Parameters.AddWithValue("tenant", tenantId);
+        await using var leitor = await comando.ExecuteReaderAsync(ct);
+        if (!await leitor.ReadAsync(ct)) throw new InvalidOperationException("Tenant não encontrado.");
+        var assinatura = new AssinaturaTenantResumo(tenantId, leitor.GetString(0), leitor.GetString(1), leitor.GetInt32(2), leitor.GetInt32(3), leitor.GetInt32(4), leitor.IsDBNull(5) ? null : leitor.GetFieldValue<DateOnly>(5), leitor.IsDBNull(6) ? null : leitor.GetString(6));
+        return (assinatura, Convert.ToInt32(leitor.GetInt64(7)));
+    }
+
     public async Task<TokenInstalacaoGerado> CriarTokenInstalacaoAsync(Guid tenantId, Guid usuarioId, Guid empresaId, CancellationToken ct = default)
     {
         var token = Convert.ToHexString(RandomNumberGenerator.GetBytes(24)).ToLowerInvariant();
@@ -39,6 +59,7 @@ public sealed class RepositorioAdministracao(FabricaConexoesClara fabrica, Confi
 
         await using var conexao = fabrica.Criar();
         await conexao.OpenAsync(ct);
+        await ValidarAssinaturaParaNovaEstacaoAsync(conexao, tenantId, ct);
         await using var comando = new NpgsqlCommand("""
             INSERT INTO tokens_instalacao(tenant_id,empresa_id,ativo_id,token_hash,expira_em_utc,criado_por_usuario_id)
             SELECT @tenant,e.id,NULL,@hash,@expira,@usuario
@@ -62,13 +83,38 @@ public sealed class RepositorioAdministracao(FabricaConexoesClara fabrica, Confi
                    at.fabricante,at.modelo,at.sistema_operacional,at.patrimonio,at.responsavel,
                    e.nome,u.nome,d.nome,at.cadastro_completo,a.versao,a.ultima_comunicacao_utc,
                    CASE WHEN a.id IS NULL THEN 'Sem agente'
-                        WHEN a.ultima_comunicacao_utc >= now() - (@offlineMinutos * interval '1 minute') THEN 'Online'
-                        ELSE 'Offline' END AS status
+                        WHEN a.ultima_comunicacao_utc >= now() - (COALESCE(cm.tempo_offline_minutos,@offlineMinutos) * interval '1 minute') THEN 'Online'
+                        ELSE 'Offline' END AS status,
+                   CASE WHEN a.id IS NULL THEN 'Pendente'
+                        WHEN a.ultima_comunicacao_utc < now() - (COALESCE(cm.tempo_offline_minutos,@offlineMinutos) * interval '1 minute') THEN 'Offline'
+                        WHEN p.estado=1 THEN 'Ativo'
+                        WHEN p.estado=2 THEN 'Ocioso'
+                        WHEN p.estado=3 THEN 'Bloqueado'
+                        WHEN p.estado=5 THEN 'Reunião'
+                        ELSE 'Online' END AS estado_atual,
+                   COALESCE(a.processo_atual,p.processo_executavel) AS processo_atual,
+                   CASE WHEN loc.tipo='Escritorio' THEN 'Escritório'
+                        WHEN loc.tipo='HomeOffice' THEN 'Home office'
+                        WHEN loc.tipo='Externo' THEN 'Externo/Remoto'
+                        WHEN loc.tipo='Outro' THEN COALESCE(loc.nome,'Outro')
+                        ELSE 'Sem classificação' END AS local_trabalho
             FROM ativos at
             JOIN empresas e ON e.id=at.empresa_id AND e.tenant_id=at.tenant_id
             LEFT JOIN unidades u ON u.id=at.unidade_id AND u.tenant_id=at.tenant_id
             LEFT JOIN departamentos d ON d.id=at.departamento_id AND d.tenant_id=at.tenant_id
             LEFT JOIN agentes a ON a.ativo_id=at.id AND a.tenant_id=at.tenant_id AND a.ativo=true
+            LEFT JOIN configuracoes_monitoramento cm ON cm.tenant_id=at.tenant_id
+            LEFT JOIN LATERAL (
+                SELECT estado,processo_executavel FROM periodos_atividade p
+                WHERE p.tenant_id=at.tenant_id AND p.ativo_id=at.id
+                ORDER BY p.fim_utc DESC LIMIT 1
+            ) p ON true
+            LEFT JOIN LATERAL (
+                SELECT r.tipo,r.nome FROM regras_local_trabalho r
+                WHERE r.tenant_id=at.tenant_id AND r.ativo=true AND a.endereco_ip_publico IS NOT NULL
+                  AND a.endereco_ip_publico <<= r.faixa_ip
+                ORDER BY masklen(r.faixa_ip) DESC LIMIT 1
+            ) loc ON true
             WHERE at.tenant_id=@tenant AND at.ativo=true
             ORDER BY at.cadastro_completo, status DESC, at.hostname;
             """;
@@ -99,7 +145,10 @@ public sealed class RepositorioAdministracao(FabricaConexoesClara fabrica, Confi
                     leitor.GetBoolean(13),
                     leitor.GetString(16),
                     leitor.IsDBNull(14) ? null : leitor.GetString(14),
-                    leitor.IsDBNull(15) ? null : ComoDataHora(leitor, 15)));
+                    leitor.IsDBNull(15) ? null : ComoDataHora(leitor, 15),
+                    leitor.GetString(17),
+                    leitor.IsDBNull(18) ? null : leitor.GetString(18),
+                    leitor.GetString(19)));
             }
         }
 
@@ -206,6 +255,31 @@ public sealed class RepositorioAdministracao(FabricaConexoesClara fabrica, Confi
 
     private static DateTimeOffset ComoDataHora(NpgsqlDataReader leitor, int indice)
         => new(DateTime.SpecifyKind(leitor.GetDateTime(indice), DateTimeKind.Utc));
+
+    private static async Task ValidarAssinaturaParaNovaEstacaoAsync(NpgsqlConnection conexao, Guid tenantId, CancellationToken ct)
+    {
+        const string sql = """
+            SELECT COALESCE(s.status,'Ativa'), COALESCE(s.limite_estacoes,15), s.vencimento,
+                   (SELECT count(*) FROM ativos a WHERE a.tenant_id=@tenant AND a.ativo=true)
+            FROM tenants t
+            LEFT JOIN assinaturas_tenant s ON s.tenant_id=t.id
+            WHERE t.id=@tenant AND t.ativo=true;
+            """;
+        await using var comando = new NpgsqlCommand(sql, conexao);
+        comando.Parameters.AddWithValue("tenant", tenantId);
+        await using var leitor = await comando.ExecuteReaderAsync(ct);
+        if (!await leitor.ReadAsync(ct)) throw new InvalidOperationException("Tenant não encontrado ou inativo.");
+        var status = leitor.GetString(0);
+        var limite = leitor.GetInt32(1);
+        var vencimento = leitor.IsDBNull(2) ? (DateOnly?)null : leitor.GetFieldValue<DateOnly>(2);
+        var estacoes = Convert.ToInt32(leitor.GetInt64(3));
+        if (status is not ("Ativa" or "Trial"))
+            throw new InvalidOperationException($"A assinatura está {status.ToLowerInvariant()}. Regularize o plano antes de instalar uma nova estação.");
+        if (vencimento.HasValue && vencimento.Value < DateOnly.FromDateTime(DateTime.UtcNow))
+            throw new InvalidOperationException("A assinatura está vencida. Atualize o vencimento antes de instalar uma nova estação.");
+        if (estacoes >= limite)
+            throw new InvalidOperationException($"Limite do plano atingido: {estacoes} de {limite} estações. Aumente o limite para gerar um novo token.");
+    }
 
     private static string? Limpar(string? valor) => string.IsNullOrWhiteSpace(valor) ? null : valor.Trim();
 }

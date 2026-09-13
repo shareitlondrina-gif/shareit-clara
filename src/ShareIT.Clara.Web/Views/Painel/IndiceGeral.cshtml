@@ -2,25 +2,42 @@
 @{
     ViewData["Title"] = "Índice Geral";
     string Tempo(long segundos){var t=TimeSpan.FromSeconds(segundos);return t.TotalHours>=1?$"{(int)t.TotalHours}h {t.Minutes:00}m":$"{t.Minutes}m";}
+    string Codigo(string nome) => nome.ToLowerInvariant().Contains("atividade") ? "atividade" : nome.ToLowerInvariant().Contains("continuidade") ? "continuidade" : nome.ToLowerInvariant().Contains("web") ? "web" : nome.ToLowerInvariant().Contains("contexto") ? "contexto" : "indice";
 }
-<section class="cabecalho-pagina">
-    <div><span class="sobrelinha">INTELIGÊNCIA EXPLICÁVEL</span><h1>Índice Geral</h1><p>Síntese dos sinais disponíveis, com pesos visíveis e confiança separada do resultado.</p></div>
+<section class="cabecalho-pagina cabecalho-clara">
+    <div><span class="sobrelinha">INTELIGÊNCIA EXPLICÁVEL</span><h1>Índice Geral</h1><p>Síntese dos sinais disponíveis, com pesos visíveis, confiança separada do resultado e acesso ao detalhamento.</p></div>
+    <div class="cabecalho-status"><span class="selo-tempo-real"><i></i>Dados do período atual</span></div>
 </section>
-<section class="grade-indice">
-    <article class="painel card-indice-principal"><span class="sobrelinha">ÍNDICE GERAL HOJE</span><strong>@Model.IndiceGeral</strong><small>/100</small><p>@Model.Explicacao</p></article>
-    <article class="painel card-confianca"><span class="sobrelinha">CONFIANÇA DOS DADOS</span><strong>@Model.ConfiancaDados%</strong><p>@Model.EstacoesComDados de @Model.TotalEstacoes estações com dados hoje · @Tempo(Model.SegundosObservados) observados.</p></article>
+
+<section class="grade-indice-clara">
+    <a class="painel-clara card-indice-hero" href="#" data-drilldown-url="/indicadores/detalhes?tipo=indice&valor=indice&dias=1">
+        <span class="sobrelinha">ÍNDICE GERAL HOJE</span>
+        <div class="medidor-indice"><strong>@Model.IndiceGeral</strong><small>/100</small></div>
+        <div class="barra-score"><i style="width:@Model.IndiceGeral%"></i></div>
+        <p>@Model.Explicacao</p><b>Ver estações que compõem o índice →</b>
+    </a>
+    <a class="painel-clara card-confianca-clara" href="#" data-drilldown-url="/indicadores/detalhes?tipo=indice&valor=cobertura&dias=1">
+        <span class="sobrelinha">CONFIANÇA DOS DADOS</span>
+        <div class="medidor-indice"><strong>@Model.ConfiancaDados</strong><small>%</small></div>
+        <div class="barra-score confianca"><i style="width:@Model.ConfiancaDados%"></i></div>
+        <p><strong>@Model.EstacoesComDados de @Model.TotalEstacoes</strong> estações com dados hoje · @Tempo(Model.SegundosObservados) observados.</p><b>Ver cobertura →</b>
+    </a>
 </section>
-<section class="painel">
-    <div class="titulo-painel"><div><span class="sobrelinha">COMPOSIÇÃO</span><h2>Como o índice foi calculado</h2></div></div>
-    <div class="componentes-indice">
+
+<section class="painel-clara painel-componentes-indice">
+    <div class="titulo-painel"><div><span class="sobrelinha">COMPOSIÇÃO</span><h2>Como o índice foi calculado</h2><p>Cada componente mostra valor, peso aplicado e explicação. Clique para abrir os registros que contribuíram para o sinal.</p></div></div>
+    <div class="componentes-indice-clara">
     @foreach(var c in Model.Componentes)
     {
-        <article class="componente-indice @(c.Disponivel ? "" : "indisponivel")">
-            <div><strong>@c.Nome</strong><span>@c.Descricao</span></div>
-            <div class="valor-componente"><b>@(c.Disponivel ? c.Valor : 0)</b><small>@(c.PesoAplicado > 0 ? $"peso {c.PesoAplicado}%" : "sem peso")</small></div>
-            <div class="barra-indice"><i style="width:@(c.Disponivel ? c.Valor : 0)%"></i></div>
-        </article>
+        var codigo = Codigo(c.Nome);
+        <a href="#" data-drilldown-url="/indicadores/detalhes?tipo=indice&valor=@codigo&dias=1" class="componente-indice-clara @(c.Disponivel ? "" : "indisponivel")">
+            <span class="topo-componente"><strong>@c.Nome</strong><em>@(c.PesoAplicado > 0 ? $"peso {c.PesoAplicado}%" : "sem peso")</em></span>
+            <span class="valor-componente-clara"><b>@(c.Disponivel ? c.Valor : 0)</b><small>/100</small></span>
+            <span class="barra-score"><i style="width:@(c.Disponivel ? c.Valor : 0)%"></i></span>
+            <p>@c.Descricao</p><span class="ver-detalhe">Ver detalhes →</span>
+        </a>
     }
     </div>
 </section>
-<section class="painel nota-tecnica"><strong>Leitura correta do indicador</strong><p>O .Clara não classifica automaticamente uma pessoa como “boa” ou “ruim”. O Índice Geral ajuda a encontrar mudanças e padrões; cargo, atividade externa, reuniões, sistemas lentos e contexto operacional continuam exigindo interpretação humana.</p></section>
+
+<section class="nota-evidencias"><span>i</span><div><strong>Leitura correta do indicador</strong><p>O .Clara não classifica automaticamente uma pessoa como “boa” ou “ruim”. O Índice Geral ajuda a encontrar mudanças e padrões; cargo, atividade externa, reuniões, sistemas lentos e contexto operacional continuam exigindo interpretação humana.</p></div></section>

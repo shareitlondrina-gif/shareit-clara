@@ -18,7 +18,11 @@ namespace ShareIT.Clara.Web.Controllers;
 [ApiController]
 [Route("api/v1/agentes")]
 [EnableRateLimiting("api-agente")]
-public sealed class ApiAgentesController(RepositorioAgentes repositorio, ConfiguracaoClara configuracao, IWebHostEnvironment ambiente) : ControllerBase
+public sealed class ApiAgentesController(
+    RepositorioAgentes repositorio,
+    RepositorioInteligencia inteligencia,
+    ConfiguracaoClara configuracao,
+    IWebHostEnvironment ambiente) : ControllerBase
 {
     [HttpPost("registrar")]
     public async Task<IActionResult> Registrar(RegistroAgenteSolicitacao solicitacao, CancellationToken ct)
@@ -43,6 +47,23 @@ public sealed class ApiAgentesController(RepositorioAgentes repositorio, Configu
         if (contexto is null) return Unauthorized();
         await repositorio.InserirPeriodosAsync(contexto, lote.Periodos, ct);
         return Ok(new { recebidos = lote.Periodos.Count });
+    }
+
+    [HttpPost("navegacao")]
+    public async Task<IActionResult> Navegacao(LotePeriodosNavegacao lote, CancellationToken ct)
+    {
+        var contexto = await AutenticarAsync(ct);
+        if (contexto is null) return Unauthorized();
+        await repositorio.InserirNavegacaoAsync(contexto, lote.Periodos, ct);
+        return Ok(new { recebidos = lote.Periodos.Count });
+    }
+
+    [HttpGet("politica")]
+    public async Task<IActionResult> Politica(CancellationToken ct)
+    {
+        var contexto = await AutenticarAsync(ct);
+        if (contexto is null) return Unauthorized();
+        return Ok(await inteligencia.ObterPoliticaAgenteAsync(contexto.TenantId, ct));
     }
 
     [HttpGet("atualizacao")]

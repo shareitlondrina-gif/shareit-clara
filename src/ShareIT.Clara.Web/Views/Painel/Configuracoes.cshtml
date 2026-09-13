@@ -1,0 +1,51 @@
+@model ConfiguracoesMonitoramento
+@{
+    ViewData["Title"] = "Configurações";
+}
+@if(TempData["Mensagem"] is string msg){<div class="mensagem-sucesso">@msg</div>}
+<section class="cabecalho-pagina cabecalho-clara cabecalho-config"><div><span class="sobrelinha">ADMINISTRAÇÃO</span><h1>Configurações</h1><p>Parametrize as políticas de monitoramento e leitura contextual da sua organização.</p></div><div class="aviso-config"><span>i</span><div><strong>As configurações são aplicadas para todas as estações monitoradas.</strong><small>Alterações podem levar alguns minutos para entrarem em vigor.</small></div></div></section>
+
+<form method="post" action="/administracao/configuracoes/salvar" class="form-configuracoes">@Html.AntiForgeryToken()
+    <section class="grade-configuracoes">
+        <article class="painel-clara card-config"><header><span class="icone-config">◎</span><div><h2>Monitoramento web</h2><p>Defina como o acesso à web deve ser monitorado e classificado.</p></div></header>
+            <label class="linha-toggle"><span><strong>Permitir classificação web</strong><small>Classifica sites por categoria (produtivo, não produtivo, neutro).</small></span><input type="checkbox" name="permitirClassificacaoWeb" value="true" checked="@Model.PermitirClassificacaoWeb" /></label>
+            <label class="linha-toggle"><span><strong>Monitorar URLs/domínios</strong><small>Registra e analisa somente domínio/URL quando o conector web autorizado estiver ativo.</small></span><input type="checkbox" name="monitorarUrlsDominios" value="true" checked="@Model.MonitorarUrlsDominios" /></label>
+            <label class="linha-toggle"><span><strong>Categorias produtivas e não produtivas</strong><small>Utiliza as categorias configuradas pelo tenant.</small></span><input type="checkbox" name="usarCategoriasWeb" value="true" checked="@Model.UsarCategoriasWeb" /></label>
+            <a class="botao-linha" href="/navegacao-web">⚙ &nbsp;Gerenciar sites e categorias <b>›</b></a>
+        </article>
+
+        <article class="painel-clara card-config"><header><span class="icone-config">▥</span><div><h2>Produtividade e ociosidade</h2><p>Configure os critérios para análise de produtividade.</p></div></header>
+            <label class="linha-campo"><span><strong>Tempo mínimo de ociosidade</strong><small>Tempo sem atividade para considerar ocioso.</small></span><span class="campo-unidade"><input type="number" min="1" max="240" name="tempoMinimoOciosidadeMinutos" value="@Model.TempoMinimoOciosidadeMinutos" /><em>minutos</em></span></label>
+            <label class="linha-campo"><span><strong>Regras de baixa continuidade</strong><small>Considera uso muito fragmentado de apps.</small></span><span class="campo-unidade"><input type="number" min="1" max="240" name="baixaContinuidadeMinutos" value="@Model.BaixaContinuidadeMinutos" /><em>minutos</em></span></label>
+            <label class="linha-campo"><span><strong>Limiar de alternância de aplicativos</strong><small>Número de trocas para indicar dispersão.</small></span><span class="campo-unidade"><input type="number" min="1" max="500" name="limiarAlternanciaAplicativos" value="@Model.LimiarAlternanciaAplicativos" /><em>trocas</em></span></label>
+            <div class="nota-config">i &nbsp;Esses parâmetros impactam os indicadores de ociosidade e foco.</div>
+        </article>
+
+        <article class="painel-clara card-config"><header><span class="icone-config">⌂</span><div><h2>Home x Escritório</h2><p>Defina como identificar o local de trabalho das estações.</p></div></header>
+            <label class="linha-campo vertical"><span><strong>Redes confiáveis (escritório)</strong><small>Informe as redes internas ou CIDR.</small></span><input name="redesConfiaveisCidr" value="@Model.RedesConfiaveisCidr" placeholder="10.10.0.0/16, 192.168.0.0/24" /></label>
+            <label class="linha-toggle"><span><strong>Considerar conexão VPN como escritório</strong><small>Estações conectadas via VPN são tratadas como escritório.</small></span><input type="checkbox" name="considerarVpnEscritorio" value="true" checked="@Model.ConsiderarVpnEscritorio" /></label>
+            <label class="linha-toggle"><span><strong>Classificação por IP público</strong><small>Quando fora das redes conhecidas, classifica conforme regras de local.</small></span><input type="checkbox" name="classificarIpPublico" value="true" checked="@Model.ClassificarIpPublico" /></label>
+            <a class="botao-linha" href="/locais">⚙ &nbsp;Testar / gerenciar redes <b>›</b></a>
+        </article>
+
+        <article class="painel-clara card-config"><header><span class="icone-config">◇</span><div><h2>Privacidade e coleta</h2><p>Defina o nível de coleta e as políticas de privacidade.</p></div></header>
+            <label class="linha-toggle desabilitado"><span><strong>Captura de screenshots</strong><small>Estrutura preparada; captura permanece desabilitada nesta versão.</small></span><input type="checkbox" disabled /></label>
+            <label class="linha-campo"><span><strong>Intervalo entre capturas</strong><small>Parâmetro reservado para ativação futura com governança.</small></span><select name="intervaloCapturaMinutos"><option selected="@(Model.IntervaloCapturaMinutos==5)" value="5">5 minutos</option><option selected="@(Model.IntervaloCapturaMinutos==10)" value="10">10 minutos</option><option selected="@(Model.IntervaloCapturaMinutos==15)" value="15">15 minutos</option></select></label>
+            <label class="linha-campo"><span><strong>Retenção de evidências</strong><small>Período de armazenamento de evidências e logs.</small></span><select name="retencaoEvidenciasDias"><option selected="@(Model.RetencaoEvidenciasDias==30)" value="30">30 dias</option><option selected="@(Model.RetencaoEvidenciasDias==90)" value="90">90 dias</option><option selected="@(Model.RetencaoEvidenciasDias==180)" value="180">180 dias</option><option selected="@(Model.RetencaoEvidenciasDias==365)" value="365">365 dias</option></select></label>
+            <label class="linha-toggle"><span><strong>Anonimização parcial</strong><small>Aplica redução de exposição em dados contextuais quando possível.</small></span><input type="checkbox" name="anonimizacaoParcial" value="true" checked="@Model.AnonimizacaoParcial" /></label>
+            <div class="linha-horarios"><span><strong>Horários monitorados</strong><small>Defina janela local e dias ISO (1=segunda, 7=domingo).</small></span><span><input type="time" name="horarioInicio" value="@Model.HorarioInicio" /><input type="time" name="horarioFim" value="@Model.HorarioFim" /><input name="diasMonitorados" value="@Model.DiasMonitorados" aria-label="Dias monitorados" /></span></div>
+        </article>
+
+        <article class="painel-clara card-config"><header><span class="icone-config">▣</span><div><h2>Heartbeat e agente</h2><p>Configure a comunicação das estações e alertas de disponibilidade.</p></div></header>
+            <label class="linha-campo"><span><strong>Intervalo de comunicação (heartbeat)</strong><small>Frequência de envio de status da estação.</small></span><select name="intervaloHeartbeatSegundos"><option selected="@(Model.IntervaloHeartbeatSegundos==60)" value="60">1 minuto</option><option selected="@(Model.IntervaloHeartbeatSegundos==300)" value="300">5 minutos</option><option selected="@(Model.IntervaloHeartbeatSegundos==600)" value="600">10 minutos</option></select></label>
+            <label class="linha-toggle"><span><strong>Alerta de estação offline</strong><small>Dispara alerta quando a estação fica sem comunicação.</small></span><input type="checkbox" name="alertaEstacaoOffline" value="true" checked="@Model.AlertaEstacaoOffline" /></label>
+            <label class="linha-campo"><span><strong>Tempo para considerar offline</strong><small>Sem heartbeat por quanto tempo.</small></span><select name="tempoOfflineMinutos"><option selected="@(Model.TempoOfflineMinutos==5)" value="5">5 minutos</option><option selected="@(Model.TempoOfflineMinutos==15)" value="15">15 minutos</option><option selected="@(Model.TempoOfflineMinutos==30)" value="30">30 minutos</option><option selected="@(Model.TempoOfflineMinutos==60)" value="60">60 minutos</option></select></label>
+            <label class="linha-toggle"><span><strong>Notificar por e-mail</strong><small>Envia alerta para os administradores configurados.</small></span><input type="checkbox" name="notificarPorEmail" value="true" checked="@Model.NotificarPorEmail" /></label>
+            <label class="linha-campo vertical"><span><strong>Destinatários dos alertas</strong><small>E-mails separados por vírgula.</small></span><input name="destinatariosAlertas" value="@Model.DestinatariosAlertas" placeholder="ti@empresa.com, gestor@empresa.com" /></label>
+        </article>
+
+        <aside class="painel-clara ajuda-config"><span class="icone-ajuda">⚙</span><h2>Personalize o sistema para a sua realidade</h2><p>Ajuste as configurações conforme a política da sua empresa. Nossa equipe pode ajudar na definição dos melhores parâmetros.</p><hr/><strong>Precisa de ajuda?</strong><p>Acesse a central de ajuda ou fale com o nosso time de suporte.</p><a class="botao-secundario" href="mailto:suporte@shareitbrasil.com.br">Central de ajuda ↗</a></aside>
+    </section>
+    <footer class="barra-salvar-config"><button form="form-restaurar-config" class="botao-secundario" type="submit">↶ &nbsp;Restaurar padrão</button><span><a class="botao-secundario" href="/">Cancelar</a><button type="submit">▣ &nbsp;Salvar configurações</button></span></footer>
+</form>
+<form id="form-restaurar-config" method="post" action="/administracao/configuracoes/restaurar" hidden>@Html.AntiForgeryToken()</form>

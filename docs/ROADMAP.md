@@ -1,70 +1,104 @@
 # Roadmap consolidado — Share IT .Clara
 
-O projeto usa poucos marcos grandes para reduzir versionamento artificial.
+O projeto prefere marcos maiores, acumulando alterações relacionadas para evitar microversões.
 
-## v0.1.2 — Baseline operacional — CONCLUÍDA
+## v0.1.2 — Baseline operacional — HOMOLOGADA
 
 - C#/ASP.NET Core/.NET 10;
 - PostgreSQL `shareit_clara`;
-- multiempresa;
-- login administrativo;
+- login/multiempresa inicial;
 - Windows Service + processo de sessão;
 - token de instalação;
-- heartbeat, online/offline, ativo/ocioso/bloqueado;
-- timeline inicial;
+- heartbeat e atividade básica;
 - atualização automática com hash/backup/rollback;
-- publicação GitHub → Render → health validada.
+- GitHub → Render → health.
 
-## v0.3.0 — Contexto, experiência e onboarding automático — ESTA ENTREGA
+## v0.3.2 — Base concreta anterior — CONCLUÍDA
 
-- identidade visual/favicons;
-- UX off-white e navegação lateral;
-- onboarding sem cadastro técnico manual;
-- inventário automático do equipamento;
-- gestão de estações e complemento administrativo;
-- Reunião como estado contextual inicial;
-- aplicativos, categorias e classificação por tenant;
-- Home x Escritório por regras de rede;
+- onboarding/inventário automático;
+- empresas/tenants/perfis/Master;
+- aplicativos/classificação;
+- Home x Escritório;
 - fundação Microsoft/Google/Zoom;
-- fundação agenda/reuniões/e-mail;
-- Índice Geral preliminar + confiança do dado;
-- ajustes Docker/Render.
+- Índice Geral preliminar;
+- demo inicial;
+- correções de publicação/Render.
 
-## v0.3.0 — Inteligência executiva e integrações ativas
+## v0.4.0 — Demonstração gerencial e inteligência — BASE CONSOLIDADA
 
-- autorização/sincronização Microsoft 365, Outlook, Teams;
-- autorização/sincronização Google Workspace, Gmail, Calendar, Meet;
-- autorização/sincronização Zoom;
-- sites/navegadores com coleta autorizada por domínio;
-- jornada prevista x observada;
-- foco, continuidade, fragmentação e carga de comunicação;
-- reunião prevista x realizada;
-- métricas de preparação/uso de e-mail sem armazenar corpo;
-- Home x Escritório comparativo;
-- Índice Geral configurável por cargo/perfil;
-- confiança do dado completa;
-- capacidade, custo, oportunidades, fricção digital e adoção de IA;
-- relatórios executivos automáticos e APIs de analytics.
+- layout alinhado aos mockups aprovados;
+- Agora, Estações, detalhe, Aplicativos, Home x Escritório e Índice;
+- Oportunidades/Evidências persistentes;
+- Configurações por tenant;
+- drill-down por janela flutuante;
+- demo 15 estações;
+- política sincronizada com o agente;
+- Data Protection persistida no PostgreSQL/Neon;
+- migration 0005;
+- screenshots desativados.
 
-## v1.0.0 — Evidências e baseline comercial
+## v0.5.0 — Distribuição, contexto web e SaaS — CANDIDATA À HOMOLOGAÇÃO
+
+- extensão Chrome/Edge + Native Messaging Host;
+- coleta autorizada **somente de domínio**, sem conteúdo/teclas/senhas;
+- fila offline e API de contexto web;
+- validação da política também no servidor;
+- tela Contexto web com classificação e drill-down;
+- Índice Geral com componente web e cobertura/confiança;
+- portal de instalação do agente com download, QR e token;
+- instalador e pacote de atualização incluindo NavegadorHost/extensão;
+- autorregistro do host após atualização automática;
+- plano/status/limite/retensão/storage/vencimento por tenant;
+- bloqueio de novos cadastros conforme assinatura;
+- demo atualizada para 0006 e v0.5.0;
+- exportação CSV de Oportunidades/Evidências;
+- migration 0006.
+
+## Próximo marco — Integrações corporativas reais
+
+Dependências externas impedem homologação puramente por código:
+
+- Microsoft 365 / Outlook / Teams via OAuth/consentimento;
+- Google Workspace / Gmail / Meet via OAuth/consentimento;
+- Zoom via OAuth/consentimento;
+- comparação reunião prevista x realizada;
+- métricas agregadas de e-mail sem corpo da mensagem;
+- estratégia de distribuição gerenciada da extensão Chrome/Edge.
+
+## Marco analítico posterior
+
+Pendências recuperadas do planejamento original que continuam válidas e não devem ser esquecidas:
+
+- contexto/classificação por função, cargo, departamento ou perfil configurável pelo cliente;
+- benchmark por equipe/função somente quando estatisticamente adequado;
+- confiança e explicação ainda mais detalhadas;
+- foco, continuidade, fragmentação e interrupções com critérios transparentes;
+- carga de comunicação e capacidade recuperável, somente a partir de sinais agregados e explicáveis;
+- custos/cenários e utilização de software quando houver dados de licenciamento/custo confiáveis;
+- identificação de processos repetitivos e oportunidades de automação, sem capturar conteúdo sensível;
+- indicadores de adoção de IA somente quando a origem dos dados estiver explicitamente integrada/autorizada;
+- detecção de fricção digital e possível necessidade de treinamento baseada em sinais transparentes;
+- nenhuma decisão automática sobre desempenho humano.
+
+## Evidências visuais — somente após governança
+
+Somente depois de RBAC, auditoria, política, retenção, armazenamento protegido e revisão jurídica/organizacional:
 
 - screenshots configuráveis;
 - tela ao vivo somente leitura;
 - gravação de tela configurável;
-- storage externo por provider (SharePoint/OneDrive/MFT/SFTP/S3/Azure Blob conforme prioridade);
-- retenção, RBAC e auditoria de evidências;
-- áudio/câmera somente desabilitados por padrão e bloqueados até evidência formal de aprovação jurídica do tenant;
-- políticas versionadas e governança completa;
-- endurecimento de segurança, performance, observabilidade e documentação comercial.
+- storage externo conforme arquitetura aprovada.
 
-## Fora do escopo permanente do .Clara
+Áudio/câmera permanecem desabilitados por padrão e fora de ativação automática.
+
+## Fora do escopo permanente
 
 - keylogger;
-- senha ou conteúdo digitado;
-- controle remoto;
-- suporte remoto;
+- senhas/conteúdo digitado;
+- captura de formulários;
+- controle/suporte remoto;
 - Service Desk;
 - projetos;
 - CMDB/RMM técnico;
-- bloqueio de sites como função do produto;
-- decisão automática sobre desempenho humano.
+- bloqueio de sites;
+- julgamento automático de pessoas.

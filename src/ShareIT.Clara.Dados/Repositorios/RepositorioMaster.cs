@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using Npgsql;
+using NpgsqlTypes;
 using ShareIT.Clara.Comum.Seguranca;
 using ShareIT.Clara.Dados.Banco;
 using ShareIT.Clara.Dominio.Contratos;
@@ -23,11 +24,19 @@ public sealed class RepositorioMaster(FabricaConexoesClara fabrica)
             SELECT t.id,e.id,e.nome,t.identificador,e.documento,
                    (SELECT count(*) FROM usuarios u WHERE u.tenant_id=t.id AND u.ativo=true),
                    (SELECT count(*) FROM ativos a WHERE a.tenant_id=t.id AND a.ativo=true),
-                   t.ativo AND e.ativo
+                   t.ativo AND e.ativo,
+                   COALESCE(a.plano,CASE WHEN t.identificador='shareit' THEN 'Interno' ELSE 'Gestão' END),
+                   COALESCE(a.limite_estacoes,15),
+                   COALESCE(a.status,'Ativa'),
+                   a.vencimento,
+                   COALESCE(a.retencao_dias,90),
+                   COALESCE(a.armazenamento_gb,5),
+                   a.observacao
             FROM tenants t
             JOIN LATERAL (
                 SELECT e1.* FROM empresas e1 WHERE e1.tenant_id=t.id ORDER BY e1.criado_em_utc LIMIT 1
             ) e ON true
+            LEFT JOIN assinaturas_tenant a ON a.tenant_id=t.id
             ORDER BY CASE WHEN t.identificador='shareit' THEN 0 ELSE 1 END,e.nome;
             """;
         var lista = new List<EmpresaMasterResumo>();
@@ -39,7 +48,9 @@ public sealed class RepositorioMaster(FabricaConexoesClara fabrica)
         {
             lista.Add(new EmpresaMasterResumo(
                 leitor.GetGuid(0), leitor.GetGuid(1), leitor.GetString(2), leitor.GetString(3),
-                leitor.IsDBNull(4) ? null : leitor.GetString(4), Convert.ToInt32(leitor.GetInt64(5)), Convert.ToInt32(leitor.GetInt64(6)), leitor.GetBoolean(7)));
+                leitor.IsDBNull(4) ? null : leitor.GetString(4), Convert.ToInt32(leitor.GetInt64(5)), Convert.ToInt32(leitor.GetInt64(6)), leitor.GetBoolean(7),
+                leitor.GetString(8), leitor.GetInt32(9), leitor.GetString(10), leitor.IsDBNull(11) ? null : leitor.GetFieldValue<DateOnly>(11),
+                leitor.GetInt32(12), leitor.GetInt32(13), leitor.IsDBNull(14) ? null : leitor.GetString(14)));
         }
         return lista;
     }
@@ -85,6 +96,11 @@ public sealed class RepositorioMaster(FabricaConexoesClara fabrica)
         }
 
         await CriarEstruturaPadraoAsync(conexao, transacao, tenantId, ct);
+        await using (var assinatura = new NpgsqlCommand("INSERT INTO assinaturas_tenant(tenant_id,plano,status,limite_estacoes,retencao_dias,armazenamento_gb) VALUES(@tenant,'Gestão','Ativa',15,90,5) ON CONFLICT(tenant_id) DO NOTHING", conexao, transacao))
+        {
+            assinatura.Parameters.AddWithValue("tenant", tenantId);
+            await assinatura.ExecuteNonQueryAsync(ct);
+        }
         var perfilAdmin = await ObterPerfilAsync(conexao, transacao, tenantId, "ADMINISTRADOR", ct);
         var (hash, sal) = SenhaSegura.Criar(senhaAdministrador);
         const string inserirUsuario = """
@@ -105,6 +121,53 @@ public sealed class RepositorioMaster(FabricaConexoesClara fabrica)
 
         await transacao.CommitAsync(ct);
         return (tenantId, empresaId);
+    }
+
+
+    public async Task AtualizarAssinaturaAsync(
+        Guid tenantId,
+        string plano,
+        string status,
+        int limiteEstacoes,
+        int retencaoDias,
+        int armazenamentoGb,
+        DateOnly? vencimento,
+        string? observacao,
+        CancellationToken ct = default)
+    {
+        plano = string.IsNullOrWhiteSpace(plano) ? "Gestão" : plano.Trim();
+        status = status is "Ativa" or "Trial" or "Suspensa" or "Cancelada" ? status : "Ativa";
+        limiteEstacoes = Math.Clamp(limiteEstacoes, 1, 100000);
+        retencaoDias = Math.Clamp(retencaoDias, 1, 3650);
+        armazenamentoGb = Math.Clamp(armazenamentoGb, 1, 100000);
+
+        const string sql = """
+            INSERT INTO assinaturas_tenant(tenant_id,plano,status,limite_estacoes,retencao_dias,armazenamento_gb,vencimento,observacao,atualizado_em_utc)
+            SELECT t.id,@plano,@status,@limite,@retencao,@armazenamento,@vencimento,@observacao,now()
+            FROM tenants t WHERE t.id=@tenant
+            ON CONFLICT(tenant_id) DO UPDATE SET
+                plano=EXCLUDED.plano,
+                status=EXCLUDED.status,
+                limite_estacoes=EXCLUDED.limite_estacoes,
+                retencao_dias=EXCLUDED.retencao_dias,
+                armazenamento_gb=EXCLUDED.armazenamento_gb,
+                vencimento=EXCLUDED.vencimento,
+                observacao=EXCLUDED.observacao,
+                atualizado_em_utc=now();
+            """;
+        await using var conexao = fabrica.Criar();
+        await conexao.OpenAsync(ct);
+        await using var comando = new NpgsqlCommand(sql, conexao);
+        comando.Parameters.AddWithValue("tenant", tenantId);
+        comando.Parameters.AddWithValue("plano", plano);
+        comando.Parameters.AddWithValue("status", status);
+        comando.Parameters.AddWithValue("limite", limiteEstacoes);
+        comando.Parameters.AddWithValue("retencao", retencaoDias);
+        comando.Parameters.AddWithValue("armazenamento", armazenamentoGb);
+        comando.Parameters.Add("vencimento", NpgsqlDbType.Date).Value = (object?)vencimento ?? DBNull.Value;
+        comando.Parameters.Add("observacao", NpgsqlDbType.Text).Value = (object?)Limpar(observacao) ?? DBNull.Value;
+        if (await comando.ExecuteNonQueryAsync(ct) == 0)
+            throw new InvalidOperationException("Tenant não encontrado.");
     }
 
     private static async Task CriarEstruturaPadraoAsync(NpgsqlConnection c, NpgsqlTransaction t, Guid tenantId, CancellationToken ct)

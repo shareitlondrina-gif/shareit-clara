@@ -18,6 +18,7 @@ public sealed class ServicoAgente(
     ConfiguracaoAgenteLocal configuracao,
     GerenciadorIdentidadeAgente identidade,
     FilaOffline fila,
+    FilaNavegacao filaNavegacao,
     ILogger<ServicoAgente> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -25,12 +26,24 @@ public sealed class ServicoAgente(
         await GarantirRegistroAsync(stoppingToken);
         var proximoHeartbeat = DateTimeOffset.MinValue;
         var proximaSincronizacao = DateTimeOffset.MinValue;
+        var proximaPolitica = DateTimeOffset.MinValue;
 
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
                 var agora = DateTimeOffset.UtcNow;
+                if (agora >= proximaPolitica)
+                {
+                    var politica = await api.ConsultarPoliticaAsync(stoppingToken);
+                    if (politica is not null)
+                    {
+                        configuracao.AplicarPolitica(politica);
+                        configuracao.Salvar();
+                    }
+                    proximaPolitica = agora.AddMinutes(5);
+                }
+
                 if (agora >= proximoHeartbeat)
                 {
                     await api.EnviarHeartbeatAsync(stoppingToken);
@@ -40,6 +53,7 @@ public sealed class ServicoAgente(
                 if (agora >= proximaSincronizacao)
                 {
                     await SincronizarFilaAsync(stoppingToken);
+                    await SincronizarNavegacaoAsync(stoppingToken);
                     proximaSincronizacao = agora.AddSeconds(Math.Max(10, configuracao.IntervaloSincronizacaoSegundos));
                 }
             }
@@ -84,4 +98,20 @@ public sealed class ServicoAgente(
             throw;
         }
     }
+    private async Task SincronizarNavegacaoAsync(CancellationToken ct)
+    {
+        if (!configuracao.MonitorarUrlsDominios) return;
+        var lote = await filaNavegacao.RetirarLoteAsync(200, ct);
+        if (lote.Count == 0) return;
+        try
+        {
+            if (!await api.EnviarNavegacaoAsync(lote, ct)) await filaNavegacao.RecolocarNoInicioAsync(lote, ct);
+        }
+        catch
+        {
+            await filaNavegacao.RecolocarNoInicioAsync(lote, ct);
+            throw;
+        }
+    }
+
 }

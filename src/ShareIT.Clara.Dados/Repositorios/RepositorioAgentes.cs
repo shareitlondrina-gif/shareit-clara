@@ -200,6 +200,60 @@ public sealed class RepositorioAgentes(FabricaConexoesClara fabrica)
         await transacao.CommitAsync(ct);
     }
 
+    public async Task InserirNavegacaoAsync(ContextoAgente contexto, IEnumerable<PeriodoNavegacao> periodos, CancellationToken ct = default)
+    {
+        await using var conexao = fabrica.Criar();
+        await conexao.OpenAsync(ct);
+
+        // A política também é validada no servidor. Um cliente alterado localmente não pode
+        // forçar persistência de navegação quando o tenant desabilitou essa coleta.
+        await using (var politica = new NpgsqlCommand(
+            "SELECT COALESCE(monitorar_urls_dominios,false) FROM configuracoes_monitoramento WHERE tenant_id=@tenant", conexao))
+        {
+            politica.Parameters.AddWithValue("tenant", contexto.TenantId);
+            var permitido = await politica.ExecuteScalarAsync(ct);
+            if (permitido is not bool habilitado || !habilitado) return;
+        }
+
+        var agora = DateTimeOffset.UtcNow;
+        var lista = periodos
+            .Where(p => p.FimUtc >= p.InicioUtc)
+            .Where(p => p.InicioUtc >= agora.AddDays(-7) && p.FimUtc <= agora.AddMinutes(5))
+            .Where(p => p.FimUtc - p.InicioUtc <= TimeSpan.FromMinutes(10))
+            .Select(p => new { Periodo = p, Dominio = NormalizarDominio(p.Dominio) })
+            .Where(x => x.Dominio is not null)
+            .Select(x => x.Periodo with
+            {
+                Dominio = x.Dominio!,
+                Navegador = LimparLimitado(x.Periodo.Navegador, 40) ?? "Chromium",
+                UsuarioWindows = LimparLimitado(x.Periodo.UsuarioWindows, 200) ?? "desconhecido"
+            })
+            .OrderBy(p => p.InicioUtc)
+            .Take(1000)
+            .ToList();
+        if (lista.Count == 0) return;
+
+        await using var transacao = await conexao.BeginTransactionAsync(ct);
+        const string sql = """
+            INSERT INTO sites_utilizados(tenant_id,ativo_id,agente_id,usuario_windows,dominio,navegador,inicio_utc,fim_utc)
+            VALUES(@tenant,@ativo,@agente,@usuario,@dominio,@navegador,@inicio,@fim);
+            """;
+        foreach (var periodo in lista)
+        {
+            await using var comando = new NpgsqlCommand(sql, conexao, transacao);
+            comando.Parameters.AddWithValue("tenant", contexto.TenantId);
+            comando.Parameters.AddWithValue("ativo", contexto.AtivoId);
+            comando.Parameters.AddWithValue("agente", contexto.AgenteId);
+            comando.Parameters.AddWithValue("usuario", periodo.UsuarioWindows);
+            comando.Parameters.AddWithValue("dominio", periodo.Dominio);
+            comando.Parameters.AddWithValue("navegador", periodo.Navegador);
+            comando.Parameters.AddWithValue("inicio", periodo.InicioUtc);
+            comando.Parameters.AddWithValue("fim", periodo.FimUtc);
+            await comando.ExecuteNonQueryAsync(ct);
+        }
+        await transacao.CommitAsync(ct);
+    }
+
     public async Task RegistrarStatusAtualizacaoAsync(ContextoAgente contexto, StatusAtualizacaoAgente status, CancellationToken ct = default)
     {
         const string sql = """
@@ -237,6 +291,8 @@ public sealed class RepositorioAgentes(FabricaConexoesClara fabrica)
             existente = (Guid?)(await localizarHost.ExecuteScalarAsync(ct));
         }
         if (existente is not null) return existente.Value;
+
+        await ValidarCapacidadeNovoAtivoAsync(conexao, transacao, tenantId, ct);
 
         const string inserir = """
             INSERT INTO ativos(
@@ -308,6 +364,53 @@ public sealed class RepositorioAgentes(FabricaConexoesClara fabrica)
         comando.Parameters.Add("disco", NpgsqlDbType.Bigint).Value = (object?)inventario.DiscoTotalBytes ?? DBNull.Value;
         comando.Parameters.Add("ipLocal", NpgsqlDbType.Varchar).Value = (object?)Limpar(inventario.EnderecoIpLocal) ?? DBNull.Value;
         comando.Parameters.Add("ipPublico", NpgsqlDbType.Varchar).Value = (object?)Limpar(ipPublico) ?? DBNull.Value;
+    }
+
+    private static async Task ValidarCapacidadeNovoAtivoAsync(NpgsqlConnection conexao, NpgsqlTransaction transacao, Guid tenantId, CancellationToken ct)
+    {
+        // Serializa cadastros de novas estações do mesmo tenant. O segundo comando é executado
+        // depois do lock e, em READ COMMITTED, enxerga uma contagem atualizada após eventual concorrente.
+        await using (var trava = new NpgsqlCommand("SELECT id FROM tenants WHERE id=@tenant AND ativo=true FOR UPDATE", conexao, transacao))
+        {
+            trava.Parameters.AddWithValue("tenant", tenantId);
+            if (await trava.ExecuteScalarAsync(ct) is null)
+                throw new InvalidOperationException("Tenant indisponível para registro da estação.");
+        }
+
+        const string sql = """
+            SELECT COALESCE(s.status,'Ativa'), COALESCE(s.limite_estacoes,15), s.vencimento,
+                   (SELECT count(*) FROM ativos a WHERE a.tenant_id=@tenant AND a.ativo=true)
+            FROM tenants t
+            LEFT JOIN assinaturas_tenant s ON s.tenant_id=t.id
+            WHERE t.id=@tenant;
+            """;
+        await using var comando = new NpgsqlCommand(sql, conexao, transacao);
+        comando.Parameters.AddWithValue("tenant", tenantId);
+        await using var leitor = await comando.ExecuteReaderAsync(ct);
+        if (!await leitor.ReadAsync(ct)) throw new InvalidOperationException("Tenant indisponível para registro da estação.");
+        var status = leitor.GetString(0);
+        var limite = leitor.GetInt32(1);
+        var vencimento = leitor.IsDBNull(2) ? (DateOnly?)null : leitor.GetFieldValue<DateOnly>(2);
+        var total = Convert.ToInt32(leitor.GetInt64(3));
+        if (status is not ("Ativa" or "Trial")) throw new InvalidOperationException("Assinatura sem permissão para novas estações.");
+        if (vencimento.HasValue && vencimento.Value < DateOnly.FromDateTime(DateTime.UtcNow)) throw new InvalidOperationException("Assinatura vencida para novas estações.");
+        if (total >= limite) throw new InvalidOperationException($"Limite de estações do plano atingido ({total}/{limite}).");
+    }
+
+    private static string? NormalizarDominio(string? valor)
+    {
+        if (string.IsNullOrWhiteSpace(valor)) return null;
+        var dominio = valor.Trim().Trim('.').ToLowerInvariant();
+        if (dominio.StartsWith("www.", StringComparison.Ordinal)) dominio = dominio[4..];
+        if (dominio.Length > 500 || dominio.Contains('/') || dominio.Contains('\\') || dominio.Contains(':') || dominio.Contains(' ')) return null;
+        return Uri.CheckHostName(dominio) is UriHostNameType.Dns or UriHostNameType.IPv4 or UriHostNameType.IPv6 ? dominio : null;
+    }
+
+    private static string? LimparLimitado(string? valor, int limite)
+    {
+        var limpo = Limpar(valor);
+        if (limpo is null) return null;
+        return limpo.Length <= limite ? limpo : limpo[..limite];
     }
 
     private static string? Limpar(string? valor) => string.IsNullOrWhiteSpace(valor) ? null : valor.Trim();

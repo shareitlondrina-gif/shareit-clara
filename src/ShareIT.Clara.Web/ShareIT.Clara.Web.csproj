@@ -4,6 +4,7 @@
     <RootNamespace>ShareIT.Clara.Web</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="QRCoder" />
     <ProjectReference Include="..\ShareIT.Clara.Dominio\ShareIT.Clara.Dominio.csproj" />
     <ProjectReference Include="..\ShareIT.Clara.Comum\ShareIT.Clara.Comum.csproj" />
     <ProjectReference Include="..\ShareIT.Clara.Dados\ShareIT.Clara.Dados.csproj" />

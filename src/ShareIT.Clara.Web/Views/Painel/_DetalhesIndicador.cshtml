@@ -1,0 +1,10 @@
+@model PainelDrilldown
+<div class="cabecalho-modal-indicador"><span class="sobrelinha">DETALHAMENTO DO INDICADOR</span><h2 id="modalIndicadorTitulo">@Model.Titulo</h2>@if(!string.IsNullOrWhiteSpace(Model.Subtitulo)){<p>@Model.Subtitulo</p>}</div>
+@if(Model.Linhas.Count==0){<div class="estado-vazio"><strong>Nenhum item encontrado.</strong><span>O indicador não possui registros detalháveis no período selecionado.</span></div>}
+else{
+<div class="lista-drilldown">
+@foreach(var l in Model.Linhas){
+    @if(!string.IsNullOrWhiteSpace(l.Url)){<a href="@l.Url"><span><strong>@l.Principal</strong>@if(!string.IsNullOrWhiteSpace(l.Secundario)){<small>@l.Secundario</small>}</span><span>@if(!string.IsNullOrWhiteSpace(l.Valor)){<b>@l.Valor</b>}@if(!string.IsNullOrWhiteSpace(l.Estado)){<em>@l.Estado</em>}<i>›</i></span></a>}
+    else{<div><span><strong>@l.Principal</strong>@if(!string.IsNullOrWhiteSpace(l.Secundario)){<small>@l.Secundario</small>}</span><span>@if(!string.IsNullOrWhiteSpace(l.Valor)){<b>@l.Valor</b>}@if(!string.IsNullOrWhiteSpace(l.Estado)){<em>@l.Estado</em>}</span></div>}
+}
+</div>}

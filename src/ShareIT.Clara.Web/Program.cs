@@ -1,4 +1,7 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.DataProtection.KeyManagement;
+using Microsoft.AspNetCore.DataProtection.Repositories;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
 using Npgsql;
@@ -6,6 +9,7 @@ using ShareIT.Clara.Comum.Configuracao;
 using ShareIT.Clara.Dados.Banco;
 using ShareIT.Clara.Dados.Repositorios;
 using ShareIT.Clara.Web.Servicos;
+using ShareIT.Clara.Web.Seguranca;
 using System.Reflection;
 using System.Threading.RateLimiting;
 
@@ -25,7 +29,14 @@ builder.Services.AddScoped<RepositorioDashboard>();
 builder.Services.AddScoped<RepositorioContexto>();
 builder.Services.AddScoped<RepositorioMaster>();
 builder.Services.AddScoped<RepositorioUsuariosAcesso>();
+builder.Services.AddScoped<RepositorioInteligencia>();
 builder.Services.AddScoped<ServicoEmpresaDemonstracao>();
+builder.Services.AddScoped<ServicoRelogioDemonstracao>();
+
+builder.Services.AddSingleton<IXmlRepository, RepositorioChavesProtecaoDados>();
+builder.Services.AddDataProtection().SetApplicationName("ShareIT.Clara");
+builder.Services.AddOptions<KeyManagementOptions>()
+    .Configure<IXmlRepository>((opcoes, repositorio) => opcoes.XmlRepository = repositorio);
 
 builder.Services.AddControllersWithViews();
 builder.Services.Configure<ForwardedHeadersOptions>(opcoes =>
@@ -218,4 +229,4 @@ else
 await app.WaitForShutdownAsync();
 
 static string ObterVersaoAplicacao()
-    => Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.3.2";
+    => Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.5.0";

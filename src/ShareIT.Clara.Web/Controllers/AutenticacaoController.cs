@@ -64,9 +64,11 @@ public sealed class AutenticacaoController(
                 new(ClaimTypes.Name, usuario.Nome),
                 new(ClaimTypes.Email, usuario.Email),
                 new(ClaimTypes.Role, usuario.Perfil),
-                new("tenant_id", usuario.TenantId.ToString())
+                new("tenant_id", usuario.TenantId.ToString()),
+                new("tenant_nome", usuario.TenantNome)
             };
             if (usuario.EmpresaId is not null) claims.Add(new Claim("empresa_id", usuario.EmpresaId.Value.ToString()));
+            if (!string.IsNullOrWhiteSpace(usuario.EmpresaNome)) claims.Add(new Claim("empresa_nome", usuario.EmpresaNome));
             claims.AddRange(usuario.Modulos.Select(m => new Claim("modulo", m)));
 
             var identidade = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);

@@ -3,7 +3,13 @@
     var caminho = Context.Request.Path.Value?.ToLowerInvariant() ?? "/";
     var master = User.IsInRole("Master");
     var administrador = User.IsInRole("Administrador");
-    bool Pode(string modulo) => master || User.HasClaim("modulo", modulo);
+    var tenantId = User.FindFirst("tenant_id")?.Value;
+    var tenantNome = User.FindFirst("tenant_nome")?.Value;
+    var empresaNome = User.FindFirst("empresa_nome")?.Value;
+    var demonstracao = string.Equals(tenantId, "d0000000-0000-4000-8000-000000000001", StringComparison.OrdinalIgnoreCase);
+    var contextoEmpresa = empresaNome ?? tenantNome ?? "Share IT .Clara";
+    if (demonstracao && !contextoEmpresa.Contains("Demonstração", StringComparison.OrdinalIgnoreCase)) contextoEmpresa += " - Demonstração";
+    bool Pode(string modulo) => !master && User.HasClaim("modulo", modulo);
     string Ativo(string prefixo) => caminho == prefixo || caminho.StartsWith(prefixo + "/") ? "ativo" : "";
 }
 <!DOCTYPE html>
@@ -11,7 +17,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#0f2d5c" />
+    <meta name="theme-color" content="#ffffff" />
     <title>@ViewData["Title"] - Share IT .Clara</title>
     <link rel="icon" type="image/png" sizes="32x32" href="~/img/favicon.png" />
     <link rel="icon" href="~/img/favicon.ico" />
@@ -25,45 +31,53 @@
         <a class="marca-lateral" href="@(master ? "/master/empresas" : "/")" aria-label="Share IT .Clara">
             <img src="~/img/logo-clara.png" alt="Share IT .Clara" />
         </a>
-        <nav class="menu-principal">
+        <nav class="menu-principal" aria-label="Navegação principal">
             @if (master)
             {
-                <span class="grupo-menu">Master</span>
+                <span class="grupo-menu">MASTER</span>
                 <a class='@Ativo("/master/empresas")' href="/master/empresas"><span class="icone-menu">▦</span>Empresas</a>
             }
-
-            @if (Pode("agora") || Pode("estacoes") || Pode("aplicativos"))
+            else
             {
-                <span class="grupo-menu">Visão</span>
-                @if (Pode("agora")) { <a class="@(caminho == "/" ? "ativo" : "")" href="/"><span class="icone-menu">◉</span>Agora</a> }
-                @if (Pode("estacoes")) { <a class='@Ativo("/estacoes")' href="/estacoes"><span class="icone-menu">▣</span>Estações</a> }
-                @if (Pode("aplicativos")) { <a class='@Ativo("/aplicativos")' href="/aplicativos"><span class="icone-menu">▥</span>Aplicativos</a> }
-            }
-
-            @if (Pode("locais") || Pode("integracoes"))
-            {
-                <span class="grupo-menu">Contexto</span>
-                @if (Pode("locais")) { <a class='@Ativo("/locais")' href="/locais"><span class="icone-menu">⌂</span>Home x Escritório</a> }
-                @if (Pode("integracoes")) { <a class='@Ativo("/integracoes")' href="/integracoes"><span class="icone-menu">◇</span>Integrações</a> }
-            }
-
-            @if (Pode("indice-geral"))
-            {
-                <span class="grupo-menu">Inteligência</span>
-                <a class='@Ativo("/indice-geral")' href="/indice-geral"><span class="icone-menu">◎</span>Índice Geral</a>
-                <span class="menu-futuro"><span class="icone-menu">◌</span>Oportunidades</span>
-                <span class="menu-futuro"><span class="icone-menu">▧</span>Evidências</span>
-            }
-
-            @if (administrador && (Pode("usuarios") || Pode("perfis")))
-            {
-                <span class="grupo-menu">Administração</span>
-                @if (Pode("usuarios")) { <a class='@Ativo("/administracao/usuarios")' href="/administracao/usuarios"><span class="icone-menu">♙</span>Usuários</a> }
-                @if (Pode("perfis")) { <a class='@Ativo("/administracao/perfis")' href="/administracao/perfis"><span class="icone-menu">☷</span>Perfis</a> }
+                @if (Pode("agora") || Pode("estacoes") || Pode("aplicativos"))
+                {
+                    <span class="grupo-menu">VISÃO</span>
+                    @if (Pode("agora")) { <a class="@(caminho == "/" ? "ativo" : "")" href="/"><span class="icone-menu">◉</span>Agora</a> }
+                    @if (Pode("estacoes")) { <a class='@Ativo("/estacoes")' href="/estacoes"><span class="icone-menu">▣</span>Estações</a> }
+                    @if (Pode("aplicativos")) { <a class='@Ativo("/aplicativos")' href="/aplicativos"><span class="icone-menu">▥</span>Aplicativos</a> }
+                }
+                @if (Pode("locais") || Pode("integracoes"))
+                {
+                    <span class="grupo-menu">CONTEXTO</span>
+                    @if (Pode("locais")) { <a class='@Ativo("/locais")' href="/locais"><span class="icone-menu">⌂</span>Home x Escritório</a> }
+                    @if (Pode("integracoes")) { <a class='@Ativo("/integracoes")' href="/integracoes"><span class="icone-menu">◇</span>Integrações</a> }
+                }
+                @if (Pode("indice-geral") || Pode("oportunidades") || Pode("evidencias"))
+                {
+                    <span class="grupo-menu">INTELIGÊNCIA</span>
+                    @if (Pode("indice-geral")) { <a class='@Ativo("/indice-geral")' href="/indice-geral"><span class="icone-menu">◎</span>Índice Geral</a> }
+                    @if (Pode("oportunidades")) { <a class='@Ativo("/oportunidades")' href="/oportunidades"><span class="icone-menu">◌</span>Oportunidades</a> }
+                    @if (Pode("evidencias")) { <a class='@Ativo("/evidencias")' href="/evidencias"><span class="icone-menu">▧</span>Evidências</a> }
+                }
+                @if (administrador && (Pode("usuarios") || Pode("perfis") || Pode("configuracoes") || Pode("instalacao-agente")))
+                {
+                    <span class="grupo-menu">ADMINISTRAÇÃO</span>
+                    @if (Pode("usuarios")) { <a class='@Ativo("/administracao/usuarios")' href="/administracao/usuarios"><span class="icone-menu">♙</span>Usuários</a> }
+                    @if (Pode("perfis")) { <a class='@Ativo("/administracao/perfis")' href="/administracao/perfis"><span class="icone-menu">☷</span>Perfis</a> }
+                    @if (Pode("configuracoes")) { <a class='@Ativo("/administracao/configuracoes")' href="/administracao/configuracoes"><span class="icone-menu">⚙</span>Configurações</a> }
+                    @if (Pode("instalacao-agente")) { <a class='@Ativo("/administracao/instalacao")' href="/administracao/instalacao"><span class="icone-menu">⇩</span>Instalação</a> }
+                }
             }
         </nav>
         <div class="rodape-menu">
-            <div class="usuario-menu"><span>@User.Identity?.Name</span><small>@(master ? "Master da plataforma" : administrador ? "Administrador da empresa" : "Usuário da plataforma")</small></div>
+            @if (!master)
+            {
+                <div class="empresa-rodape"><strong>@(empresaNome ?? tenantNome)</strong>@if (demonstracao){<small>Ambiente de demonstração</small>}<small>Share IT .Clara v0.5.0</small></div>
+            }
+            else
+            {
+                <div class="empresa-rodape"><strong>Share IT .Clara</strong><small>Master da plataforma</small><small>v0.5.0</small></div>
+            }
             <form method="post" action="/sair">@Html.AntiForgeryToken()<button class="botao-sair" type="submit">Sair</button></form>
         </div>
     </aside>
@@ -72,11 +86,37 @@
     @if (autenticado)
     {
         <header class="topo">
-            <div><strong>Share IT .Clara</strong><span class="slogan-topo">Veja. Entenda. Melhore.</span></div>
-            <span class="selo-versao">v0.3.2</span>
+            <div class="contexto-topo">
+                @if (master) { <strong>Administração da plataforma</strong> }
+                else { <strong>@contextoEmpresa</strong><span>⌄</span> }
+            </div>
+            <div class="acoes-topo">
+                @if (!master)
+                {
+                    <form method="get" action="/estacoes" class="busca-global">
+                        <span>⌕</span><input name="busca" value="@(Context.Request.Query["busca"])" placeholder="Buscar estação, pessoa, patrimônio..." aria-label="Buscar" />
+                    </form>
+                }
+                <span class="sino-topo" title="Notificações">♧<i></i></span>
+                <span class="avatar-topo">@string.Join("", (User.Identity?.Name ?? "U").Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(x => char.ToUpperInvariant(x[0])))</span>
+                <span class="usuario-topo"><strong>@User.Identity?.Name</strong><small>@(master ? "Master" : administrador ? "Administradora" : "Usuário")</small></span>
+                <span class="seta-topo">⌄</span>
+            </div>
         </header>
     }
     <main class="conteudo">@RenderBody()</main>
 </div>
+
+@if (autenticado && !master)
+{
+    <div id="modalIndicador" class="modal-indicador" hidden aria-hidden="true">
+        <div class="modal-indicador-fundo" data-modal-fechar></div>
+        <section class="modal-indicador-caixa" role="dialog" aria-modal="true" aria-labelledby="modalIndicadorTitulo">
+            <button type="button" class="modal-fechar" data-modal-fechar aria-label="Fechar">×</button>
+            <div id="modalIndicadorConteudo"><div class="carregando-modal">Carregando detalhes…</div></div>
+        </section>
+    </div>
+}
+<script src="~/js/clara.js" asp-append-version="true" defer></script>
 </body>
 </html>

@@ -16,7 +16,24 @@ public sealed record EmpresaMasterResumo(
     string? Documento,
     int Usuarios,
     int Estacoes,
-    bool Ativo);
+    bool Ativo,
+    string Plano = "Gestão",
+    int LimiteEstacoes = 15,
+    string StatusAssinatura = "Ativa",
+    DateOnly? Vencimento = null,
+    int RetencaoDias = 90,
+    int ArmazenamentoGb = 5,
+    string? ObservacaoAssinatura = null);
+
+public sealed record AssinaturaTenantResumo(
+    Guid TenantId,
+    string Plano,
+    string Status,
+    int LimiteEstacoes,
+    int RetencaoDias,
+    int ArmazenamentoGb,
+    DateOnly? Vencimento,
+    string? Observacao);
 
 public sealed record UsuarioAcessoResumo(
     Guid Id,

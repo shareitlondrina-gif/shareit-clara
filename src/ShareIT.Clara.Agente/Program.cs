@@ -20,8 +20,11 @@ builder.Services.AddSingleton(http);
 builder.Services.AddSingleton<GerenciadorIdentidadeAgente>();
 builder.Services.AddSingleton<ColetorInventarioWindows>();
 builder.Services.AddSingleton<FilaOffline>();
+builder.Services.AddSingleton<FilaNavegacao>();
 builder.Services.AddSingleton<ClienteApiClara>();
 builder.Services.AddHostedService<ServidorPipeSessao>();
+builder.Services.AddHostedService<ServidorPipeNavegacao>();
+builder.Services.AddHostedService<ServicoConectorNavegador>();
 builder.Services.AddHostedService<ServicoAgente>();
 builder.Services.AddHostedService<ServicoAtualizacaoAutomatica>();
 

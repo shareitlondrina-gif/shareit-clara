@@ -1,0 +1,59 @@
+@model ShareIT.Clara.Web.Modelos.PainelInstalacaoAgente
+@{
+    ViewData["Title"] = "Instalação do agente";
+    var token = TempData["TokenInstalacao"] as string;
+    var expira = TempData["TokenExpira"] as string;
+    var servidor = (TempData["TokenServidor"] as string) ?? Model.UrlServidor;
+    var percentual = Model.Assinatura.LimiteEstacoes > 0 ? Math.Min(100, (int)Math.Round(Model.EstacoesAtivas * 100d / Model.Assinatura.LimiteEstacoes)) : 0;
+    var podeInstalar = Model.Assinatura.Status is "Ativa" or "Trial" && (!Model.Assinatura.Vencimento.HasValue || Model.Assinatura.Vencimento.Value >= DateOnly.FromDateTime(DateTime.Today)) && Model.EstacoesAtivas < Model.Assinatura.LimiteEstacoes;
+}
+@if (TempData["Mensagem"] is string mensagem) { <div class="mensagem-sucesso">@mensagem</div> }
+@if (TempData["Erro"] is string erro) { <div class="erro">@erro</div> }
+<section class="cabecalho-pagina cabecalho-clara">
+    <div><span class="sobrelinha">ADMINISTRAÇÃO</span><h1>Instalação do agente</h1><p>Baixe o instalador, gere um token temporário e cadastre a estação automaticamente no tenant correto.</p></div>
+    <div class="cabecalho-status"><span class="selo-tempo-real"><i></i>Agente v@Model.VersaoAgente</span></div>
+</section>
+
+<section class="grade-instalacao-agente">
+    <article class="painel-clara card-plano-instalacao">
+        <div class="titulo-painel"><div><span class="sobrelinha">PLANO ATUAL</span><h2>@Model.Assinatura.Plano</h2></div><span class="status-pill @(Model.Assinatura.Status is "Ativa" or "Trial" ? "status-ok" : "status-off")">@Model.Assinatura.Status</span></div>
+        <div class="consumo-plano"><strong>@Model.EstacoesAtivas <small>/ @Model.Assinatura.LimiteEstacoes estações</small></strong><div class="barra-score"><i style="width:@percentual%"></i></div></div>
+        <div class="mini-metricas"><span><b>@Model.Assinatura.RetencaoDias</b><small>dias de retenção</small></span><span><b>@Model.Assinatura.ArmazenamentoGb GB</b><small>armazenamento contratado</small></span><span><b>@(Model.Assinatura.Vencimento?.ToString("dd/MM/yyyy") ?? "—")</b><small>vencimento</small></span></div>
+        @if (!podeInstalar) { <div class="nota-config alerta-config">A instalação de novas estações está bloqueada pelo status, vencimento ou limite do plano. O agente já instalado continua podendo comunicar para preservar diagnóstico.</div> }
+    </article>
+
+    <article class="painel-clara card-download-instalacao">
+        <div class="passo-numero">1</div><h2>Baixar instalador</h2><p>O pacote contém Agente, Sessão, Atualizador, Native Messaging Host, extensão de navegador para homologação e scripts de instalação/diagnóstico.</p>
+        <div class="download-com-qr"><div><a class="botao-principal-link" href="/administracao/instalacao/download">⇩ Baixar Clara-Instalador-v@Model.VersaoAgente.zip</a><small>Executar o <strong>INSTALAR-AGENTE.cmd</strong> como Administrador.</small></div><img src="/administracao/instalacao/qrcode" alt="QR Code do download do instalador" /></div>
+    </article>
+</section>
+
+<section class="painel-clara bloco-token-instalacao">
+    <div class="titulo-painel"><div><span class="passo-numero">2</span><h2>Gerar token temporário</h2><p>O token é de uso único e expira em 30 minutos. Ele vincula a nova estação à empresa selecionada sem exigir configuração técnica manual.</p></div></div>
+    <form method="post" action="/administracao/instalacao/gerar-token" class="form-token-instalacao">
+        @Html.AntiForgeryToken()
+        <label>Empresa<select name="empresaId" required>@foreach (var e in Model.Empresas) { <option value="@e.Id">@e.Nome</option> }</select></label>
+        <button type="submit" disabled="@(!podeInstalar)">Gerar token de instalação</button>
+    </form>
+
+    @if (!string.IsNullOrWhiteSpace(token))
+    {
+        var comando = $"INSTALAR-AGENTE.cmd \"{token}\" \"{servidor}\"";
+        <div class="token-gerado">
+            <div><span>Token temporário</span><code>@token</code><small>Expira em @expira</small></div>
+            <div><span>Servidor</span><code>@servidor</code></div>
+            <div class="campo-comando"><span>Comando pronto</span><input id="comandoInstalacao" readonly value="@comando" /><button type="button" data-copiar-alvo="comandoInstalacao">Copiar comando</button></div>
+        </div>
+    }
+</section>
+
+<section class="painel-clara instrucoes-instalacao">
+    <div class="titulo-painel"><div><span class="passo-numero">3</span><h2>Instalar e validar</h2></div></div>
+    <div class="grade-passos-finais">
+        <div><strong>1. Executar como Administrador</strong><p>Extraia o ZIP e rode <code>INSTALAR-AGENTE.cmd</code> usando o token temporário.</p></div>
+        <div><strong>2. Aguardar o primeiro registro</strong><p>O agente coleta inventário técnico, registra a máquina e consome o token. Depois disso usa credencial própria protegida localmente.</p></div>
+        <div><strong>3. Contexto web opcional</strong><p>O host nativo é registrado automaticamente. Em homologação, carregue a extensão da pasta <code>NavegadorExtensao</code> no Chrome/Edge; em produção, distribua por política corporativa.</p></div>
+        <div><strong>4. Conferir no .Clara</strong><p>A nova estação deve aparecer em Estações. Complete patrimônio, responsável, unidade e departamento quando necessário.</p></div>
+    </div>
+</section>
+<section class="nota-evidencias"><span>i</span><div><strong>Coleta web controlada pela política</strong><p>Mesmo com o conector instalado, domínios só são processados quando “Monitorar URLs/domínios” estiver habilitado nas configurações do tenant.</p></div></section>

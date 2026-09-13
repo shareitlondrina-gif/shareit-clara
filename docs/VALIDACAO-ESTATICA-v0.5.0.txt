@@ -1,0 +1,66 @@
+Share IT .Clara v0.5.0 - RELATORIO DE VALIDACAO ESTATICA
+================================================================
+
+Resultado: APROVADA NA VALIDACAO ESTATICA
+Observacao: este ambiente nao possui .NET SDK 10 nem PowerShell; restore/build/test/publish precisam ocorrer no Windows pelo PUBLICAR-CLARA.cmd.
+
+Versao: 0.5.0
+Arquivos C#: 71
+Arquivos JSON: 3
+Projetos .csproj: 8
+Migrations: 6
+
+CHECAGENS
+- OK: VERSAO.txt = 0.5.0
+- OK: Directory.Build.props version consistent
+- OK: JSON parsed (3 files)
+- OK: XML/project parsed (13 files)
+- OK: ProjectReference exists: src/ShareIT.Clara.NavegadorHost/ShareIT.Clara.NavegadorHost.csproj -> ../ShareIT.Clara.Dominio/ShareIT.Clara.Dominio.csproj
+- OK: ProjectReference exists: src/ShareIT.Clara.Dados/ShareIT.Clara.Dados.csproj -> ../ShareIT.Clara.Dominio/ShareIT.Clara.Dominio.csproj
+- OK: ProjectReference exists: src/ShareIT.Clara.Dados/ShareIT.Clara.Dados.csproj -> ../ShareIT.Clara.Comum/ShareIT.Clara.Comum.csproj
+- OK: ProjectReference exists: src/ShareIT.Clara.Agente/ShareIT.Clara.Agente.csproj -> ../ShareIT.Clara.Dominio/ShareIT.Clara.Dominio.csproj
+- OK: ProjectReference exists: src/ShareIT.Clara.Agente/ShareIT.Clara.Agente.csproj -> ../ShareIT.Clara.Comum/ShareIT.Clara.Comum.csproj
+- OK: ProjectReference exists: src/ShareIT.Clara.Sessao/ShareIT.Clara.Sessao.csproj -> ../ShareIT.Clara.Dominio/ShareIT.Clara.Dominio.csproj
+- OK: ProjectReference exists: src/ShareIT.Clara.Sessao/ShareIT.Clara.Sessao.csproj -> ../ShareIT.Clara.Comum/ShareIT.Clara.Comum.csproj
+- OK: ProjectReference exists: src/ShareIT.Clara.Web/ShareIT.Clara.Web.csproj -> ../ShareIT.Clara.Dominio/ShareIT.Clara.Dominio.csproj
+- OK: ProjectReference exists: src/ShareIT.Clara.Web/ShareIT.Clara.Web.csproj -> ../ShareIT.Clara.Comum/ShareIT.Clara.Comum.csproj
+- OK: ProjectReference exists: src/ShareIT.Clara.Web/ShareIT.Clara.Web.csproj -> ../ShareIT.Clara.Dados/ShareIT.Clara.Dados.csproj
+- OK: Solution project exists: src/ShareIT.Clara.Dominio/ShareIT.Clara.Dominio.csproj
+- OK: Solution project exists: src/ShareIT.Clara.Comum/ShareIT.Clara.Comum.csproj
+- OK: Solution project exists: src/ShareIT.Clara.Dados/ShareIT.Clara.Dados.csproj
+- OK: Solution project exists: src/ShareIT.Clara.Web/ShareIT.Clara.Web.csproj
+- OK: Solution project exists: src/ShareIT.Clara.Agente/ShareIT.Clara.Agente.csproj
+- OK: Solution project exists: src/ShareIT.Clara.Sessao/ShareIT.Clara.Sessao.csproj
+- OK: Solution project exists: src/ShareIT.Clara.Atualizador/ShareIT.Clara.Atualizador.csproj
+- OK: Solution project exists: src/ShareIT.Clara.NavegadorHost/ShareIT.Clara.NavegadorHost.csproj
+- OK: Migration 0001 immutable (ed572fe355fb)
+- OK: Migration 0002 immutable (92c622cff008)
+- OK: Migration 0003 immutable (3fab0587f2c8)
+- OK: Migration 0004 immutable (6b8066ce8389)
+- OK: Migration 0005 immutable (1c39de83c946)
+- OK: Migration 0006 exists
+- OK: Migration 0006 creates assinaturas_tenant
+- OK: C# lexical scan (71 files)
+- OK: Extension manifest version consistent
+- OK: Extension ID stable (diidcakejmmckhhbggepbblogonddjml)
+- OK: Extension ID propagated in src/ShareIT.Clara.Agente/Servicos/ServicoConectorNavegador.cs
+- OK: Extension ID propagated in Ferramentas/Instalacao/Instalar-Agente.ps1
+- OK: Native Messaging length framing present
+- OK: Demo marker: Horizonte Contabilidade
+- OK: Demo marker: demonstracao@clara.local
+- OK: Demo marker: 'Trial'
+- OK: Demo marker: assinaturas_tenant
+- OK: Demo marker: monitorar_urls_dominios
+- OK: Demo agent version 0.5.0
+- OK: SQL dollar-quote parity
+- OK: Publisher marker: NavegadorHost
+- OK: Publisher marker: NavegadorExtensao
+- OK: Publisher marker: Clara-Instalador-v
+- OK: Publisher marker: instaladores\agente
+- OK: Publisher marker: Clara-Agent-v
+- OK: No private-key material detected
+- OK: Controller route exists: administracao/instalacao
+- OK: Controller route exists: navegacao-web
+- OK: Controller route exists: oportunidades/exportar
+- OK: Controller route exists: evidencias/exportar
+- OK: Controller route exists: indicadores/detalhes

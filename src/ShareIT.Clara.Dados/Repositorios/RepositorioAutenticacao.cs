@@ -17,8 +17,11 @@ public sealed class RepositorioAutenticacao(FabricaConexoesClara fabrica)
     public async Task<UsuarioAutenticado?> AutenticarAsync(string email, string senha, CancellationToken ct = default)
     {
         const string sql = """
-            SELECT u.id,u.tenant_id,u.empresa_id,u.nome,u.email,u.senha_hash,u.senha_sal,u.perfil,u.perfil_acesso_id
+            SELECT u.id,u.tenant_id,u.empresa_id,u.nome,u.email,u.senha_hash,u.senha_sal,u.perfil,u.perfil_acesso_id,
+                   t.nome,e.nome
             FROM usuarios u
+            JOIN tenants t ON t.id=u.tenant_id
+            LEFT JOIN empresas e ON e.id=u.empresa_id AND e.tenant_id=u.tenant_id
             WHERE lower(u.email)=lower(@email) AND u.ativo=true
             LIMIT 1;
             """;
@@ -34,6 +37,8 @@ public sealed class RepositorioAutenticacao(FabricaConexoesClara fabrica)
         string hash;
         string sal;
         string perfil;
+        string tenantNome;
+        string? empresaNome;
 
         await using (var comando = new NpgsqlCommand(sql, conexao))
         {
@@ -49,11 +54,13 @@ public sealed class RepositorioAutenticacao(FabricaConexoesClara fabrica)
             sal = leitor.GetString(6);
             perfil = leitor.GetString(7);
             perfilAcessoId = leitor.IsDBNull(8) ? null : leitor.GetGuid(8);
+            tenantNome = leitor.GetString(9);
+            empresaNome = leitor.IsDBNull(10) ? null : leitor.GetString(10);
         }
 
         if (!SenhaSegura.Validar(senha, hash, sal)) return null;
         var modulos = await ObterModulosAsync(conexao, perfil, perfilAcessoId, ct);
-        return new UsuarioAutenticado(id, tenantId, empresaId, nome, emailBanco, perfil, modulos);
+        return new UsuarioAutenticado(id, tenantId, empresaId, nome, emailBanco, perfil, modulos, tenantNome, empresaNome);
     }
 
     private static async Task<IReadOnlyCollection<string>> ObterModulosAsync(NpgsqlConnection conexao, string perfil, Guid? perfilAcessoId, CancellationToken ct)
@@ -91,4 +98,6 @@ public sealed record UsuarioAutenticado(
     string Nome,
     string Email,
     string Perfil,
-    IReadOnlyCollection<string> Modulos);
+    IReadOnlyCollection<string> Modulos,
+    string TenantNome,
+    string? EmpresaNome);

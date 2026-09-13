@@ -22,7 +22,7 @@ public sealed class ClienteApiClara(
     GerenciadorIdentidadeAgente identidade,
     ColetorInventarioWindows inventario)
 {
-    public string VersaoAtual => Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.3.2";
+    public string VersaoAtual => Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.5.0";
 
     public async Task<RegistroAgenteResposta?> RegistrarAsync(CancellationToken ct)
     {
@@ -49,6 +49,22 @@ public sealed class ClienteApiClara(
         req.Content = JsonContent.Create(new LotePeriodosAtividade(periodos));
         using var resposta = await http.SendAsync(req, ct);
         return resposta.IsSuccessStatusCode;
+    }
+
+    public async Task<bool> EnviarNavegacaoAsync(IReadOnlyCollection<PeriodoNavegacao> periodos, CancellationToken ct)
+    {
+        using var req = Criar(HttpMethod.Post, "api/v1/agentes/navegacao");
+        req.Content = JsonContent.Create(new LotePeriodosNavegacao(periodos));
+        using var resposta = await http.SendAsync(req, ct);
+        return resposta.IsSuccessStatusCode;
+    }
+
+    public async Task<PoliticaMonitoramentoAgente?> ConsultarPoliticaAsync(CancellationToken ct)
+    {
+        using var req = Criar(HttpMethod.Get, "api/v1/agentes/politica");
+        using var resposta = await http.SendAsync(req, ct);
+        if (!resposta.IsSuccessStatusCode) return null;
+        return await resposta.Content.ReadFromJsonAsync<PoliticaMonitoramentoAgente>(cancellationToken: ct);
     }
 
     public async Task<ManifestoAtualizacaoAgente?> ConsultarAtualizacaoAsync(CancellationToken ct)

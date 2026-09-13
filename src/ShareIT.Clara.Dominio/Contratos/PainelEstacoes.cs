@@ -31,7 +31,10 @@ public sealed record EstacaoResumo(
     bool CadastroCompleto,
     string Status,
     string? Versao,
-    DateTimeOffset? UltimaComunicacaoUtc);
+    DateTimeOffset? UltimaComunicacaoUtc,
+    string EstadoAtual,
+    string? ProcessoAtual,
+    string LocalTrabalho);
 
 public sealed record DetalheEstacao(
     Guid AtivoId,

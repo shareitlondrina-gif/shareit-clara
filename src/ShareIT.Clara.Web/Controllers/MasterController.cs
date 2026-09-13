@@ -42,6 +42,32 @@ public sealed class MasterController(RepositorioMaster repositorio, ServicoEmpre
         return RedirectToAction(nameof(Empresas));
     }
 
+
+    [HttpPost("master/empresas/{tenantId:guid}/assinatura")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AtualizarAssinatura(
+        Guid tenantId,
+        string plano,
+        string status,
+        int limiteEstacoes,
+        int retencaoDias,
+        int armazenamentoGb,
+        DateOnly? vencimento,
+        string? observacao,
+        CancellationToken ct)
+    {
+        try
+        {
+            await repositorio.AtualizarAssinaturaAsync(tenantId, plano, status, limiteEstacoes, retencaoDias, armazenamentoGb, vencimento, observacao, ct);
+            TempData["Mensagem"] = "Plano e limites do tenant atualizados.";
+        }
+        catch (Exception ex)
+        {
+            TempData["Erro"] = ex.Message;
+        }
+        return RedirectToAction(nameof(Empresas));
+    }
+
     [HttpPost("master/demonstracao/criar")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> CriarDemonstracao(CancellationToken ct)

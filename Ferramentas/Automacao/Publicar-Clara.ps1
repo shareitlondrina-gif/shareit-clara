@@ -194,8 +194,10 @@ try {
     $AgenteOut = Join-Path $PacoteRoot 'Agente'
     $SessaoOut = Join-Path $PacoteRoot 'Sessao'
     $AtualizadorOut = Join-Path $PacoteRoot 'Atualizador'
+    $NavegadorHostOut = Join-Path $PacoteRoot 'NavegadorHost'
+    $NavegadorExtensaoOut = Join-Path $PacoteRoot 'NavegadorExtensao'
     $WebOut = Join-Path $Release 'Web'
-    New-Item -ItemType Directory -Force -Path $AgenteOut,$SessaoOut,$AtualizadorOut,$WebOut | Out-Null
+    New-Item -ItemType Directory -Force -Path $AgenteOut,$SessaoOut,$AtualizadorOut,$NavegadorHostOut,$NavegadorExtensaoOut,$WebOut | Out-Null
 
     Etapa 'Restore, compilacao e testes'
     Push-Location $Raiz
@@ -214,6 +216,9 @@ try {
         if ($LASTEXITCODE -ne 0) { Falhar 'Publish da sessao falhou.' }
         & dotnet.exe publish .\src\ShareIT.Clara.Atualizador\ShareIT.Clara.Atualizador.csproj -c Release -r win-x64 --self-contained true -o $AtualizadorOut -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:Version=$Versao
         if ($LASTEXITCODE -ne 0) { Falhar 'Publish do atualizador falhou.' }
+        & dotnet.exe publish .\src\ShareIT.Clara.NavegadorHost\ShareIT.Clara.NavegadorHost.csproj -c Release -r win-x64 --self-contained true -o $NavegadorHostOut -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:Version=$Versao
+        if ($LASTEXITCODE -ne 0) { Falhar 'Publish do Native Messaging Host falhou.' }
+        Copy-Item (Join-Path $Raiz 'src\ShareIT.Clara.NavegadorExtensao\*') $NavegadorExtensaoOut -Recurse -Force
 
         Etapa 'Gerando pacote automatico do agente'
         $ZipAgente = Join-Path $Release ("Clara-Agent-v{0}.zip" -f $Versao)
@@ -245,6 +250,11 @@ try {
         Copy-Item (Join-Path $Raiz 'Ferramentas\Instalacao\Instalar-Agente.ps1') $Instalador
         Copy-Item (Join-Path $Raiz 'Ferramentas\Diagnostico\DIAGNOSTICAR-AGENTE.cmd') $Instalador
         Copy-Item (Join-Path $Raiz 'Ferramentas\Diagnostico\Diagnosticar-Agente.ps1') $Instalador
+        $ZipInstalador = Join-Path $Release ("Clara-Instalador-v{0}.zip" -f $Versao)
+        Compress-Archive -Path (Join-Path $Instalador '*') -DestinationPath $ZipInstalador -CompressionLevel Optimal -Force
+        $PastaInstaladorWeb = Join-Path $WebOut 'instaladores\agente'
+        New-Item -ItemType Directory -Force -Path $PastaInstaladorWeb | Out-Null
+        Copy-Item $ZipInstalador (Join-Path $PastaInstaladorWeb (Split-Path $ZipInstalador -Leaf)) -Force
 
         $Resumo = [ordered]@{
             produto='Share IT .Clara'; versao=$Versao; geradoEmUtc=[DateTimeOffset]::UtcNow.ToString('O');
