@@ -1,10 +1,24 @@
-# Share IT .Clara v0.5.0 — candidato
+# Share IT .Clara v0.5.1 — candidato
 
 Baseline consolidada do **Share IT .Clara**, plataforma multiempresa de monitoramento autorizado e inteligência de contexto do trabalho em estações Windows.
 
-A v0.5.0 preserva integralmente a evolução visual/gerencial da v0.4.0 e fecha um novo conjunto grande de pendências em uma única entrega: **contexto web real e limitado a domínio**, distribuição do agente pelo próprio painel, controles comerciais SaaS por tenant, reforço do Índice Geral, drill-down também para navegação web e exportação CSV das telas analíticas.
+A v0.5.1 preserva integralmente a candidata v0.5.0 e concentra a correção do processo de publicação: **log local sempre localizável, diagnóstico automático Git/Render, confirmação do commit remoto, Build ID único por execução e validação online do build exato**, além de fallback opcional por Deploy Hook do Render. Nenhuma funcionalidade da v0.5.0 foi removida.
 
 > Estado desta pasta: **código-fonte candidato para validação**. Este ambiente não possui o `.NET SDK 10`; portanto restore/build/test/publish não foram executados aqui. A homologação deve ser concluída no Windows oficial com `PUBLICAR-CLARA.cmd`.
+
+## Correção principal da v0.5.1
+
+A tentativa de publicação da v0.5.0 concluiu build/push local, porém o endpoint remoto continuou em `0.3.2`. A v0.5.1 endurece o gate de publicação para que esse cenário não termine sem evidência diagnóstica:
+
+- `PUBLICACAO-ULTIMA.log` fica na raiz da release, além do transcript completo em `artifacts/logs`;
+- `DIAGNOSTICO-PUBLICACAO-ULTIMO.txt` é criado automaticamente em falhas de deploy/validação;
+- após `git push`, o publicador compara o SHA local com `origin/<branch>`;
+- cada execução recebe um `BUILD.txt`/`buildId` único e o Web expõe esse identificador em `/api/versao`, `/api/health/live` e `/api/health`;
+- a publicação só é considerada validada quando **versão + buildId + banco + quantidade de migrations** correspondem ao esperado;
+- se `CLARA_RENDER_DEPLOY_HOOK` estiver configurado, o publicador pode acioná-lo uma única vez como fallback após o tempo configurado, sem gravar a URL secreta nos logs;
+- o diagnóstico registra respostas online e estado Git suficiente para distinguir: push não efetivado, Render sem disparo, build antigo ainda ativo ou readiness do banco.
+
+Não há migration nova nesta versão. As migrations `0001` a `0006` permanecem imutáveis.
 
 ## Princípios preservados
 
@@ -209,7 +223,7 @@ Migrations:
 0006_distribuicao_navegacao_saas.sql
 ```
 
-As migrations **0001 a 0005 permanecem byte a byte imutáveis em relação à v0.4.0**. A v0.5.0 adiciona somente a `0006`.
+As migrations **0001 a 0006 permanecem byte a byte imutáveis nesta v0.5.1**. A `0006` foi introduzida pela v0.5.0; a v0.5.1 não altera o schema.
 
 ## Capturas de tela / tela ao vivo / gravação
 
@@ -262,17 +276,18 @@ O publicador deve executar restore/build/test, publicar Web, Agente, Sessão, At
 Gate esperado para esta versão:
 
 ```text
-/api/versao      -> 0.5.0
-/api/health      -> shareit_clara / banco ok / 6 migrations
-/api/health/live -> aplicação ok
+/api/versao      -> 0.5.1 + buildId exato desta execução
+/api/health      -> 0.5.1 + mesmo buildId + shareit_clara / banco ok / 6 migrations
+/api/health/live -> 0.5.1 + mesmo buildId + aplicação ok
 ```
 
-## Pendências após a v0.5.0
+## Pendências após a v0.5.1
 
 - build/test/publish e homologação física desta candidata no Windows oficial;
+- se o Render continuar servindo build antigo, usar o diagnóstico gerado para revisar o vínculo real do Web Service com o repositório/branch ou o deploy que falhou;
 - estratégia corporativa de distribuição automática da extensão Chrome/Edge;
 - conectores Microsoft/Google/Zoom reais com OAuth e consentimento;
 - aprofundamento por função/perfil do Índice Geral sem julgamento automático;
 - screenshots/tela ao vivo/gravação somente após governança completa.
 
-Veja `docs/ALTERACOES-v0.5.0.md`, `docs/VALIDACAO-v0.5.0.md` e `docs/ROADMAP.md`.
+Veja `docs/ALTERACOES-v0.5.1.md`, `docs/VALIDACAO-v0.5.1.md`, os documentos históricos da v0.5.0 e `docs/ROADMAP.md`.

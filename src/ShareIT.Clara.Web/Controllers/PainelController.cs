@@ -417,7 +417,7 @@ public sealed class PainelController(
     }
 
     private static string ObterVersaoAplicacao()
-        => Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.5.0";
+        => Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.5.1";
 
     private async Task PrepararDemonstracaoAsync(Guid tenant, CancellationToken ct)
         => await relogioDemonstracao.AtualizarSeNecessarioAsync(tenant, ct);

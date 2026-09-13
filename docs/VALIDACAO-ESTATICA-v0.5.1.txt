@@ -1,0 +1,51 @@
+Share IT .Clara v0.5.1 - RELATORIO DE VALIDACAO ESTATICA
+================================================================
+
+Resultado: APROVADA NA VALIDACAO ESTATICA
+Observacao: este ambiente nao possui .NET SDK 10 nem Windows PowerShell; restore/build/test/publish precisam ocorrer no Windows pelo PUBLICAR-CLARA.cmd.
+
+Versao: 0.5.1
+Arquivos C#: 71
+Arquivos JSON: 3
+Projetos .csproj: 8
+Migrations: 6
+
+CHECAGENS
+- OK: VERSAO.txt = 0.5.1
+- OK: Directory.Build.props version consistent
+- OK: JSON parsed (3 files)
+- OK: XML/project parsed (13 files)
+- OK: render.yaml parsed
+- OK: Migration 0001 immutable (ed572fe355fb)
+- OK: Migration 0002 immutable (92c622cff008)
+- OK: Migration 0003 immutable (3fab0587f2c8)
+- OK: Migration 0004 immutable (6b8066ce8389)
+- OK: Migration 0005 immutable (1c39de83c946)
+- OK: Migration 0006 immutable (3837c8056af2)
+- OK: Migrations count = 6 (no new migration)
+- OK: C# lexical balance (71 files)
+- OK: PowerShell lexical balance (3 files)
+- OK: Publisher marker: PUBLICACAO-ULTIMA.log
+- OK: Publisher marker: DIAGNOSTICO-PUBLICACAO-ULTIMO.txt
+- OK: Publisher marker: BuildId
+- OK: Publisher marker: CommitEsperado
+- OK: Publisher marker: git.exe ls-remote
+- OK: Publisher marker: UsarDeployHookComoFallback
+- OK: Publisher marker: SegundosAntesDeployHookFallback
+- OK: Publisher marker: CLARA_RENDER_DEPLOY_HOOK
+- OK: Publisher marker: Clara-Agent-v
+- OK: Publisher marker: Clara-Instalador-v
+- OK: Publisher marker: NavegadorHost
+- OK: Publisher marker: NavegadorExtensao
+- OK: Web build marker: buildId = ObterIdentificadorBuild()
+- OK: Web build marker: commit = ObterCommitImplantado()
+- OK: Web build marker: BUILD.txt
+- OK: Web build marker: RENDER_GIT_COMMIT
+- OK: BUILD.txt copied to Web publish
+- OK: Extension manifest version = 0.5.1
+- OK: Demo marker: Horizonte Contabilidade
+- OK: Demo marker: demonstracao@clara.local
+- OK: Demo marker: '0.5.1'
+- OK: Demo marker: monitorar_urls_dominios
+- OK: No private-key material detected
+- OK: Runtime version markers updated to 0.5.1

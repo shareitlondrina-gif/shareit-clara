@@ -72,11 +72,11 @@
         <div class="rodape-menu">
             @if (!master)
             {
-                <div class="empresa-rodape"><strong>@(empresaNome ?? tenantNome)</strong>@if (demonstracao){<small>Ambiente de demonstração</small>}<small>Share IT .Clara v0.5.0</small></div>
+                <div class="empresa-rodape"><strong>@(empresaNome ?? tenantNome)</strong>@if (demonstracao){<small>Ambiente de demonstração</small>}<small>Share IT .Clara v0.5.1</small></div>
             }
             else
             {
-                <div class="empresa-rodape"><strong>Share IT .Clara</strong><small>Master da plataforma</small><small>v0.5.0</small></div>
+                <div class="empresa-rodape"><strong>Share IT .Clara</strong><small>Master da plataforma</small><small>v0.5.1</small></div>
             }
             <form method="post" action="/sair">@Html.AntiForgeryToken()<button class="botao-sair" type="submit">Sair</button></form>
         </div>

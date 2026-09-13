@@ -15,17 +15,32 @@ $ConfigPub = Join-Path $ConfigDir 'Publicacao\ConfiguracaoPublicacao.xml'
 $Artefatos = Join-Path $Raiz 'artifacts'
 $Release = Join-Path $Artefatos ("Clara-v{0}" -f $Versao)
 $Logs = Join-Path $Artefatos 'logs'
-$LogAtual = Join-Path $Logs ("Publicacao-Clara-v{0}-{1}.log" -f $Versao, (Get-Date -Format 'yyyyMMdd-HHmmss'))
+$CarimboExecucao = Get-Date -Format 'yyyyMMdd-HHmmss'
+$LogAtual = Join-Path $Logs ("Publicacao-Clara-v{0}-{1}.log" -f $Versao, $CarimboExecucao)
+$LogEspelho = Join-Path $Raiz 'PUBLICACAO-ULTIMA.log'
+$DiagnosticoAtual = Join-Path $Logs ("DIAGNOSTICO-PUBLICACAO-v{0}-{1}.txt" -f $Versao, $CarimboExecucao)
+$DiagnosticoEspelho = Join-Path $Raiz 'DIAGNOSTICO-PUBLICACAO-ULTIMO.txt'
+$BuildArquivo = Join-Path $Raiz 'BUILD.txt'
+$BuildId = ''
+$CommitEsperado = ''
+$RepositorioGit = ''
+$Branch = 'main'
 $OnlineValidado = $false
 $PublicacaoOnlineSolicitada = $false
+$HookFallbackAcionado = $false
 
 New-Item -ItemType Directory -Force -Path $Logs | Out-Null
+Set-Content -Path $LogEspelho -Value ("Share IT .Clara v{0} - publicacao iniciada em {1}" -f $Versao, (Get-Date -Format 'yyyy-MM-dd HH:mm:ss')) -Encoding UTF8
 Start-Transcript -Path $LogAtual -Force | Out-Null
 
-function Etapa([string]$Texto) { Write-Host "`n==> $Texto" -ForegroundColor Cyan }
-function Info([string]$Texto) { Write-Host "[INFO] $Texto" -ForegroundColor DarkCyan }
-function Ok([string]$Texto) { Write-Host "[OK] $Texto" -ForegroundColor Green }
-function Aviso([string]$Texto) { Write-Host "[ATENCAO] $Texto" -ForegroundColor Yellow }
+function Registrar-Linha([string]$Texto, [ConsoleColor]$Cor = [ConsoleColor]::Gray) {
+    Write-Host $Texto -ForegroundColor $Cor
+    try { Add-Content -Path $LogEspelho -Value ((Get-Date -Format 'HH:mm:ss') + ' ' + $Texto) -Encoding UTF8 } catch { }
+}
+function Etapa([string]$Texto) { Registrar-Linha ''; Registrar-Linha "==> $Texto" ([ConsoleColor]::Cyan) }
+function Info([string]$Texto) { Registrar-Linha "[INFO] $Texto" ([ConsoleColor]::DarkCyan) }
+function Ok([string]$Texto) { Registrar-Linha "[OK] $Texto" ([ConsoleColor]::Green) }
+function Aviso([string]$Texto) { Registrar-Linha "[ATENCAO] $Texto" ([ConsoleColor]::Yellow) }
 function Falhar([string]$Texto) { throw $Texto }
 function Tem-Comando([string]$Nome) { return [bool](Get-Command $Nome -ErrorAction SilentlyContinue) }
 function Atualizar-Path {
@@ -69,7 +84,7 @@ function XmlInt($No, [string]$Nome, [int]$Padrao) {
     return $Padrao
 }
 function Obter-RepositorioGit([xml]$Publicacao) {
-    $configurado = XmlTexto $Publicacao.ConfiguracaoPublicacao 'RepositorioGitHub' ''
+    $configurado = XmlTexto $Publicacao.ConfiguracaoPublicacao 'RepositorioGitHub' 'https://github.com/shareitlondrina-gif/shareit-clara.git'
     if (-not [string]::IsNullOrWhiteSpace($configurado)) { return $configurado }
     if (Test-Path (Join-Path $Raiz '.git')) {
         Push-Location $Raiz
@@ -78,10 +93,104 @@ function Obter-RepositorioGit([xml]$Publicacao) {
             if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($origem)) { return $origem.Trim() }
         } finally { Pop-Location }
     }
-    return ''
+    return 'https://github.com/shareitlondrina-gif/shareit-clara.git'
 }
-function Testar-PublicacaoOnline([string]$UrlLive, [string]$UrlHealth, [int]$TempoMaximoMinutos) {
-    $limite = (Get-Date).AddMinutes([Math]::Max(2, $TempoMaximoMinutos))
+function Proteger-Url([string]$Url) {
+    if ([string]::IsNullOrWhiteSpace($Url)) { return '' }
+    try {
+        return ($Url -replace '(https?://)([^/@]+)@', '$1***@')
+    } catch { return '[url indisponivel]' }
+}
+function Tentar-Json([string]$Url) {
+    try {
+        $resposta = Invoke-RestMethod -Uri $Url -TimeoutSec 10 -Headers @{ 'Cache-Control' = 'no-cache' }
+        return ($resposta | ConvertTo-Json -Depth 8 -Compress)
+    }
+    catch {
+        $status = $_.Exception.Response.StatusCode.value__ 2>$null
+        return ("ERRO HTTP={0} mensagem={1}" -f $status, $_.Exception.Message)
+    }
+}
+function Obter-GitTexto([string[]]$Argumentos) {
+    if (-not (Tem-Comando 'git.exe')) { return 'git.exe indisponivel' }
+    Push-Location $Raiz
+    try {
+        $saida = & git.exe @Argumentos 2>&1 | Out-String
+        return $saida.Trim()
+    }
+    catch { return $_.Exception.Message }
+    finally { Pop-Location }
+}
+function Gerar-DiagnosticoPublicacao([string]$Motivo, [string]$UrlSistema, [string]$UrlLive, [string]$UrlHealth) {
+    try {
+        $linhas = New-Object System.Collections.Generic.List[string]
+        $null = $linhas.Add('SHARE IT .CLARA - DIAGNOSTICO AUTOMATICO DE PUBLICACAO')
+        $null = $linhas.Add(('Gerado em: {0}' -f (Get-Date -Format 'yyyy-MM-dd HH:mm:ss zzz')))
+        $null = $linhas.Add(('Motivo: {0}' -f $Motivo))
+        $null = $linhas.Add(('Versao esperada: {0}' -f $Versao))
+        $null = $linhas.Add(('Build esperado: {0}' -f $BuildId))
+        $null = $linhas.Add(('Commit esperado: {0}' -f $CommitEsperado))
+        $null = $linhas.Add(('Repositorio: {0}' -f (Proteger-Url $RepositorioGit)))
+        $null = $linhas.Add(('Branch: {0}' -f $Branch))
+        $null = $linhas.Add(('URL sistema: {0}' -f $UrlSistema))
+        $null = $linhas.Add(('Deploy hook configurado: {0}' -f (-not [string]::IsNullOrWhiteSpace($env:CLARA_RENDER_DEPLOY_HOOK))))
+        $null = $linhas.Add(('Deploy hook fallback acionado: {0}' -f $HookFallbackAcionado))
+        $null = $linhas.Add('')
+        $null = $linhas.Add('--- RESPOSTAS ONLINE ---')
+        if (-not [string]::IsNullOrWhiteSpace($UrlLive)) { $null = $linhas.Add(('Liveness: {0}' -f (Tentar-Json $UrlLive))) }
+        if (-not [string]::IsNullOrWhiteSpace($UrlHealth)) { $null = $linhas.Add(('Health: {0}' -f (Tentar-Json $UrlHealth))) }
+        if (-not [string]::IsNullOrWhiteSpace($UrlSistema)) { $null = $linhas.Add(('Versao: {0}' -f (Tentar-Json ($UrlSistema.TrimEnd('/') + '/api/versao')))) }
+        $null = $linhas.Add('')
+        $null = $linhas.Add('--- ESTADO GIT LOCAL/REMOTO ---')
+        if (Test-Path (Join-Path $Raiz '.git')) {
+            $null = $linhas.Add(('status: {0}' -f (Obter-GitTexto @('status','--short','--branch'))))
+            $null = $linhas.Add(('HEAD: {0}' -f (Obter-GitTexto @('rev-parse','HEAD'))))
+            $null = $linhas.Add(('ultimo commit: {0}' -f (Obter-GitTexto @('log','-1','--oneline'))))
+            if (-not [string]::IsNullOrWhiteSpace($Branch)) {
+                $null = $linhas.Add(('origin/{0}: {1}' -f $Branch, (Obter-GitTexto @('ls-remote','origin',("refs/heads/{0}" -f $Branch)))))
+            }
+        } else {
+            $null = $linhas.Add('Pasta .git nao existe nesta copia.')
+        }
+        $null = $linhas.Add('')
+        $null = $linhas.Add('--- INTERPRETACAO AUTOMATICA ---')
+        $liveTexto = if (-not [string]::IsNullOrWhiteSpace($UrlLive)) { Tentar-Json $UrlLive } else { '' }
+        if (-not [string]::IsNullOrWhiteSpace($CommitEsperado) -and $liveTexto -notmatch [regex]::Escape($Versao)) {
+            $null = $linhas.Add('O Git pode ter recebido o commit, mas o Render continua servindo outra versao. Verifique no Render se o Web Service shareit-clara esta conectado ao repositorio/branch corretos e se o deploy mais recente falhou.')
+        } elseif ($liveTexto -match [regex]::Escape($Versao) -and $liveTexto -notmatch [regex]::Escape($BuildId)) {
+            $null = $linhas.Add('A versao coincide, mas o buildId nao coincide. O endpoint esta respondendo uma compilacao diferente da que este publicador acabou de enviar.')
+        } else {
+            $null = $linhas.Add('Use as secoes acima para distinguir falha de Git, disparo do Render, build do Render ou readiness do banco.')
+        }
+        $null = $linhas.Add('')
+        $null = $linhas.Add('Nenhum segredo, token ou connection string e gravado por este diagnostico.')
+        $linhas | Set-Content -Path $DiagnosticoAtual -Encoding UTF8
+        Copy-Item $DiagnosticoAtual $DiagnosticoEspelho -Force
+        Aviso "Diagnostico salvo em: $DiagnosticoAtual"
+        Aviso "Copia facil de localizar: $DiagnosticoEspelho"
+    }
+    catch {
+        Aviso "Nao foi possivel gerar o diagnostico automatico: $($_.Exception.Message)"
+    }
+}
+function Acionar-DeployHookFallback {
+    if ($HookFallbackAcionado) { return }
+    $hook = $env:CLARA_RENDER_DEPLOY_HOOK
+    if ([string]::IsNullOrWhiteSpace($hook)) { return }
+    try {
+        Aviso 'A versao ainda nao mudou. Acionando uma vez o deploy hook de fallback do Render (URL protegida e nao gravada em log).'
+        Invoke-WebRequest -Method Post -Uri $hook -UseBasicParsing -TimeoutSec 20 | Out-Null
+        $script:HookFallbackAcionado = $true
+        Ok 'Deploy hook de fallback acionado.'
+    }
+    catch {
+        Aviso "Falha ao acionar deploy hook de fallback: $($_.Exception.Message)"
+    }
+}
+
+function Testar-PublicacaoOnline([string]$UrlLive, [string]$UrlHealth, [int]$TempoMaximoMinutos, [bool]$UsarHookFallback, [int]$SegundosHookFallback) {
+    $inicio = Get-Date
+    $limite = $inicio.AddMinutes([Math]::Max(2, $TempoMaximoMinutos))
     $tentativa = 0
     $livenessConfirmado = $false
 
@@ -90,37 +199,43 @@ function Testar-PublicacaoOnline([string]$UrlLive, [string]$UrlHealth, [int]$Tem
         try {
             $live = Invoke-RestMethod -Uri $UrlLive -TimeoutSec 8 -Headers @{ 'Cache-Control' = 'no-cache' }
             $versaoLive = [string]$live.versao
+            $buildLive = [string]$live.buildId
+            $commitLive = [string]$live.commit
             $aplicacaoLive = [string]$live.aplicacao
             $estadoBanco = [string]$live.inicializacaoBanco
+            $buildConfere = (-not [string]::IsNullOrWhiteSpace($BuildId)) -and ($buildLive -eq $BuildId)
 
-            if ($versaoLive -eq $Versao -and $aplicacaoLive -eq 'ok') {
+            if ($versaoLive -eq $Versao -and $aplicacaoLive -eq 'ok' -and $buildConfere) {
                 if (-not $livenessConfirmado) {
-                    Ok "Web/API v$versaoLive respondeu ao liveness. Estado do banco: '$estadoBanco'."
+                    Ok "Web/API v$versaoLive respondeu ao liveness com o build esperado '$buildLive'. Estado do banco: '$estadoBanco'. Commit Render='$commitLive'."
                     $livenessConfirmado = $true
                 }
 
                 try {
                     $resposta = Invoke-RestMethod -Uri $UrlHealth -TimeoutSec 8 -Headers @{ 'Cache-Control' = 'no-cache' }
                     $versaoRemota = [string]$resposta.versao
+                    $buildRemoto = [string]$resposta.buildId
                     $banco = [string]$resposta.banco
                     $nomeBanco = [string]$resposta.nomeBanco
                     $migracoesRemotas = [int]$resposta.migracoes
-                    if ($banco -eq 'ok' -and $nomeBanco -eq 'shareit_clara' -and $versaoRemota -eq $Versao -and $migracoesRemotas -eq $MigracoesEsperadas) {
-                        Ok "Health completo confirmado na versao $versaoRemota, banco $nomeBanco, $migracoesRemotas migrations."
+                    if ($banco -eq 'ok' -and $nomeBanco -eq 'shareit_clara' -and $versaoRemota -eq $Versao -and $buildRemoto -eq $BuildId -and $migracoesRemotas -eq $MigracoesEsperadas) {
+                        Ok "Health completo confirmado na versao $versaoRemota, build $buildRemoto, banco $nomeBanco, $migracoesRemotas migrations."
                         return $true
                     }
-                    Aviso "Web/API esta online, mas o health completo ainda nao confirmou a baseline. Versao='$versaoRemota', banco='$banco', migrations='$migracoesRemotas/$MigracoesEsperadas'."
+                    Aviso "Web/API esta online, mas o health completo ainda nao confirmou a baseline. Versao='$versaoRemota', build='$buildRemoto/$BuildId', banco='$banco', migrations='$migracoesRemotas/$MigracoesEsperadas'."
                 }
                 catch {
                     $statusHealth = $_.Exception.Response.StatusCode.value__ 2>$null
                     if ($statusHealth -eq 503) {
-                        Aviso "Web/API v$Versao esta online, mas o banco ainda esta inicializando ou apresentou falha. Consulte /api/health e os Logs do Render."
+                        Aviso "Web/API v$Versao build $BuildId esta online, mas o banco ainda esta inicializando ou apresentou falha. Consulte /api/health e os Logs do Render."
                     } else {
-                        Aviso "Web/API v$Versao esta online, mas o health completo ainda esta indisponivel: $($_.Exception.Message)"
+                        Aviso "Web/API v$Versao build $BuildId esta online, mas o health completo ainda esta indisponivel: $($_.Exception.Message)"
                     }
                 }
+            } elseif ($versaoLive -eq $Versao -and $aplicacaoLive -eq 'ok') {
+                Aviso "A versao remota ja e '$versaoLive', mas o build ainda nao e o desta execucao. Remoto='$buildLive', esperado='$BuildId'. Tentativa $tentativa."
             } else {
-                Aviso "Liveness respondeu, mas ainda nao esta na versao esperada. Remota='$versaoLive', esperada='$Versao'. Tentativa $tentativa."
+                Aviso "Liveness respondeu, mas ainda nao esta na versao esperada. Remota='$versaoLive', esperada='$Versao', buildRemoto='$buildLive'. Tentativa $tentativa."
             }
         }
         catch {
@@ -132,6 +247,10 @@ function Testar-PublicacaoOnline([string]$UrlLive, [string]$UrlHealth, [int]$Tem
             }
         }
 
+        if ($UsarHookFallback -and -not $HookFallbackAcionado -and ((Get-Date) - $inicio).TotalSeconds -ge [Math]::Max(30, $SegundosHookFallback)) {
+            Acionar-DeployHookFallback
+        }
+
         if ((Get-Date) -lt $limite) { Start-Sleep -Seconds 6 }
     }
 
@@ -139,6 +258,8 @@ function Testar-PublicacaoOnline([string]$UrlLive, [string]$UrlHealth, [int]$Tem
 }
 
 try {
+    Info "Log detalhado desta execucao: $LogAtual"
+    Info "Log-resumo facil de localizar: $LogEspelho"
     Etapa 'Preparando ConfigSys'
     New-Item -ItemType Directory -Force -Path $ConfigDir | Out-Null
     New-Item -ItemType Directory -Force -Path (Join-Path $ConfigDir 'Publicacao') | Out-Null
@@ -162,13 +283,23 @@ try {
     $tempoDeploy = [Math]::Max(2, (XmlInt $pub.ConfiguracaoPublicacao 'TempoMaximoDeployMinutos' 12))
     $publicacaoAutomatica = XmlBool $pub.ConfiguracaoPublicacao 'PublicacaoAutomatica' $true
     $gitExplicitamenteHabilitado = XmlBool $pub.ConfiguracaoPublicacao 'ExecutarGitPush' $true
-    $repoPreConfigurado = XmlTexto $pub.ConfiguracaoPublicacao 'RepositorioGitHub' ''
+    $repoPreConfigurado = XmlTexto $pub.ConfiguracaoPublicacao 'RepositorioGitHub' 'https://github.com/shareitlondrina-gif/shareit-clara.git'
     $possuiRepositorioLocal = Test-Path (Join-Path $Raiz '.git')
     # Compatibilidade com ConfigSys criado pela v0.1.0/v0.1.1: se ja existe repositorio local
     # ou URL configurada, a publicacao automatica passa a fazer push mesmo que o XML antigo tenha false.
     $executarGit = (-not $SemGit) -and $publicacaoAutomatica -and ($gitExplicitamenteHabilitado -or $possuiRepositorioLocal -or -not [string]::IsNullOrWhiteSpace($repoPreConfigurado))
     $executarHook = (-not $SemDeploy) -and (XmlBool $pub.ConfiguracaoPublicacao 'ExecutarDeployHook' $false)
+    $usarHookFallback = (-not $SemDeploy) -and (XmlBool $pub.ConfiguracaoPublicacao 'UsarDeployHookComoFallback' $true)
+    $segundosHookFallback = [Math]::Max(30, (XmlInt $pub.ConfiguracaoPublicacao 'SegundosAntesDeployHookFallback' 120))
     $PublicacaoOnlineSolicitada = $executarGit -or $executarHook
+    $Branch = XmlTexto $pub.ConfiguracaoPublicacao 'Branch' 'main'
+    $RepositorioGit = $repoPreConfigurado
+
+    Etapa 'Gerando identificador unico do build'
+    $BuildId = ("{0}-{1}-{2}" -f $Versao, ([DateTimeOffset]::UtcNow.ToString('yyyyMMddHHmmss')), ([Guid]::NewGuid().ToString('N').Substring(0,8)))
+    Set-Content -Path $BuildArquivo -Value $BuildId -Encoding ASCII
+    Ok "Build ID desta publicacao: $BuildId"
+    Info 'Esse identificador sera devolvido por /api/versao e /api/health/live para impedir falso positivo com build antigo.'
 
     Etapa 'Validando protecao do banco'
     $nomeBanco = [string]$cfg.ConfiguracaoClara.Banco.NomeBanco
@@ -258,7 +389,7 @@ try {
 
         $Resumo = [ordered]@{
             produto='Share IT .Clara'; versao=$Versao; geradoEmUtc=[DateTimeOffset]::UtcNow.ToString('O');
-            agenteSha256=$Sha; dotnet=$dotnetVersao; health=$health
+            agenteSha256=$Sha; dotnet=$dotnetVersao; health=$health; buildId=$BuildId
         }
         $Resumo | ConvertTo-Json | Set-Content (Join-Path $Release 'release.json') -Encoding UTF8
     }
@@ -277,46 +408,52 @@ try {
 
     if ($executarGit) {
         Etapa 'Publicando codigo no GitHub'
-        $repo = Obter-RepositorioGit $pub
-        if ([string]::IsNullOrWhiteSpace($repo)) {
+        $RepositorioGit = Obter-RepositorioGit $pub
+        if ([string]::IsNullOrWhiteSpace($RepositorioGit)) {
             Falhar "Publicacao online esta habilitada, mas o repositorio GitHub nao foi configurado. Preencha RepositorioGitHub em '$ConfigPub' ou configure o remote origin do Git."
         }
-        $branch = XmlTexto $pub.ConfiguracaoPublicacao 'Branch' 'main'
+        $Branch = XmlTexto $pub.ConfiguracaoPublicacao 'Branch' 'main'
+        Info ("Repositorio alvo: {0}" -f (Proteger-Url $RepositorioGit))
+        Info "Branch alvo: $Branch"
         Push-Location $Raiz
         try {
             if (-not (Test-Path '.git')) {
                 & git.exe init
                 if ($LASTEXITCODE -ne 0) { Falhar 'git init falhou.' }
             }
+            $gitNome = (& git.exe config user.name 2>$null | Select-Object -First 1)
+            $gitEmail = (& git.exe config user.email 2>$null | Select-Object -First 1)
+            if ([string]::IsNullOrWhiteSpace($gitNome)) { & git.exe config user.name 'Share IT Release'; if ($LASTEXITCODE -ne 0) { Falhar 'Nao foi possivel configurar user.name local do Git.' } }
+            if ([string]::IsNullOrWhiteSpace($gitEmail)) { & git.exe config user.email 'release@shareit.local'; if ($LASTEXITCODE -ne 0) { Falhar 'Nao foi possivel configurar user.email local do Git.' } }
 
             # O pacote de release nao leva a pasta .git. Portanto, cada nova versao pode
             # ser executada em uma pasta limpa. Antes de criar o commit local, vinculamos
             # esta copia ao historico remoto para evitar non-fast-forward/fetch first.
             $remotes = @(& git.exe remote 2>$null)
             if ($remotes -contains 'origin') {
-                & git.exe remote set-url origin $repo
+                & git.exe remote set-url origin $RepositorioGit
                 if ($LASTEXITCODE -ne 0) { Falhar 'Nao foi possivel atualizar o remote origin.' }
             } else {
-                & git.exe remote add origin $repo
+                & git.exe remote add origin $RepositorioGit
                 if ($LASTEXITCODE -ne 0) { Falhar 'Nao foi possivel configurar o remote origin.' }
             }
 
             Etapa 'Sincronizando historico Git remoto'
-            & git.exe ls-remote --exit-code --heads origin $branch *> $null
+            & git.exe ls-remote --exit-code --heads origin $Branch *> $null
             $resultadoRemote = $LASTEXITCODE
             if ($resultadoRemote -eq 0) {
-                & git.exe fetch origin $branch --prune
+                & git.exe fetch origin $Branch --prune
                 if ($LASTEXITCODE -ne 0) { Falhar 'git fetch falhou. O historico remoto nao foi alterado.' }
 
                 # Mantem os arquivos da release atual no disco, mas posiciona o HEAD no
                 # ultimo commit remoto. Assim o novo commit e criado por cima do historico
                 # existente sem merge artificial e sem usar push --force.
-                & git.exe reset --mixed ("origin/{0}" -f $branch)
+                & git.exe reset --mixed ("origin/{0}" -f $Branch)
                 if ($LASTEXITCODE -ne 0) { Falhar 'Nao foi possivel sincronizar a base local com o historico remoto.' }
-                Ok "Historico remoto sincronizado com origin/$branch; arquivos da release atual preservados."
+                Ok "Historico remoto sincronizado com origin/$Branch; arquivos da release atual preservados."
             }
             elseif ($resultadoRemote -eq 2) {
-                Info "A branch remota '$branch' ainda nao existe; sera criada no primeiro push."
+                Info "A branch remota '$Branch' ainda nao existe; sera criada no primeiro push."
             }
             else {
                 Falhar 'Nao foi possivel consultar a branch remota no GitHub. Verifique autenticacao e permissao do repositorio.'
@@ -330,11 +467,19 @@ try {
             } else {
                 Info 'Nenhuma alteracao nova para commit; sera validado o estado da branch remota.'
             }
-            & git.exe branch -M $branch
+            & git.exe branch -M $Branch
             if ($LASTEXITCODE -ne 0) { Falhar 'Falha ao ajustar branch Git.' }
-            & git.exe push -u origin $branch
+            & git.exe push -u origin $Branch
             if ($LASTEXITCODE -ne 0) { Falhar 'Git push falhou mesmo apos sincronizacao segura do historico remoto.' }
-            Ok "Codigo enviado ao GitHub: $repo ($branch)."
+
+            $CommitEsperado = (& git.exe rev-parse HEAD).Trim()
+            if ([string]::IsNullOrWhiteSpace($CommitEsperado)) { Falhar 'Nao foi possivel obter o commit local apos o push.' }
+            $linhaRemota = (& git.exe ls-remote origin ("refs/heads/{0}" -f $Branch) 2>&1 | Select-Object -First 1)
+            if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($linhaRemota)) { Falhar 'Nao foi possivel confirmar o commit da branch remota apos o push.' }
+            $CommitRemoto = (([string]$linhaRemota -split '\s+')[0]).Trim()
+            if ($CommitRemoto -ne $CommitEsperado) { Falhar "O push retornou sem erro, mas o commit remoto '$CommitRemoto' difere do commit local '$CommitEsperado'." }
+            Ok "Codigo enviado e confirmado no GitHub: $(Proteger-Url $RepositorioGit) ($Branch)."
+            Ok "Commit local/remoto confirmado: $CommitEsperado"
         } finally { Pop-Location }
     } else {
         Aviso 'Git push desabilitado. O pacote foi gerado localmente, mas esta execucao nao publicou codigo novo no Render.'
@@ -355,13 +500,19 @@ try {
         Info "Liveness: $healthLive"
         Info "Readiness: $health"
         Info "Tempo maximo total de validacao: $tempoDeploy minuto(s)."
-        $OnlineValidado = Testar-PublicacaoOnline -UrlLive $healthLive -UrlHealth $health -TempoMaximoMinutos $tempoDeploy
+        if ($usarHookFallback -and -not [string]::IsNullOrWhiteSpace($env:CLARA_RENDER_DEPLOY_HOOK)) {
+            Info "Deploy hook de fallback esta disponivel e podera ser acionado automaticamente apos $segundosHookFallback segundo(s) se a versao nao mudar."
+        } elseif ($usarHookFallback) {
+            Info 'Deploy hook de fallback nao esta configurado; a validacao seguira somente pelo push/Auto Deploy.'
+        }
+        $OnlineValidado = Testar-PublicacaoOnline -UrlLive $healthLive -UrlHealth $health -TempoMaximoMinutos $tempoDeploy -UsarHookFallback $usarHookFallback -SegundosHookFallback $segundosHookFallback
         if (-not $OnlineValidado) {
-            Falhar "A compilacao e o envio terminaram e o ZIP local foi preservado em '$ZipFinal', mas o Render nao confirmou a baseline v$Versao dentro do tempo configurado. Verifique /api/health/live, /api/health e os Logs do servico shareit-clara."
+            Gerar-DiagnosticoPublicacao -Motivo "Render nao confirmou v$Versao / build $BuildId dentro do tempo configurado." -UrlSistema $urlSistema -UrlLive $healthLive -UrlHealth $health
+            Falhar "A compilacao e o envio terminaram e o ZIP local foi preservado em '$ZipFinal', mas o Render nao confirmou a baseline v$Versao build $BuildId dentro do tempo configurado. Consulte '$DiagnosticoAtual' e '$LogAtual'."
         }
     } elseif (-not [string]::IsNullOrWhiteSpace($health)) {
         Etapa 'Verificando endereco configurado sem exigir nova publicacao'
-        $OnlineValidado = Testar-PublicacaoOnline -UrlLive $healthLive -UrlHealth $health -TempoMaximoMinutos 2
+        $OnlineValidado = Testar-PublicacaoOnline -UrlLive $healthLive -UrlHealth $health -TempoMaximoMinutos 2 -UsarHookFallback $false -SegundosHookFallback 120
         if (-not $OnlineValidado) {
             Aviso 'A release local foi concluida, mas a versao online nao foi confirmada nesta execucao.'
         }
@@ -371,12 +522,15 @@ try {
     Write-Host " SHARE IT .CLARA - RESULTADO DA PUBLICACAO" -ForegroundColor Green
     Write-Host "====================================================" -ForegroundColor Green
     Write-Host ("Versao:       v{0}" -f $Versao)
+    Write-Host ("Build ID:     {0}" -f $BuildId)
+    if (-not [string]::IsNullOrWhiteSpace($CommitEsperado)) { Write-Host ("Commit Git:    {0}" -f $CommitEsperado) }
     Write-Host "Compilacao:   OK"
     Write-Host "Testes:       OK"
     Write-Host "Banco alvo:   shareit_clara"
     Write-Host ("Migrations:    {0}" -f $MigracoesEsperadas)
     Write-Host ("ZIP:          {0}" -f $ZipFinal)
     Write-Host ("Log:          {0}" -f $LogAtual)
+    Write-Host ("Log facil:    {0}" -f $LogEspelho)
     if ($OnlineValidado) {
         Write-Host "Render:       ONLINE E VALIDADO" -ForegroundColor Green
         Write-Host ("Sistema:      {0}" -f $urlSistema) -ForegroundColor Green
@@ -391,6 +545,18 @@ try {
         Start-Process $urlSistema
     }
 }
+catch {
+    $mensagemErro = $_.Exception.Message
+    Registrar-Linha "[ERRO] $mensagemErro" ([ConsoleColor]::Red)
+    try { Add-Content -Path $LogEspelho -Value ($_ | Out-String) -Encoding UTF8 } catch { }
+    if (-not (Test-Path $DiagnosticoAtual)) {
+        Gerar-DiagnosticoPublicacao -Motivo $mensagemErro -UrlSistema $urlSistema -UrlLive $healthLive -UrlHealth $health
+    }
+    throw
+}
 finally {
     try { Stop-Transcript | Out-Null } catch { }
+    try {
+        if (Test-Path $LogAtual) { Copy-Item $LogAtual $LogEspelho -Force }
+    } catch { }
 }

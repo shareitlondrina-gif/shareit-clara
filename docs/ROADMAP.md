@@ -54,6 +54,17 @@ O projeto prefere marcos maiores, acumulando alterações relacionadas para evit
 - exportação CSV de Oportunidades/Evidências;
 - migration 0006.
 
+## v0.5.1 — Publicação rastreável e diagnóstico Render — CANDIDATA À HOMOLOGAÇÃO
+
+- preserva todas as funcionalidades da v0.5.0;
+- log completo em `artifacts/logs` e cópia `PUBLICACAO-ULTIMA.log` na raiz;
+- diagnóstico automático `DIAGNOSTICO-PUBLICACAO-ULTIMO.txt`;
+- confirmação SHA local x branch remota após push;
+- Build ID único por execução publicado nos endpoints técnicos;
+- gate de homologação exige versão e Build ID exatos;
+- Deploy Hook opcional como fallback quando configurado;
+- nenhuma migration nova; `0001` a `0006` permanecem imutáveis.
+
 ## Próximo marco — Integrações corporativas reais
 
 Dependências externas impedem homologação puramente por código:

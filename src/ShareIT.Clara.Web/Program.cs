@@ -112,6 +112,8 @@ app.MapGet("/api/versao", () => Results.Ok(new
 {
     produto = "Share IT .Clara",
     versao = ObterVersaoAplicacao(),
+    buildId = ObterIdentificadorBuild(),
+    commit = ObterCommitImplantado(),
     utc = DateTimeOffset.UtcNow
 }));
 
@@ -119,6 +121,8 @@ app.MapGet("/api/health/live", (EstadoInicializacaoBanco estado) => Results.Ok(n
 {
     produto = "Share IT .Clara",
     versao = ObterVersaoAplicacao(),
+    buildId = ObterIdentificadorBuild(),
+    commit = ObterCommitImplantado(),
     aplicacao = "ok",
     inicializacaoBanco = estado.Situacao,
     utc = DateTimeOffset.UtcNow
@@ -132,6 +136,8 @@ app.MapGet("/api/health", async (FabricaConexoesClara fabrica, EstadoInicializac
         {
             produto = "Share IT .Clara",
             versao = ObterVersaoAplicacao(),
+            buildId = ObterIdentificadorBuild(),
+            commit = ObterCommitImplantado(),
             aplicacao = "ok",
             banco = "erro",
             inicializacaoBanco = estado.Situacao,
@@ -146,6 +152,8 @@ app.MapGet("/api/health", async (FabricaConexoesClara fabrica, EstadoInicializac
         {
             produto = "Share IT .Clara",
             versao = ObterVersaoAplicacao(),
+            buildId = ObterIdentificadorBuild(),
+            commit = ObterCommitImplantado(),
             aplicacao = "ok",
             banco = "inicializando",
             inicializacaoBanco = estado.Situacao,
@@ -170,6 +178,8 @@ app.MapGet("/api/health", async (FabricaConexoesClara fabrica, EstadoInicializac
         {
             produto = "Share IT .Clara",
             versao = ObterVersaoAplicacao(),
+            buildId = ObterIdentificadorBuild(),
+            commit = ObterCommitImplantado(),
             aplicacao = "ok",
             banco = "ok",
             inicializacaoBanco = estado.Situacao,
@@ -185,6 +195,8 @@ app.MapGet("/api/health", async (FabricaConexoesClara fabrica, EstadoInicializac
         {
             produto = "Share IT .Clara",
             versao = ObterVersaoAplicacao(),
+            buildId = ObterIdentificadorBuild(),
+            commit = ObterCommitImplantado(),
             aplicacao = "ok",
             banco = "erro",
             inicializacaoBanco = estado.Situacao,
@@ -229,4 +241,22 @@ else
 await app.WaitForShutdownAsync();
 
 static string ObterVersaoAplicacao()
-    => Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.5.0";
+    => Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.5.1";
+
+static string ObterIdentificadorBuild()
+{
+    try
+    {
+        var caminho = Path.Combine(AppContext.BaseDirectory, "BUILD.txt");
+        return File.Exists(caminho) ? File.ReadAllText(caminho).Trim() : "nao-informado";
+    }
+    catch
+    {
+        return "indisponivel";
+    }
+}
+
+static string ObterCommitImplantado()
+    => Environment.GetEnvironmentVariable("RENDER_GIT_COMMIT")
+       ?? Environment.GetEnvironmentVariable("CLARA_GIT_COMMIT")
+       ?? string.Empty;
