@@ -1,0 +1,27 @@
+﻿SHARE IT .CLARA - DIAGNOSTICO AUTOMATICO DE PUBLICACAO
+Gerado em: 2026-09-13 20:11:14 -03:00
+Motivo: Nao foi possivel confirmar o commit da branch remota apos o push.
+Versao esperada: 0.5.1
+Build esperado: 0.5.1-20260913230850-1650e617
+Commit esperado: fa989d4f5831be1427e0f9c4d5fdcb09e5819af6
+Repositorio: https://github.com/shareitlondrina-gif/shareit-clara.git
+Branch: main
+URL sistema: https://shareit-clara.onrender.com
+Deploy hook configurado: False
+Deploy hook fallback acionado: False
+
+--- RESPOSTAS ONLINE ---
+Liveness: ERRO HTTP= mensagem=O tempo limite da operação foi atingido.
+Health: {"produto":"Share IT .Clara","versao":"0.3.2","aplicacao":"ok","banco":"ok","inicializacaoBanco":"ok","nomeBanco":"shareit_clara","migracoes":4,"utc":"2026-09-13T23:11:30.9630135+00:00"}
+Versao: {"produto":"Share IT .Clara","versao":"0.3.2","utc":"2026-09-13T23:11:31.4915462+00:00"}
+
+--- ESTADO GIT LOCAL/REMOTO ---
+status: ## main...origin/main
+HEAD: fa989d4f5831be1427e0f9c4d5fdcb09e5819af6
+ultimo commit: fa989d4 Share IT .Clara v0.5.1
+origin/main: fa989d4f5831be1427e0f9c4d5fdcb09e5819af6	refs/heads/main
+
+--- INTERPRETACAO AUTOMATICA ---
+O Git pode ter recebido o commit, mas o Render continua servindo outra versao. Verifique no Render se o Web Service shareit-clara esta conectado ao repositorio/branch corretos e se o deploy mais recente falhou.
+
+Nenhum segredo, token ou connection string e gravado por este diagnostico.
