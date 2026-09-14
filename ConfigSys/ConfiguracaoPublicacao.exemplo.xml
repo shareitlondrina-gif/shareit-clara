@@ -6,7 +6,8 @@
   <ExecutarGitPush>true</ExecutarGitPush>
   <ExecutarDeployHook>false</ExecutarDeployHook>
   <UsarDeployHookComoFallback>true</UsarDeployHookComoFallback>
-  <SegundosAntesDeployHookFallback>120</SegundosAntesDeployHookFallback>
+  <SolicitarDeployHookSeAusente>true</SolicitarDeployHookSeAusente>
+  <SegundosAntesDeployHookFallback>90</SegundosAntesDeployHookFallback>
   <UrlSistema>https://shareit-clara.onrender.com</UrlSistema>
   <UrlHealth>https://shareit-clara.onrender.com/api/health</UrlHealth>
   <AbrirNavegadorAposPublicacao>true</AbrirNavegadorAposPublicacao>

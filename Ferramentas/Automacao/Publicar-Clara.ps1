@@ -12,6 +12,7 @@ $MigracoesEsperadas = @(Get-ChildItem (Join-Path $Raiz 'database\migrations') -F
 $ConfigDir = 'C:\ConfigSys\Clara'
 $ConfigClara = Join-Path $ConfigDir 'ConfiguracaoClara.xml'
 $ConfigPub = Join-Path $ConfigDir 'Publicacao\ConfiguracaoPublicacao.xml'
+$SegredosLocal = Join-Path $ConfigDir 'SegredosClara.local.xml'
 $Artefatos = Join-Path $Raiz 'artifacts'
 $Release = Join-Path $Artefatos ("Clara-v{0}" -f $Versao)
 $Logs = Join-Path $Raiz 'logs'
@@ -29,6 +30,9 @@ $OnlineValidado = $false
 $PublicacaoOnlineSolicitada = $false
 $HookFallbackAcionado = $false
 $GitRemotoConfirmado = $false
+$DeployHook = ''
+$DeployHookOrigem = 'nao configurado'
+$HookAusenteAvisado = $false
 
 New-Item -ItemType Directory -Force -Path $Logs | Out-Null
 Set-Content -Path $LogEspelho -Value ("Share IT .Clara v{0} - publicacao iniciada em {1}" -f $Versao, (Get-Date -Format 'yyyy-MM-dd HH:mm:ss')) -Encoding UTF8
@@ -83,6 +87,47 @@ function XmlInt($No, [string]$Nome, [int]$Padrao) {
     $resultado = 0
     if ([int]::TryParse($texto, [ref]$resultado)) { return $resultado }
     return $Padrao
+}
+
+function Validar-DeployHook([string]$Url) {
+    if ([string]::IsNullOrWhiteSpace($Url)) { return '' }
+    $valor = $Url.Trim()
+    if ($valor -match '^(ALTERAR|COLE|URL-SECRETA)$') { return '' }
+    try {
+        $uri = [Uri]$valor
+        if ($uri.Scheme -ne 'https') { Falhar 'O RenderDeployHook deve usar HTTPS.' }
+        if ($uri.Host -notmatch '(^|\.)render\.com$') { Falhar 'O RenderDeployHook informado nao pertence ao dominio render.com.' }
+        return $valor
+    }
+    catch {
+        if ($_.Exception.Message -match 'RenderDeployHook') { throw }
+        Falhar 'O RenderDeployHook configurado e invalido. Revise C:\ConfigSys\Clara\SegredosClara.local.xml.'
+    }
+}
+function Obter-DeployHook {
+    $porAmbiente = [string]$env:CLARA_RENDER_DEPLOY_HOOK
+    if (-not [string]::IsNullOrWhiteSpace($porAmbiente)) {
+        $script:DeployHookOrigem = 'variavel de ambiente CLARA_RENDER_DEPLOY_HOOK'
+        return (Validar-DeployHook $porAmbiente)
+    }
+    if (Test-Path $SegredosLocal) {
+        try {
+            [xml]$segredos = Get-Content $SegredosLocal
+            $porXml = XmlTexto $segredos.SegredosClara 'RenderDeployHook' ''
+            if (-not [string]::IsNullOrWhiteSpace($porXml)) {
+                $validado = Validar-DeployHook $porXml
+                if (-not [string]::IsNullOrWhiteSpace($validado)) {
+                    $script:DeployHookOrigem = 'C:\ConfigSys\Clara\SegredosClara.local.xml'
+                    return $validado
+                }
+            }
+        }
+        catch {
+            Falhar "Nao foi possivel ler RenderDeployHook de '$SegredosLocal': $($_.Exception.Message)"
+        }
+    }
+    $script:DeployHookOrigem = 'nao configurado'
+    return ''
 }
 function Obter-RepositorioGit([xml]$Publicacao) {
     $configurado = XmlTexto $Publicacao.ConfiguracaoPublicacao 'RepositorioGitHub' 'https://github.com/shareitlondrina-gif/shareit-clara.git'
@@ -192,7 +237,8 @@ function Gerar-DiagnosticoPublicacao([string]$Motivo, [string]$UrlSistema, [stri
         $null = $linhas.Add(('Branch: {0}' -f $Branch))
         $null = $linhas.Add(('SHA remoto confirmado imediatamente apos push: {0}' -f $GitRemotoConfirmado))
         $null = $linhas.Add(('URL sistema: {0}' -f $UrlSistema))
-        $null = $linhas.Add(('Deploy hook configurado: {0}' -f (-not [string]::IsNullOrWhiteSpace($env:CLARA_RENDER_DEPLOY_HOOK))))
+        $null = $linhas.Add(('Deploy hook configurado: {0}' -f (-not [string]::IsNullOrWhiteSpace($DeployHook))))
+        $null = $linhas.Add(('Origem do deploy hook: {0}' -f $DeployHookOrigem))
         $null = $linhas.Add(('Deploy hook fallback acionado: {0}' -f $HookFallbackAcionado))
         $null = $linhas.Add('')
         $null = $linhas.Add('--- RESPOSTAS ONLINE ---')
@@ -215,7 +261,11 @@ function Gerar-DiagnosticoPublicacao([string]$Motivo, [string]$UrlSistema, [stri
         $null = $linhas.Add('--- INTERPRETACAO AUTOMATICA ---')
         $liveTexto = if (-not [string]::IsNullOrWhiteSpace($UrlLive)) { Tentar-Json $UrlLive } else { '' }
         if (-not [string]::IsNullOrWhiteSpace($CommitEsperado) -and $liveTexto -notmatch [regex]::Escape($Versao)) {
-            $null = $linhas.Add('O Git pode ter recebido o commit, mas o Render continua servindo outra versao. Verifique no Render se o Web Service shareit-clara esta conectado ao repositorio/branch corretos e se o deploy mais recente falhou.')
+            if ([string]::IsNullOrWhiteSpace($DeployHook)) {
+                $null = $linhas.Add('O Git recebeu o commit, mas o Render continua servindo outra versao e nao ha Deploy Hook persistente configurado. Configure RenderDeployHook em C:\ConfigSys\Clara\SegredosClara.local.xml ou confirme no Render se o Web Service esta conectado ao repositorio/branch corretos.')
+            } else {
+                $null = $linhas.Add('O Git recebeu o commit e existe Deploy Hook configurado, mas o Render continua servindo outra versao. Consulte os eventos/logs do deploy no Render e confirme se o hook pertence ao servico shareit-clara.')
+            }
         } elseif ($liveTexto -match [regex]::Escape($Versao) -and $liveTexto -notmatch [regex]::Escape($BuildId)) {
             $null = $linhas.Add('A versao coincide, mas o buildId nao coincide. O endpoint esta respondendo uma compilacao diferente da que este publicador acabou de enviar.')
         } else {
@@ -234,16 +284,33 @@ function Gerar-DiagnosticoPublicacao([string]$Motivo, [string]$UrlSistema, [stri
 }
 function Acionar-DeployHookFallback {
     if ($HookFallbackAcionado) { return }
-    $hook = $env:CLARA_RENDER_DEPLOY_HOOK
-    if ([string]::IsNullOrWhiteSpace($hook)) { return }
+    if ([string]::IsNullOrWhiteSpace($DeployHook)) { return }
     try {
-        Aviso 'A versao ainda nao mudou. Acionando uma vez o deploy hook de fallback do Render (URL protegida e nao gravada em log).'
-        Invoke-WebRequest -Method Post -Uri $hook -UseBasicParsing -TimeoutSec 20 | Out-Null
+        Aviso 'A versao ainda nao mudou. Acionando uma vez o deploy hook de fallback do Render (URL secreta nao sera exibida nem gravada em log).'
+        try {
+            Invoke-WebRequest -Method Post -Uri $DeployHook -UseBasicParsing -TimeoutSec 20 | Out-Null
+        }
+        catch {
+            $status = $_.Exception.Response.StatusCode.value__ 2>$null
+            if ($status -eq 405) {
+                Invoke-WebRequest -Method Get -Uri $DeployHook -UseBasicParsing -TimeoutSec 20 | Out-Null
+            } else { throw }
+        }
         $script:HookFallbackAcionado = $true
-        Ok 'Deploy hook de fallback acionado.'
+        Ok 'Deploy hook de fallback acionado com sucesso.'
     }
     catch {
-        Aviso "Falha ao acionar deploy hook de fallback: $($_.Exception.Message)"
+        $status = $_.Exception.Response.StatusCode.value__ 2>$null
+        Aviso "Falha ao acionar deploy hook de fallback (HTTP=$status). A URL secreta foi omitida do log."
+    }
+}
+
+function Avisar-EsperaRender([string]$Texto, [int]$Tentativa, [datetime]$Inicio, [bool]$Forcar = $false) {
+    # Evita poluir a tela com a mesma mensagem a cada 6 segundos.
+    # Primeiras tentativas aparecem; depois, um resumo aproximadamente a cada 30 segundos.
+    if ($Forcar -or $Tentativa -le 3 -or ($Tentativa % 5) -eq 0) {
+        $decorrido = [Math]::Round(((Get-Date) - $Inicio).TotalMinutes, 1)
+        Aviso ("{0} Tentativa {1}; aguardando ha {2} min." -f $Texto, $Tentativa, $decorrido)
     }
 }
 
@@ -292,24 +359,29 @@ function Testar-PublicacaoOnline([string]$UrlLive, [string]$UrlHealth, [int]$Tem
                     }
                 }
             } elseif ($versaoLive -eq $Versao -and $aplicacaoLive -eq 'ok') {
-                Aviso "A versao remota ja e '$versaoLive', mas o build ainda nao e o desta execucao. Remoto='$buildLive', esperado='$BuildId'. Tentativa $tentativa."
+                Avisar-EsperaRender "A versao remota ja e '$versaoLive', mas o build ainda nao e o desta execucao. Remoto='$buildLive', esperado='$BuildId'." $tentativa $inicio
             } else {
-                Aviso "Liveness respondeu, mas ainda nao esta na versao esperada. Remota='$versaoLive', esperada='$Versao', buildRemoto='$buildLive'. Tentativa $tentativa."
+                Avisar-EsperaRender "Liveness respondeu, mas ainda nao esta na versao esperada. Remota='$versaoLive', esperada='$Versao', buildRemoto='$buildLive'." $tentativa $inicio
             }
         }
         catch {
             $status = $_.Exception.Response.StatusCode.value__ 2>$null
             if ($status -eq 404) {
-                Aviso "Liveness respondeu HTTP 404; o deploy novo ainda nao assumiu o servico. Tentativa $tentativa."
+                Avisar-EsperaRender 'Liveness respondeu HTTP 404; o deploy novo ainda nao assumiu o servico.' $tentativa $inicio
             } elseif ($status -eq 503) {
-                Aviso "Render respondeu HTTP 503; o servico pode estar reiniciando, iniciando o container ou aguardando o banco. Aguardando sem classificar como falha definitiva. Tentativa $tentativa."
+                Avisar-EsperaRender 'Render respondeu HTTP 503; o servico pode estar reiniciando, iniciando o container ou aguardando o banco.' $tentativa $inicio
             } else {
-                Aviso "Liveness ainda indisponivel: $($_.Exception.Message). Tentativa $tentativa."
+                Avisar-EsperaRender "Liveness ainda indisponivel: $($_.Exception.Message)." $tentativa $inicio
             }
         }
 
         if ($UsarHookFallback -and -not $HookFallbackAcionado -and ((Get-Date) - $inicio).TotalSeconds -ge [Math]::Max(30, $SegundosHookFallback)) {
-            Acionar-DeployHookFallback
+            if (-not [string]::IsNullOrWhiteSpace($DeployHook)) {
+                Acionar-DeployHookFallback
+            } elseif (-not $HookAusenteAvisado) {
+                $script:HookAusenteAvisado = $true
+                Aviso "Auto Deploy ainda nao publicou v$Versao e nao existe Deploy Hook persistente configurado. Para habilitar o fallback, execute Ferramentas\Configuracao\CONFIGURAR-DEPLOY-HOOK.cmd ou preencha RenderDeployHook em '$SegredosLocal'."
+            }
         }
 
         if ((Get-Date) -lt $limite) { Start-Sleep -Seconds 6 }
@@ -326,10 +398,17 @@ try {
     New-Item -ItemType Directory -Force -Path (Join-Path $ConfigDir 'Publicacao') | Out-Null
     Copiar-SeAusente (Join-Path $Raiz 'ConfigSys\ConfiguracaoClara.exemplo.xml') $ConfigClara
     Copiar-SeAusente (Join-Path $Raiz 'ConfigSys\ConfiguracaoPublicacao.exemplo.xml') $ConfigPub
+    Copiar-SeAusente (Join-Path $Raiz 'ConfigSys\SegredosClara.local.exemplo.xml') $SegredosLocal
     if (-not (Test-Path $ConfigPub)) { Falhar 'ConfiguracaoPublicacao.xml nao encontrado.' }
     if (-not (Test-Path $ConfigClara)) { Falhar 'ConfiguracaoClara.xml nao encontrado.' }
     [xml]$cfg = Get-Content $ConfigClara
     [xml]$pub = Get-Content $ConfigPub
+    $DeployHook = Obter-DeployHook
+    if (-not [string]::IsNullOrWhiteSpace($DeployHook)) {
+        Ok "Deploy Hook do Render disponivel para fallback. Origem: $DeployHookOrigem. URL mantida em segredo."
+    } else {
+        Info "Deploy Hook do Render ainda nao configurado. Fallback persistente pode ser configurado por Ferramentas\Configuracao\CONFIGURAR-DEPLOY-HOOK.cmd."
+    }
 
     $urlSistema = XmlTexto $pub.ConfiguracaoPublicacao 'UrlSistema' (XmlTexto $cfg.ConfiguracaoClara.Servidor 'UrlPublica' 'https://shareit-clara.onrender.com')
     if ([string]::IsNullOrWhiteSpace($urlSistema) -or $urlSistema.Contains('exemplo.com.br')) {
@@ -351,7 +430,24 @@ try {
     $executarGit = (-not $SemGit) -and $publicacaoAutomatica -and ($gitExplicitamenteHabilitado -or $possuiRepositorioLocal -or -not [string]::IsNullOrWhiteSpace($repoPreConfigurado))
     $executarHook = (-not $SemDeploy) -and (XmlBool $pub.ConfiguracaoPublicacao 'ExecutarDeployHook' $false)
     $usarHookFallback = (-not $SemDeploy) -and (XmlBool $pub.ConfiguracaoPublicacao 'UsarDeployHookComoFallback' $true)
-    $segundosHookFallback = [Math]::Max(30, (XmlInt $pub.ConfiguracaoPublicacao 'SegundosAntesDeployHookFallback' 120))
+    $solicitarHookSeAusente = (-not $SemDeploy) -and (XmlBool $pub.ConfiguracaoPublicacao 'SolicitarDeployHookSeAusente' $true)
+    $segundosHookFallback = [Math]::Max(30, (XmlInt $pub.ConfiguracaoPublicacao 'SegundosAntesDeployHookFallback' 90))
+
+    if ($usarHookFallback -and [string]::IsNullOrWhiteSpace($DeployHook) -and $solicitarHookSeAusente -and [Environment]::UserInteractive -and [string]::IsNullOrWhiteSpace($env:CI)) {
+        Aviso 'Deploy Hook persistente ainda nao foi configurado. Sem ele, este ambiente pode permanecer na versao antiga mesmo apos o push ao GitHub.'
+        $respostaHook = Read-Host 'Deseja configurar o Deploy Hook do Render agora? [S/N]'
+        if ($respostaHook -match '^[sSyY]') {
+            $configuradorHook = Join-Path $Raiz 'Ferramentas\Configuracao\Configurar-DeployHook.ps1'
+            & $configuradorHook
+            $DeployHook = Obter-DeployHook
+            if (-not [string]::IsNullOrWhiteSpace($DeployHook)) {
+                Ok 'Deploy Hook persistente configurado e pronto para fallback automatico.'
+            }
+        } else {
+            Aviso 'Publicacao continuara sem Deploy Hook. Se o Auto Deploy nao estiver conectado, o Render podera continuar servindo a versao antiga.'
+        }
+    }
+
     $PublicacaoOnlineSolicitada = $executarGit -or $executarHook
     $Branch = XmlTexto $pub.ConfiguracaoPublicacao 'Branch' 'main'
     $RepositorioGit = $repoPreConfigurado
@@ -551,10 +647,16 @@ try {
 
     if ($executarHook) {
         Etapa 'Acionando deploy hook do Render'
-        $hook = $env:CLARA_RENDER_DEPLOY_HOOK
-        if ([string]::IsNullOrWhiteSpace($hook)) { Falhar 'CLARA_RENDER_DEPLOY_HOOK nao definido.' }
-        Invoke-WebRequest -Method Post -Uri $hook -UseBasicParsing | Out-Null
-        Ok 'Deploy hook acionado.'
+        if ([string]::IsNullOrWhiteSpace($DeployHook)) { Falhar "Deploy Hook nao configurado. Execute Ferramentas\Configuracao\CONFIGURAR-DEPLOY-HOOK.cmd ou preencha RenderDeployHook em '$SegredosLocal'." }
+        try {
+            Invoke-WebRequest -Method Post -Uri $DeployHook -UseBasicParsing -TimeoutSec 20 | Out-Null
+        }
+        catch {
+            $status = $_.Exception.Response.StatusCode.value__ 2>$null
+            if ($status -eq 405) { Invoke-WebRequest -Method Get -Uri $DeployHook -UseBasicParsing -TimeoutSec 20 | Out-Null }
+            else { throw }
+        }
+        Ok 'Deploy hook acionado. URL mantida em segredo.'
     } elseif ($executarGit) {
         Info 'Deploy hook desabilitado. O render.yaml usa autoDeploy=true; o push ao GitHub deve disparar o deploy do Web Service conectado ao repositorio.'
     }
@@ -564,10 +666,10 @@ try {
         Info "Liveness: $healthLive"
         Info "Readiness: $health"
         Info "Tempo maximo total de validacao: $tempoDeploy minuto(s)."
-        if ($usarHookFallback -and -not [string]::IsNullOrWhiteSpace($env:CLARA_RENDER_DEPLOY_HOOK)) {
-            Info "Deploy hook de fallback esta disponivel e podera ser acionado automaticamente apos $segundosHookFallback segundo(s) se a versao nao mudar."
+        if ($usarHookFallback -and -not [string]::IsNullOrWhiteSpace($DeployHook)) {
+            Info "Deploy hook de fallback persistente esta disponivel e podera ser acionado automaticamente apos $segundosHookFallback segundo(s) se a versao nao mudar."
         } elseif ($usarHookFallback) {
-            Info 'Deploy hook de fallback nao esta configurado; a validacao seguira somente pelo push/Auto Deploy.'
+            Info "Deploy hook de fallback nao esta configurado; a validacao iniciara pelo push/Auto Deploy. Se a versao nao mudar, o log indicara como configurar o fallback persistente em '$SegredosLocal'."
         }
         $OnlineValidado = Testar-PublicacaoOnline -UrlLive $healthLive -UrlHealth $health -TempoMaximoMinutos $tempoDeploy -UsarHookFallback $usarHookFallback -SegundosHookFallback $segundosHookFallback
         if (-not $OnlineValidado) {

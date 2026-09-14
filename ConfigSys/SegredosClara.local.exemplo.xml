@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SegredosClara>
+  <!-- Este arquivo é apenas modelo. Não versionar um arquivo local contendo valores reais. -->
+  <PostgreSql>Host=localhost;Port=5432;Database=postgres;Username=postgres;Password=ALTERAR</PostgreSql>
+  <!-- Em Render compartilhado, esta conexão pode apontar para o banco existente da instância (ex.: shareit_visao). O .Clara cria/usa somente shareit_clara. -->
+  <AdministradorSenha>ALTERAR</AdministradorSenha>
+  <!-- URL secreta do Deploy Hook do Web Service shareit-clara no Render. Nunca enviar este valor por chat, Git ou log. -->
+  <RenderDeployHook></RenderDeployHook>
+</SegredosClara>

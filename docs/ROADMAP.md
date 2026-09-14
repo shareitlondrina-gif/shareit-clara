@@ -125,3 +125,11 @@ Somente depois de RBAC, auditoria, política, retenção, armazenamento protegid
 - CMDB/RMM técnico;
 - bloqueio de sites;
 - julgamento automático de pessoas.
+
+## v0.5.3 — Deploy Render resiliente — CANDIDATA À HOMOLOGAÇÃO
+
+- Deploy Hook persistente e secreto fora do repositório.
+- Fallback automático quando o Auto Deploy não assume o novo commit.
+- Configurador local protegido para o hook.
+- Diagnóstico de publicação mais objetivo e menor repetição de mensagens.
+- Sem alterações de schema: 6 migrations.
