@@ -1,22 +1,24 @@
-# Share IT .Clara v0.5.1 — candidato
+# Share IT .Clara v0.5.2 — candidata
 
 Baseline consolidada do **Share IT .Clara**, plataforma multiempresa de monitoramento autorizado e inteligência de contexto do trabalho em estações Windows.
 
-A v0.5.1 preserva integralmente a candidata v0.5.0 e concentra a correção do processo de publicação: **log local sempre localizável, diagnóstico automático Git/Render, confirmação do commit remoto, Build ID único por execução e validação online do build exato**, além de fallback opcional por Deploy Hook do Render. Nenhuma funcionalidade da v0.5.0 foi removida.
+A v0.5.2 preserva integralmente a v0.5.1 e corrige o falso negativo observado após um `git push` bem-sucedido. A confirmação do SHA remoto agora possui tentativas, tolera indisponibilidade transitória do GitHub e, quando o push já retornou sucesso mas `ls-remote` está temporariamente indisponível, a publicação segue para o gate online do Render em vez de encerrar incorretamente. Todos os arquivos de log/diagnóstico da publicação ficam concentrados na pasta `logs`.
 
 > Estado desta pasta: **código-fonte candidato para validação**. Este ambiente não possui o `.NET SDK 10`; portanto restore/build/test/publish não foram executados aqui. A homologação deve ser concluída no Windows oficial com `PUBLICAR-CLARA.cmd`.
 
-## Correção principal da v0.5.1
+## Correções principais da v0.5.2
 
-A tentativa de publicação da v0.5.0 concluiu build/push local, porém o endpoint remoto continuou em `0.3.2`. A v0.5.1 endurece o gate de publicação para que esse cenário não termine sem evidência diagnóstica:
+Na homologação da v0.5.1 o `git push` foi concluído e `origin/main` terminou no mesmo SHA do `HEAD`, porém a consulta imediata `git ls-remote` falhou de forma transitória e o publicador encerrou antes de chegar ao ciclo normal de espera do Render. A v0.5.2 corrige esse comportamento.
 
-- `PUBLICACAO-ULTIMA.log` fica na raiz da release, além do transcript completo em `artifacts/logs`;
-- `DIAGNOSTICO-PUBLICACAO-ULTIMO.txt` é criado automaticamente em falhas de deploy/validação;
-- após `git push`, o publicador compara o SHA local com `origin/<branch>`;
-- cada execução recebe um `BUILD.txt`/`buildId` único e o Web expõe esse identificador em `/api/versao`, `/api/health/live` e `/api/health`;
-- a publicação só é considerada validada quando **versão + buildId + banco + quantidade de migrations** correspondem ao esperado;
-- se `CLARA_RENDER_DEPLOY_HOOK` estiver configurado, o publicador pode acioná-lo uma única vez como fallback após o tempo configurado, sem gravar a URL secreta nos logs;
-- o diagnóstico registra respostas online e estado Git suficiente para distinguir: push não efetivado, Render sem disparo, build antigo ainda ativo ou readiness do banco.
+- confirmação do SHA remoto com até 6 tentativas e intervalo controlado;
+- diferença real e persistente entre SHA local/remoto continua sendo erro bloqueante;
+- indisponibilidade transitória de `ls-remote` após `git push` com exit code 0 vira aviso e a confirmação é deferida ao gate online;
+- HTTP 503 do Render durante a janela de publicação é tratado como estado transitório de reinício/inicialização, sem falso diagnóstico imediato;
+- o gate final continua exigindo `versao + buildId + banco + migrations`;
+- todos os logs/diagnósticos ficam em `logs\`;
+- `logs\BUILD.txt` é o marcador de build da fonte e é publicado como `BUILD.txt` dentro do Web/API;
+- `logs\PUBLICACAO-ULTIMA.log`, `logs\DIAGNOSTICO-PUBLICACAO-ULTIMO.txt`, logs com timestamp e `logs\Publicador-Launcher.log` não ficam espalhados pela raiz nem em `artifacts\logs`;
+- arquivos locais de log/diagnóstico são ignorados pelo Git; somente `logs/BUILD.txt` é versionado para produzir um novo build identificável.
 
 Não há migration nova nesta versão. As migrations `0001` a `0006` permanecem imutáveis.
 

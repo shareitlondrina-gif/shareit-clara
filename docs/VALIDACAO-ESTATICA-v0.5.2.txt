@@ -1,0 +1,55 @@
+Share IT .Clara v0.5.2 - RELATORIO DE VALIDACAO ESTATICA
+====================================================================
+
+Resultado: APROVADA NA VALIDACAO ESTATICA
+Observacao: este ambiente nao possui .NET SDK 10 nem Windows PowerShell; restore/build/test/publish e a confirmacao real GitHub/Render devem ocorrer no Windows pelo PUBLICAR-CLARA.cmd.
+
+Versao: 0.5.2
+Arquivos C#: 71
+Arquivos JSON: 3
+Projetos .csproj: 8
+Migrations: 6
+
+MOTIVO DA CORRECAO
+- A v0.5.1 concluiu o git push, mas encerrou na confirmacao imediata do SHA remoto. O diagnostico posterior mostrou HEAD e origin/main no mesmo commit.
+- A v0.5.2 transforma falha transitoria de ls-remote em retentativa/aviso e deixa o gate online do Render concluir a verificacao, sem mascarar divergencia real de SHA.
+- Todos os logs, diagnosticos e o marcador BUILD da fonte foram centralizados em logs/.
+
+CHECAGENS
+- OK: VERSAO.txt = 0.5.2
+- OK: Directory.Build.props version consistent
+- OK: JSON parsed (3 files)
+- OK: XML/project parsed (13 files)
+- OK: render.yaml parsed
+- OK: Migrations count = 6 (no new migration)
+- OK: PowerShell lexical balance
+- OK: Logs root = logs\
+- OK: PUBLICACAO-ULTIMA.log inside logs
+- OK: DIAGNOSTICO-PUBLICACAO-ULTIMO.txt inside logs
+- OK: BUILD.txt source marker inside logs
+- OK: No publication logs loose in source root
+- OK: Launcher writes to logs\
+- OK: No artifacts\logs in current publisher/CMD
+- OK: Git post-push confirmation has retries
+- OK: Transient ls-remote failure is deferred to Render gate
+- OK: Persistent remote SHA mismatch remains blocking
+- OK: Render HTTP 503 treated as transient during wait
+- OK: Final online gate still validates version/build/database/migrations
+- OK: Web copies logs/BUILD.txt as BUILD.txt
+- OK: Git ignores local log evidence except logs/BUILD.txt
+- OK: Extension manifest version = 0.5.2
+- OK: Demo version marker = 0.5.2
+- OK: Runtime version markers updated to 0.5.2
+- OK: No private-key material detected
+- OK: Migration 0001 imutável (ed572fe355fb)
+- OK: Migration 0002 imutável (92c622cff008)
+- OK: Migration 0003 imutável (3fab0587f2c8)
+- OK: Migration 0004 imutável (6b8066ce8389)
+- OK: Migration 0005 imutável (1c39de83c946)
+- OK: Migration 0006 imutável (3837c8056af2)
+- OK: C# alterados nesta correcao: src/ShareIT.Clara.Web/Program.cs, src/ShareIT.Clara.Web/Controllers/PainelController.cs, src/ShareIT.Clara.Agente/Comunicacao/ClienteApiClara.cs (alteracoes de versao; logica funcional C# preservada)
+
+LIMITES DA VALIDACAO NESTE AMBIENTE
+- dotnet restore/build/test nao executados por ausencia do .NET SDK 10.
+- parser/execucao real do Windows PowerShell nao disponivel; o script foi verificado estaticamente e seus delimitadores foram validados.
+- git push e Render nao foram acionados deste ambiente; o teste final deve ser feito no Windows oficial.

@@ -3,8 +3,8 @@ setlocal
 cd /d "%~dp0"
 title Share IT .Clara - Publicacao
 
-if not exist "%~dp0artifacts\logs" mkdir "%~dp0artifacts\logs" >nul 2>&1
-set "LAUNCHER_LOG=%~dp0artifacts\logs\Publicador-Launcher.log"
+if not exist "%~dp0logs" mkdir "%~dp0logs" >nul 2>&1
+set "LAUNCHER_LOG=%~dp0logs\Publicador-Launcher.log"
 >>"%LAUNCHER_LOG%" echo ====================================================
 >>"%LAUNCHER_LOG%" echo [%date% %time%] Iniciando PUBLICAR-CLARA.cmd em "%~dp0"
 
@@ -12,9 +12,9 @@ echo ====================================================
 echo  SHARE IT .CLARA - PUBLICADOR
 echo ====================================================
 echo [INFO] Pasta: %~dp0
-echo [INFO] Log detalhado sera salvo em artifacts\logs
-echo [INFO] Copia do ultimo log: PUBLICACAO-ULTIMA.log
-echo [INFO] Em falha de deploy: DIAGNOSTICO-PUBLICACAO-ULTIMO.txt
+echo [INFO] Todos os logs serao salvos em logs\
+echo [INFO] Ultimo log: logs\PUBLICACAO-ULTIMA.log
+echo [INFO] Diagnostico: logs\DIAGNOSTICO-PUBLICACAO-ULTIMO.txt
 echo ====================================================
 echo.
 
@@ -35,9 +35,9 @@ echo.
 if not "%ERRO%"=="0" (
   echo ====================================================
   echo [ERRO] Publicacao interrompida. Codigo %ERRO%.
-  echo Log principal: %~dp0PUBLICACAO-ULTIMA.log
-  echo Diagnostico:   %~dp0DIAGNOSTICO-PUBLICACAO-ULTIMO.txt
-  echo Logs completos: %~dp0artifacts\logs
+  echo Log principal: %~dp0logs\PUBLICACAO-ULTIMA.log
+  echo Diagnostico:   %~dp0logs\DIAGNOSTICO-PUBLICACAO-ULTIMO.txt
+  echo Logs completos: %~dp0logs
   echo ====================================================
   echo.
   pause
@@ -46,7 +46,7 @@ if not "%ERRO%"=="0" (
 
 echo ====================================================
 echo [OK] Processo do Share IT .Clara concluido.
-echo Log principal: %~dp0PUBLICACAO-ULTIMA.log
+echo Log principal: %~dp0logs\PUBLICACAO-ULTIMA.log
 echo A janela permanecera aberta para voce conferir o resumo.
 echo ====================================================
 echo.

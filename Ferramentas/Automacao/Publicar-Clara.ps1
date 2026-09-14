@@ -14,13 +14,13 @@ $ConfigClara = Join-Path $ConfigDir 'ConfiguracaoClara.xml'
 $ConfigPub = Join-Path $ConfigDir 'Publicacao\ConfiguracaoPublicacao.xml'
 $Artefatos = Join-Path $Raiz 'artifacts'
 $Release = Join-Path $Artefatos ("Clara-v{0}" -f $Versao)
-$Logs = Join-Path $Artefatos 'logs'
+$Logs = Join-Path $Raiz 'logs'
 $CarimboExecucao = Get-Date -Format 'yyyyMMdd-HHmmss'
 $LogAtual = Join-Path $Logs ("Publicacao-Clara-v{0}-{1}.log" -f $Versao, $CarimboExecucao)
-$LogEspelho = Join-Path $Raiz 'PUBLICACAO-ULTIMA.log'
+$LogEspelho = Join-Path $Logs 'PUBLICACAO-ULTIMA.log'
 $DiagnosticoAtual = Join-Path $Logs ("DIAGNOSTICO-PUBLICACAO-v{0}-{1}.txt" -f $Versao, $CarimboExecucao)
-$DiagnosticoEspelho = Join-Path $Raiz 'DIAGNOSTICO-PUBLICACAO-ULTIMO.txt'
-$BuildArquivo = Join-Path $Raiz 'BUILD.txt'
+$DiagnosticoEspelho = Join-Path $Logs 'DIAGNOSTICO-PUBLICACAO-ULTIMO.txt'
+$BuildArquivo = Join-Path $Logs 'BUILD.txt'
 $BuildId = ''
 $CommitEsperado = ''
 $RepositorioGit = ''
@@ -28,6 +28,7 @@ $Branch = 'main'
 $OnlineValidado = $false
 $PublicacaoOnlineSolicitada = $false
 $HookFallbackAcionado = $false
+$GitRemotoConfirmado = $false
 
 New-Item -ItemType Directory -Force -Path $Logs | Out-Null
 Set-Content -Path $LogEspelho -Value ("Share IT .Clara v{0} - publicacao iniciada em {1}" -f $Versao, (Get-Date -Format 'yyyy-MM-dd HH:mm:ss')) -Encoding UTF8
@@ -121,6 +122,63 @@ function Obter-GitTexto([string[]]$Argumentos) {
     catch { return $_.Exception.Message }
     finally { Pop-Location }
 }
+
+function Consultar-CommitRemoto([string]$Remote, [string]$BranchName) {
+    $resultado = [ordered]@{
+        Sucesso = $false
+        Commit = ''
+        Codigo = -1
+        Mensagem = ''
+    }
+    try {
+        $saida = @(& git.exe ls-remote --heads $Remote ("refs/heads/{0}" -f $BranchName) 2>&1)
+        $codigo = $LASTEXITCODE
+        $resultado.Codigo = $codigo
+        $linha = $saida | Where-Object { ([string]$_) -match '^[0-9a-fA-F]{40}\s+refs/heads/' } | Select-Object -First 1
+        if ($codigo -eq 0 -and -not [string]::IsNullOrWhiteSpace([string]$linha)) {
+            $commit = (([string]$linha -split '\s+')[0]).Trim().ToLowerInvariant()
+            if ($commit -match '^[0-9a-f]{40}$') {
+                $resultado.Sucesso = $true
+                $resultado.Commit = $commit
+                return [pscustomobject]$resultado
+            }
+        }
+        $resultado.Mensagem = (($saida | ForEach-Object { [string]$_ }) -join ' ').Trim()
+    }
+    catch {
+        $resultado.Mensagem = $_.Exception.Message
+    }
+    return [pscustomobject]$resultado
+}
+
+function Confirmar-CommitRemoto([string]$Remote, [string]$BranchName, [string]$CommitLocal, [int]$Tentativas = 6, [int]$IntervaloSegundos = 5) {
+    $ultimoCommitValido = ''
+    $houveConsultaValida = $false
+    for ($i = 1; $i -le [Math]::Max(1, $Tentativas); $i++) {
+        $consulta = Consultar-CommitRemoto -Remote $Remote -BranchName $BranchName
+        if ($consulta.Sucesso) {
+            $houveConsultaValida = $true
+            $ultimoCommitValido = [string]$consulta.Commit
+            if ($ultimoCommitValido -eq $CommitLocal.ToLowerInvariant()) {
+                return $true
+            }
+            Aviso "GitHub respondeu com SHA '$ultimoCommitValido', ainda diferente do local '$CommitLocal'. Tentativa $i/$Tentativas."
+        }
+        else {
+            $mensagem = [string]$consulta.Mensagem
+            if ([string]::IsNullOrWhiteSpace($mensagem)) { $mensagem = "codigo git $($consulta.Codigo)" }
+            Aviso "Confirmacao do SHA remoto temporariamente indisponivel ($mensagem). Tentativa $i/$Tentativas."
+        }
+        if ($i -lt $Tentativas) { Start-Sleep -Seconds ([Math]::Max(1, $IntervaloSegundos)) }
+    }
+
+    if ($houveConsultaValida -and -not [string]::IsNullOrWhiteSpace($ultimoCommitValido)) {
+        Falhar "O push retornou sem erro, mas apos $Tentativas tentativas o commit remoto '$ultimoCommitValido' continua diferente do commit local '$CommitLocal'."
+    }
+
+    Aviso 'O git push retornou sucesso, mas o GitHub nao respondeu de forma confiavel a verificacao ls-remote. A confirmacao do SHA sera deferida ao gate online do Render; isto nao sera tratado como falha de push.'
+    return $false
+}
 function Gerar-DiagnosticoPublicacao([string]$Motivo, [string]$UrlSistema, [string]$UrlLive, [string]$UrlHealth) {
     try {
         $linhas = New-Object System.Collections.Generic.List[string]
@@ -132,6 +190,7 @@ function Gerar-DiagnosticoPublicacao([string]$Motivo, [string]$UrlSistema, [stri
         $null = $linhas.Add(('Commit esperado: {0}' -f $CommitEsperado))
         $null = $linhas.Add(('Repositorio: {0}' -f (Proteger-Url $RepositorioGit)))
         $null = $linhas.Add(('Branch: {0}' -f $Branch))
+        $null = $linhas.Add(('SHA remoto confirmado imediatamente apos push: {0}' -f $GitRemotoConfirmado))
         $null = $linhas.Add(('URL sistema: {0}' -f $UrlSistema))
         $null = $linhas.Add(('Deploy hook configurado: {0}' -f (-not [string]::IsNullOrWhiteSpace($env:CLARA_RENDER_DEPLOY_HOOK))))
         $null = $linhas.Add(('Deploy hook fallback acionado: {0}' -f $HookFallbackAcionado))
@@ -242,6 +301,8 @@ function Testar-PublicacaoOnline([string]$UrlLive, [string]$UrlHealth, [int]$Tem
             $status = $_.Exception.Response.StatusCode.value__ 2>$null
             if ($status -eq 404) {
                 Aviso "Liveness respondeu HTTP 404; o deploy novo ainda nao assumiu o servico. Tentativa $tentativa."
+            } elseif ($status -eq 503) {
+                Aviso "Render respondeu HTTP 503; o servico pode estar reiniciando, iniciando o container ou aguardando o banco. Aguardando sem classificar como falha definitiva. Tentativa $tentativa."
             } else {
                 Aviso "Liveness ainda indisponivel: $($_.Exception.Message). Tentativa $tentativa."
             }
@@ -472,14 +533,17 @@ try {
             & git.exe push -u origin $Branch
             if ($LASTEXITCODE -ne 0) { Falhar 'Git push falhou mesmo apos sincronizacao segura do historico remoto.' }
 
-            $CommitEsperado = (& git.exe rev-parse HEAD).Trim()
+            $CommitEsperado = (& git.exe rev-parse HEAD).Trim().ToLowerInvariant()
             if ([string]::IsNullOrWhiteSpace($CommitEsperado)) { Falhar 'Nao foi possivel obter o commit local apos o push.' }
-            $linhaRemota = (& git.exe ls-remote origin ("refs/heads/{0}" -f $Branch) 2>&1 | Select-Object -First 1)
-            if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($linhaRemota)) { Falhar 'Nao foi possivel confirmar o commit da branch remota apos o push.' }
-            $CommitRemoto = (([string]$linhaRemota -split '\s+')[0]).Trim()
-            if ($CommitRemoto -ne $CommitEsperado) { Falhar "O push retornou sem erro, mas o commit remoto '$CommitRemoto' difere do commit local '$CommitEsperado'." }
-            Ok "Codigo enviado e confirmado no GitHub: $(Proteger-Url $RepositorioGit) ($Branch)."
-            Ok "Commit local/remoto confirmado: $CommitEsperado"
+            $GitRemotoConfirmado = Confirmar-CommitRemoto -Remote 'origin' -BranchName $Branch -CommitLocal $CommitEsperado -Tentativas 6 -IntervaloSegundos 5
+            if ($GitRemotoConfirmado) {
+                Ok "Codigo enviado e confirmado no GitHub: $(Proteger-Url $RepositorioGit) ($Branch)."
+                Ok "Commit local/remoto confirmado: $CommitEsperado"
+            }
+            else {
+                Ok "git push concluido para $(Proteger-Url $RepositorioGit) ($Branch)."
+                Aviso "SHA remoto nao foi confirmado imediatamente; a publicacao seguira para a validacao do Render usando versao e Build ID como gate final."
+            }
         } finally { Pop-Location }
     } else {
         Aviso 'Git push desabilitado. O pacote foi gerado localmente, mas esta execucao nao publicou codigo novo no Render.'
@@ -524,6 +588,9 @@ try {
     Write-Host ("Versao:       v{0}" -f $Versao)
     Write-Host ("Build ID:     {0}" -f $BuildId)
     if (-not [string]::IsNullOrWhiteSpace($CommitEsperado)) { Write-Host ("Commit Git:    {0}" -f $CommitEsperado) }
+    if ($executarGit) {
+        Write-Host ("Git remoto:    {0}" -f ($(if ($GitRemotoConfirmado) { 'CONFIRMADO' } else { 'PUSH OK / SHA DIFERIDO AO GATE ONLINE' })))
+    }
     Write-Host "Compilacao:   OK"
     Write-Host "Testes:       OK"
     Write-Host "Banco alvo:   shareit_clara"

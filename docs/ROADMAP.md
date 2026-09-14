@@ -54,6 +54,18 @@ O projeto prefere marcos maiores, acumulando alterações relacionadas para evit
 - exportação CSV de Oportunidades/Evidências;
 - migration 0006.
 
+## v0.5.2 — Robustez do publicador e centralização de logs — CANDIDATA À HOMOLOGAÇÃO
+
+- preserva integralmente a v0.5.1;
+- corrige falso negativo após `git push` bem-sucedido;
+- adiciona retentativas na confirmação `ls-remote`;
+- não classifica indisponibilidade transitória do GitHub como falha do push;
+- mantém divergência real de SHA como erro bloqueante;
+- trata HTTP 503 do Render como estado transitório durante a janela de deploy;
+- centraliza logs, diagnósticos e marcador de build em `logs/`;
+- mantém o gate final de versão, Build ID, banco e migrations;
+- sem migration nova.
+
 ## v0.5.1 — Publicação rastreável e diagnóstico Render — CANDIDATA À HOMOLOGAÇÃO
 
 - preserva todas as funcionalidades da v0.5.0;

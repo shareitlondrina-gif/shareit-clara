@@ -13,3 +13,7 @@ artifacts/
 **/Segredos*.local.xml
 **/*.local.json
 ConfigSys/Segredos*.xml
+
+# Logs locais do publicador: nao versionar evidencias; manter apenas o marcador de build.
+logs/*
+!logs/BUILD.txt
