@@ -1,6 +1,6 @@
-# Share IT .Clara v0.5.4 — correção Render/Docker
+# Share IT .Clara v0.5.6 — correção Render/Docker
 
-A v0.5.4 preserva todas as funcionalidades da v0.5.3 e corrige o erro real identificado no build Docker do Render: após `cd /out/pacote`, o Dockerfile tentava copiar scripts de `Ferramentas` usando caminho relativo, fazendo o build procurar os arquivos no diretório errado. A versão também remove o warning `NomeCategoria` não utilizada e adiciona validações preventivas dos arquivos exigidos pelo instalador.
+A v0.5.6 preserva todas as funcionalidades da v0.5.3 e corrige o erro real identificado no build Docker do Render: após `cd /out/pacote`, o Dockerfile tentava copiar scripts de `Ferramentas` usando caminho relativo, fazendo o build procurar os arquivos no diretório errado. A versão também remove o warning `NomeCategoria` não utilizada e adiciona validações preventivas dos arquivos exigidos pelo instalador.
 
 ## Principais correções
 
@@ -24,6 +24,31 @@ A v0.5.4 preserva todas as funcionalidades da v0.5.3 e corrige o erro real ident
 
 > O pacote não contém a URL real do Deploy Hook nem outros segredos.
 
-## Correção principal da v0.5.4
+## Correção principal da v0.5.6
 
-O Deploy Log da v0.5.3 mostrou que os projetos .NET eram publicados corretamente, mas o Docker falhava ao copiar `Ferramentas/Instalacao/INSTALAR-AGENTE.cmd` e `Instalar-Agente.ps1`. O comando era executado depois de `cd /out/pacote`, então o caminho relativo apontava para o local errado. A v0.5.4 usa caminhos absolutos `/src/Ferramentas/...` e valida esses arquivos antes do empacotamento.
+O Deploy Log da v0.5.3 mostrou que os projetos .NET eram publicados corretamente, mas o Docker falhava ao copiar `Ferramentas/Instalacao/INSTALAR-AGENTE.cmd` e `Instalar-Agente.ps1`. O comando era executado depois de `cd /out/pacote`, então o caminho relativo apontava para o local errado. A v0.5.6 usa caminhos absolutos `/src/Ferramentas/...` e valida esses arquivos antes do empacotamento.
+
+
+## Complementos da v0.5.6
+
+Além das correções já consolidadas até a v0.5.4, esta versão adiciona:
+
+- `docs/REVISAO-FUNCIONAL-v0.5.6.md`;
+- `docs/MANUAL-USABILIDADE-ILUSTRADO-v0.5.6.md`;
+- `docs/MANUAL-USABILIDADE-ILUSTRADO-v0.5.6.pdf`;
+- `docs/ManualIlustrado/Imagens` com telas de referência e capturas de apoio.
+
+O foco é apoiar apresentação, homologação e uso guiado do produto com ênfase em evidências, oportunidades e leitura operacional do dia.
+
+## Complementos da v0.5.6
+
+A v0.5.6 transforma a revisão funcional anterior em uma demonstração mais completa dentro do sistema:
+
+- empresa Demonstração com auto-reparo da carga fictícia;
+- Pontos de atenção, Oportunidades, Evidências e Home x Escritório populados;
+- bloco **No que trabalhou hoje** no detalhe da estação;
+- evidências visuais fictícias para apresentação da experiência de screenshots;
+- migration `0007_evidencias_visuais_demonstracao.sql`;
+- manual ilustrado atualizado em `docs/MANUAL-USABILIDADE-ILUSTRADO-v0.5.6.pdf`.
+
+> As capturas da empresa Demonstração são 100% fictícias. A captura real pelo agente permanece desabilitada até homologação de RBAC, auditoria, retenção, armazenamento e privacidade.

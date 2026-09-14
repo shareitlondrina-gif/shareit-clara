@@ -1,6 +1,6 @@
 -- ============================================================================
--- Share IT .Clara v0.5.4 - Empresa Demonstração
--- Requer migrations até 0006_distribuicao_navegacao_saas.sql.
+-- Share IT .Clara v0.5.6 - Empresa Demonstração
+-- Requer migrations até 0007_evidencias_visuais_demonstracao.sql.
 --
 -- Login de demonstração:
 --   E-mail: demonstracao@clara.local
@@ -167,6 +167,7 @@ BEGIN
       (v_tenant,'youtube.com','Vídeo','Atencao');
 
     -- Limpa apenas dados do tenant fictício antes de renovar a fotografia demo.
+    DELETE FROM evidencias_visuais WHERE tenant_id=v_tenant;
     DELETE FROM oportunidades WHERE tenant_id=v_tenant;
     DELETE FROM evidencias_contextuais WHERE tenant_id=v_tenant;
     DELETE FROM participacoes_reuniao WHERE tenant_id=v_tenant;
@@ -195,8 +196,8 @@ BEGIN
             WHEN 10 THEN 'TEAMS.EXE' WHEN 11 THEN NULL WHEN 12 THEN 'ERPDEMO.EXE'
             WHEN 13 THEN 'POWERPNT.EXE' ELSE NULL END;
         v_estado := CASE
-            WHEN v_i IN (2,6) THEN 5
-            WHEN v_i IN (4,8,11) THEN 2
+            WHEN v_i IN (2,10) THEN 5
+            WHEN v_i IN (4,8,14) THEN 2
             ELSE 1 END;
         v_ip_publico := CASE
             WHEN v_i<=8 THEN ('10.10.1.'||(20+v_i)::text)::inet
@@ -224,10 +225,10 @@ BEGIN
             id,tenant_id,ativo_id,identificador_agente,token_hash,versao,hostname,usuario_windows,
             sistema_operacional,fabricante,modelo,ultima_comunicacao_utc,status,ativo,registrado_em_utc,atualizado_em_utc,
             numero_serie,uuid_equipamento,arquitetura,memoria_total_bytes,disco_total_bytes,endereco_ip_local,endereco_ip_publico,processo_atual)
-        SELECT v_agente,v_tenant,v_ativo,gen_random_uuid(),encode(digest(gen_random_uuid()::text,'sha256'),'hex'),'0.5.4',
+        SELECT v_agente,v_tenant,v_ativo,gen_random_uuid(),encode(digest(gen_random_uuid()::text,'sha256'),'hex'),'0.5.6',
                a.hostname,v_usuario_windows,a.sistema_operacional,a.fabricante,a.modelo,
-               CASE WHEN v_i<=12 THEN now()-(v_i||' seconds')::interval ELSE now()-interval '2 hours'-(v_i||' minutes')::interval END,
-               CASE WHEN v_i<=12 THEN 'Online' ELSE 'Offline' END,true,now()-interval '45 days',now(),
+               CASE WHEN v_i IN (6,12,15) THEN now()-interval '2 hours'-(v_i||' minutes')::interval ELSE now()-(v_i||' seconds')::interval END,
+               CASE WHEN v_i IN (6,12,15) THEN 'Offline' ELSE 'Online' END,true,now()-interval '45 days',now(),
                a.numero_serie,a.uuid_equipamento,a.arquitetura,a.memoria_total_bytes,a.disco_total_bytes,a.endereco_ip_local,a.endereco_ip_publico,v_processo
         FROM ativos a WHERE a.id=v_ativo;
 
@@ -281,16 +282,16 @@ BEGIN
         -- para que a empresa Demonstração continue convincente independentemente do horário
         -- em que o script for executado. Em horários muito cedo, o histórico diário é
         -- deliberadamente omitido e permanece apenas o estado atual.
-        v_inicio := CASE WHEN v_i<=12 THEN now()-interval '7 hours 50 minutes'
-                         ELSE now()-interval '9 hours 50 minutes' END;
+        v_inicio := CASE WHEN v_i IN (6,12,15) THEN now()-interval '9 hours 50 minutes'
+                         ELSE now()-interval '7 hours 50 minutes' END;
         IF v_inicio::date=current_date THEN
             IF v_i<=8 THEN
                 INSERT INTO periodos_atividade(tenant_id,ativo_id,agente_id,usuario_windows,estado,inicio_utc,fim_utc,processo_executavel) VALUES
                   (v_tenant,v_ativo,v_agente,v_usuario_windows,1,v_inicio,v_inicio+interval '1 hour 35 minutes','OUTLOOK.EXE'),
                   (v_tenant,v_ativo,v_agente,v_usuario_windows,1,v_inicio+interval '1 hour 35 minutes',v_inicio+interval '3 hours 50 minutes','ERPDEMO.EXE'),
                   (v_tenant,v_ativo,v_agente,v_usuario_windows,2,v_inicio+interval '3 hours 50 minutes',v_inicio+interval '4 hours 5 minutes',NULL),
-                  (v_tenant,v_ativo,v_agente,v_usuario_windows,5,v_inicio+interval '5 hours',v_inicio+interval '5 hours 40 minutes','TEAMS.EXE'),
-                  (v_tenant,v_ativo,v_agente,v_usuario_windows,1,v_inicio+interval '5 hours 40 minutes',v_inicio+interval '7 hours 15 minutes',CASE WHEN v_i%2=0 THEN 'EXCEL.EXE' ELSE 'WINWORD.EXE' END),
+                  (v_tenant,v_ativo,v_agente,v_usuario_windows,CASE WHEN v_i IN (2,10) THEN 5 ELSE 1 END,v_inicio+interval '4 hours 45 minutes',v_inicio+interval '6 hours 13 minutes',CASE WHEN v_i IN (2,10) THEN 'TEAMS.EXE' ELSE 'ERPDEMO.EXE' END),
+                  (v_tenant,v_ativo,v_agente,v_usuario_windows,1,v_inicio+interval '6 hours 13 minutes',v_inicio+interval '7 hours 15 minutes',CASE WHEN v_i%2=0 THEN 'EXCEL.EXE' ELSE 'WINWORD.EXE' END),
                   (v_tenant,v_ativo,v_agente,v_usuario_windows,2,v_inicio+interval '7 hours 15 minutes',v_inicio+interval '7 hours 32 minutes',NULL);
             ELSIF v_i<=12 THEN
                 INSERT INTO periodos_atividade(tenant_id,ativo_id,agente_id,usuario_windows,estado,inicio_utc,fim_utc,processo_executavel) VALUES
@@ -298,8 +299,8 @@ BEGIN
                   (v_tenant,v_ativo,v_agente,v_usuario_windows,2,v_inicio+interval '1 hour 5 minutes',v_inicio+interval '1 hour 45 minutes',NULL),
                   (v_tenant,v_ativo,v_agente,v_usuario_windows,1,v_inicio+interval '1 hour 45 minutes',v_inicio+interval '3 hours 30 minutes','ERPDEMO.EXE'),
                   (v_tenant,v_ativo,v_agente,v_usuario_windows,2,v_inicio+interval '3 hours 30 minutes',v_inicio+interval '4 hours 5 minutes',NULL),
-                  (v_tenant,v_ativo,v_agente,v_usuario_windows,5,v_inicio+interval '5 hours',v_inicio+interval '5 hours 45 minutes','TEAMS.EXE'),
-                  (v_tenant,v_ativo,v_agente,v_usuario_windows,1,v_inicio+interval '5 hours 45 minutes',v_inicio+interval '7 hours 15 minutes','CHROME.EXE'),
+                  (v_tenant,v_ativo,v_agente,v_usuario_windows,CASE WHEN v_i IN (2,10) THEN 5 ELSE 1 END,v_inicio+interval '4 hours 45 minutes',v_inicio+interval '6 hours 13 minutes',CASE WHEN v_i IN (2,10) THEN 'TEAMS.EXE' ELSE 'ERPDEMO.EXE' END),
+                  (v_tenant,v_ativo,v_agente,v_usuario_windows,1,v_inicio+interval '6 hours 13 minutes',v_inicio+interval '7 hours 15 minutes','CHROME.EXE'),
                   (v_tenant,v_ativo,v_agente,v_usuario_windows,2,v_inicio+interval '7 hours 15 minutes',v_inicio+interval '7 hours 32 minutes',NULL);
             ELSE
                 INSERT INTO periodos_atividade(tenant_id,ativo_id,agente_id,usuario_windows,estado,inicio_utc,fim_utc,processo_executavel) VALUES
@@ -322,8 +323,8 @@ BEGIN
         -- Período final é inserido por último para representar o estado atual no dashboard.
         INSERT INTO periodos_atividade(tenant_id,ativo_id,agente_id,usuario_windows,estado,inicio_utc,fim_utc,processo_executavel)
         VALUES(v_tenant,v_ativo,v_agente,v_usuario_windows,v_estado,
-               CASE WHEN v_i<=12 THEN now()-interval '18 minutes' ELSE now()-interval '2 hours 18 minutes' END,
-               CASE WHEN v_i<=12 THEN now() ELSE now()-interval '2 hours' END,v_processo);
+               CASE WHEN v_i IN (6,12,15) THEN now()-interval '2 hours 18 minutes' ELSE now()-interval '18 minutes' END,
+               CASE WHEN v_i IN (6,12,15) THEN now()-interval '2 hours' ELSE now() END,v_processo);
     END LOOP;
 
     -- Agenda/reuniões e métricas agregadas fictícias.
@@ -352,59 +353,119 @@ BEGIN
     END LOOP;
 
     -- Evidências: fatos observados. Oportunidades: interpretações/recomendações separadas.
+    -- A carga abaixo é propositalmente rica para que a demonstração nunca apresente
+    -- os blocos gerenciais vazios quando a telemetria fictícia estiver ativa.
     INSERT INTO evidencias_contextuais(tenant_id,ativo_id,pessoa,equipe,categoria,gravidade,resumo,detalhe,fonte,observada_em_utc)
-    SELECT v_tenant,a.id,a.responsavel,'Contabilidade','Aplicativo','Positiva','Ana concentrou 68% do tempo no ERP','Trabalhou 5h12min no sistema durante o período.','DEMO-PC-01',now()-interval '12 minutes'
+    SELECT v_tenant,a.id,'Ana Martins','Contabilidade','Atividade atual','Positiva','Ana está trabalhando no ERP','ERPDEMO.EXE em uso contínuo há 18 minutos.','DEMO-PC-01',now()-interval '3 minutes'
       FROM ativos a WHERE a.tenant_id=v_tenant AND a.hostname='DEMO-PC-01';
     INSERT INTO evidencias_contextuais(tenant_id,ativo_id,pessoa,equipe,categoria,gravidade,resumo,detalhe,fonte,observada_em_utc)
-    SELECT v_tenant,a.id,'João Ribeiro','Financeiro','Ociosidade','Atencao','João ficou 1h42 ocioso em horário comercial','Sem atividade no computador.','DEMO-PC-10',now()-interval '48 minutes'
-      FROM ativos a WHERE a.tenant_id=v_tenant AND a.hostname='DEMO-PC-10';
+    SELECT v_tenant,a.id,'Ana Martins','Contabilidade','Aplicativo','Positiva','Ana concentrou 68% do tempo no ERP','Trabalhou 5h12min no sistema durante o período observado.','DEMO-PC-01',now()-interval '12 minutes'
+      FROM ativos a WHERE a.tenant_id=v_tenant AND a.hostname='DEMO-PC-01';
     INSERT INTO evidencias_contextuais(tenant_id,ativo_id,pessoa,equipe,categoria,gravidade,resumo,detalhe,fonte,observada_em_utc)
-    SELECT v_tenant,a.id,'Bruno Lima','Fiscal','Acesso não produtivo','Alta','Bruno acessou YouTube por 27 min','Acesso identificado fora dos aplicativos de negócio.','DEMO-PC-02',now()-interval '1 hour 59 minutes'
+    SELECT v_tenant,a.id,'Bruno Lima','Financeiro','Reunião','Informativa','Bruno está em reunião no Teams','Reunião de equipe correlacionada com agenda Microsoft 365.','DEMO-PC-02',now()-interval '18 minutes'
       FROM ativos a WHERE a.tenant_id=v_tenant AND a.hostname='DEMO-PC-02';
     INSERT INTO evidencias_contextuais(tenant_id,ativo_id,pessoa,equipe,categoria,gravidade,resumo,detalhe,fonte,observada_em_utc)
-    VALUES(v_tenant,NULL,NULL,'Financeiro','Desempenho','Positiva','Financeiro teve desempenho maior no escritório','82% do tempo em aplicativos de negócio no escritório.','5 estações',now()-interval '4 hours 18 minutes');
+    SELECT v_tenant,a.id,'João Ribeiro','Financeiro','Ociosidade','Atencao','João ficou 1h42 ocioso em horário comercial','Sem atividade no computador durante parte relevante da jornada.','DEMO-PC-10',now()-interval '48 minutes'
+      FROM ativos a WHERE a.tenant_id=v_tenant AND a.hostname='DEMO-PC-10';
     INSERT INTO evidencias_contextuais(tenant_id,ativo_id,pessoa,equipe,categoria,gravidade,resumo,detalhe,fonte,observada_em_utc)
-    SELECT v_tenant,a.id,'Carla Souza','Contabilidade','Comportamento','Atencao','Carla teve 18 trocas de app em 1 hora','Alta alternância entre aplicativos pode indicar dispersão.','DEMO-PC-03',now()-interval '5 hours 45 minutes'
+    SELECT v_tenant,a.id,'Bruno Lima','Financeiro','Acesso não produtivo','Alta','Bruno acessou YouTube por 27 min','Acesso classificado como Atenção fora dos aplicativos de negócio.','DEMO-PC-02',now()-interval '1 hour 29 minutes'
+      FROM ativos a WHERE a.tenant_id=v_tenant AND a.hostname='DEMO-PC-02';
+    INSERT INTO evidencias_contextuais(tenant_id,ativo_id,pessoa,equipe,categoria,gravidade,resumo,detalhe,fonte,observada_em_utc)
+    SELECT v_tenant,a.id,'Gabriela Alves','Financeiro','Acesso não produtivo','Alta','Gabriela usou redes sociais por 43 min','Instagram foi classificado como Atenção na política demonstrativa.','DEMO-PC-07',now()-interval '2 hours 5 minutes'
+      FROM ativos a WHERE a.tenant_id=v_tenant AND a.hostname='DEMO-PC-07';
+    INSERT INTO evidencias_contextuais(tenant_id,ativo_id,pessoa,equipe,categoria,gravidade,resumo,detalhe,fonte,observada_em_utc)
+    VALUES(v_tenant,NULL,NULL,'Financeiro','Desempenho','Positiva','Financeiro teve desempenho maior no escritório','As estações do escritório apresentaram maior uso de aplicativos produtivos e menor ociosidade no período.','5 estações',now()-interval '2 hours 40 minutes');
+    INSERT INTO evidencias_contextuais(tenant_id,ativo_id,pessoa,equipe,categoria,gravidade,resumo,detalhe,fonte,observada_em_utc)
+    SELECT v_tenant,a.id,'Carla Souza','Fiscal','Comportamento','Atencao','Carla teve 18 trocas de app em 1 hora','Alta alternância entre aplicativos pode indicar baixa continuidade.','DEMO-PC-03',now()-interval '3 hours 10 minutes'
       FROM ativos a WHERE a.tenant_id=v_tenant AND a.hostname='DEMO-PC-03';
     INSERT INTO evidencias_contextuais(tenant_id,ativo_id,pessoa,equipe,categoria,gravidade,resumo,detalhe,fonte,observada_em_utc)
-    SELECT v_tenant,a.id,'Diego Oliveira','Comercial','Aplicativo','Positiva','Diego ficou 2h12 em Excel com foco alto','Atividade contínua sem trocas de aplicativo.','DEMO-PC-04',now()-interval '6 hours 33 minutes'
+    SELECT v_tenant,a.id,'Diego Oliveira','Contábil','Aplicativo','Positiva','Diego ficou 2h12 em Excel com foco alto','Atividade contínua sem trocas relevantes de aplicativo.','DEMO-PC-04',now()-interval '3 hours 42 minutes'
       FROM ativos a WHERE a.tenant_id=v_tenant AND a.hostname='DEMO-PC-04';
+    INSERT INTO evidencias_contextuais(tenant_id,ativo_id,pessoa,equipe,categoria,gravidade,resumo,detalhe,fonte,observada_em_utc)
+    SELECT v_tenant,a.id,'Elisa Rocha','Comercial','Uso do sistema principal','Atencao','Elisa usou o ERP por apenas 36 min','Uso abaixo do esperado para a rotina definida no cenário demonstrativo.','DEMO-PC-05',now()-interval '4 hours 5 minutes'
+      FROM ativos a WHERE a.tenant_id=v_tenant AND a.hostname='DEMO-PC-05';
+    INSERT INTO evidencias_contextuais(tenant_id,ativo_id,pessoa,equipe,categoria,gravidade,resumo,detalhe,fonte,observada_em_utc)
+    SELECT v_tenant,a.id,'Karen Freitas','Administrativo','Ociosidade','Atencao','Karen acumulou 1h18 de ociosidade','Períodos de inatividade distribuídos durante a manhã.','DEMO-PC-11',now()-interval '4 hours 35 minutes'
+      FROM ativos a WHERE a.tenant_id=v_tenant AND a.hostname='DEMO-PC-11';
+    INSERT INTO evidencias_contextuais(tenant_id,ativo_id,pessoa,equipe,categoria,gravidade,resumo,detalhe,fonte,observada_em_utc)
+    SELECT v_tenant,a.id,'Felipe Santos','Administrativo','Treinamento','Atencao','Felipe repetiu tarefas manuais fora do ERP','O padrão sugere oportunidade de capacitação e revisão de processo.','DEMO-PC-06',now()-interval '5 hours 10 minutes'
+      FROM ativos a WHERE a.tenant_id=v_tenant AND a.hostname='DEMO-PC-06';
+    INSERT INTO evidencias_contextuais(tenant_id,ativo_id,pessoa,equipe,categoria,gravidade,resumo,detalhe,fonte,observada_em_utc)
+    SELECT v_tenant,a.id,'Mariana Lima','Fiscal','Uso do sistema principal','Atencao','Mariana ficou abaixo da média de uso do sistema fiscal','Uso do aplicativo principal ficou abaixo do padrão do setor.','DEMO-PC-13',now()-interval '5 hours 40 minutes'
+      FROM ativos a WHERE a.tenant_id=v_tenant AND a.hostname='DEMO-PC-13';
+    INSERT INTO evidencias_contextuais(tenant_id,ativo_id,pessoa,equipe,categoria,gravidade,resumo,detalhe,fonte,observada_em_utc)
+    VALUES(v_tenant,NULL,NULL,'Administrativo','Home x Escritório','Atencao','Home office apresentou mais ociosidade no período','Comparativo demonstrativo entre os ambientes indica oportunidade de acompanhamento.','Comparativo por local',now()-interval '6 hours');
+
+    -- Evidências visuais 100% fictícias. Servem apenas para apresentação da UX de prints.
+    -- A captura real continua dependente da política do tenant, RBAC, auditoria, retenção e storage.
+    INSERT INTO evidencias_visuais(tenant_id,ativo_id,pessoa,tipo,titulo,descricao,arquivo_relativo,capturada_em_utc,demonstrativa)
+    SELECT v_tenant,a.id,'Ana Martins','Screenshot','ERP em uso — Ana Martins','Captura fictícia para demonstrar a evidência visual do aplicativo principal.','/demo/evidencias/demo-erp.png',now()-interval '8 minutes',true
+      FROM ativos a WHERE a.tenant_id=v_tenant AND a.hostname='DEMO-PC-01';
+    INSERT INTO evidencias_visuais(tenant_id,ativo_id,pessoa,tipo,titulo,descricao,arquivo_relativo,capturada_em_utc,demonstrativa)
+    SELECT v_tenant,a.id,'Diego Oliveira','Screenshot','Planilha de fechamento — Diego Oliveira','Captura fictícia de uma sessão produtiva em planilha.','/demo/evidencias/demo-excel.png',now()-interval '42 minutes',true
+      FROM ativos a WHERE a.tenant_id=v_tenant AND a.hostname='DEMO-PC-04';
+    INSERT INTO evidencias_visuais(tenant_id,ativo_id,pessoa,tipo,titulo,descricao,arquivo_relativo,capturada_em_utc,demonstrativa)
+    SELECT v_tenant,a.id,'Elisa Rocha','Screenshot','E-mail operacional — Elisa Rocha','Captura fictícia de atividade no Outlook.','/demo/evidencias/demo-outlook.png',now()-interval '1 hour 12 minutes',true
+      FROM ativos a WHERE a.tenant_id=v_tenant AND a.hostname='DEMO-PC-05';
+    INSERT INTO evidencias_visuais(tenant_id,ativo_id,pessoa,tipo,titulo,descricao,arquivo_relativo,capturada_em_utc,demonstrativa)
+    SELECT v_tenant,a.id,'Bruno Lima','Screenshot','Reunião no Teams — Bruno Lima','Captura fictícia para contextualizar período de reunião.','/demo/evidencias/demo-teams.png',now()-interval '1 hour 38 minutes',true
+      FROM ativos a WHERE a.tenant_id=v_tenant AND a.hostname='DEMO-PC-02';
+    INSERT INTO evidencias_visuais(tenant_id,ativo_id,pessoa,tipo,titulo,descricao,arquivo_relativo,capturada_em_utc,demonstrativa)
+    SELECT v_tenant,a.id,'Isabela Melo','Screenshot','Documento operacional — Isabela Melo','Captura fictícia de preparação de documento.','/demo/evidencias/demo-word.png',now()-interval '2 hours 15 minutes',true
+      FROM ativos a WHERE a.tenant_id=v_tenant AND a.hostname='DEMO-PC-09';
+    INSERT INTO evidencias_visuais(tenant_id,ativo_id,pessoa,tipo,titulo,descricao,arquivo_relativo,capturada_em_utc,demonstrativa)
+    SELECT v_tenant,a.id,'Gabriela Alves','Screenshot','Navegação corporativa — Gabriela Alves','Captura fictícia de navegação em portal de documentos.','/demo/evidencias/demo-browser.png',now()-interval '2 hours 52 minutes',true
+      FROM ativos a WHERE a.tenant_id=v_tenant AND a.hostname='DEMO-PC-07';
+
+    -- Oportunidades: volume suficiente para alimentar os cinco indicadores da tela e os pontos de atenção do Agora.
+    INSERT INTO oportunidades(tenant_id,ativo_id,pessoa,equipe,categoria,evidencia_resumida,impacto,recomendacao,status,origem,detectada_em_utc)
+    SELECT v_tenant,a.id,'João Ribeiro','Financeiro','OciosidadeAlta','1h42 de tempo ocioso em horário comercial','Alto','Conversar sobre ajuste de rotina e redistribuição de atividades.','Pendente','Regra demonstrativa',now()-interval '50 minutes' FROM ativos a WHERE a.tenant_id=v_tenant AND a.hostname='DEMO-PC-10';
+    INSERT INTO oportunidades(tenant_id,ativo_id,pessoa,equipe,categoria,evidencia_resumida,impacto,recomendacao,status,origem,detectada_em_utc)
+    SELECT v_tenant,a.id,'Karen Freitas','Administrativo','OciosidadeAlta','1h18 ociosa no período da manhã','Medio','Validar agenda e distribuição de demandas.','Pendente','Regra demonstrativa',now()-interval '1 hour 20 minutes' FROM ativos a WHERE a.tenant_id=v_tenant AND a.hostname='DEMO-PC-11';
+    INSERT INTO oportunidades(tenant_id,ativo_id,pessoa,equipe,categoria,evidencia_resumida,impacto,recomendacao,status,origem,detectada_em_utc)
+    SELECT v_tenant,a.id,'Henrique Costa','Contábil','OciosidadeAlta','58 min de ociosidade acumulada no expediente','Medio','Revisar sequência das atividades e dependências do processo.','Pendente','Regra demonstrativa',now()-interval '1 hour 50 minutes' FROM ativos a WHERE a.tenant_id=v_tenant AND a.hostname='DEMO-PC-08';
+    INSERT INTO oportunidades(tenant_id,ativo_id,pessoa,equipe,categoria,evidencia_resumida,impacto,recomendacao,status,origem,detectada_em_utc)
+    SELECT v_tenant,a.id,'Paulo Silva','Comercial','OciosidadeAlta','Períodos ociosos superiores ao padrão do setor','Medio','Acompanhar distribuição de carteira e agenda comercial.','EmAndamento','Regra demonstrativa',now()-interval '2 hours 15 minutes' FROM ativos a WHERE a.tenant_id=v_tenant AND a.hostname='DEMO-PC-14';
 
     INSERT INTO oportunidades(tenant_id,ativo_id,pessoa,equipe,categoria,evidencia_resumida,impacto,recomendacao,status,origem,detectada_em_utc)
-    SELECT v_tenant,a.id,'João Ribeiro','Financeiro','OciosidadeAlta','1h42 de tempo ocioso em horário comercial (09:00–12:00)','Alto','Conversar sobre ajuste de rotina e redistribuição de atividades.','Pendente','Regra demonstrativa',now()-interval '50 minutes'
-      FROM ativos a WHERE a.tenant_id=v_tenant AND a.hostname='DEMO-PC-10';
+    SELECT v_tenant,a.id,'Bruno Lima','Financeiro','SitesNaoProdutivos','27 min em YouTube','Medio','Reforçar política de uso e orientar sobre foco nas atividades.','EmAndamento','Regra demonstrativa',now()-interval '2 hours' FROM ativos a WHERE a.tenant_id=v_tenant AND a.hostname='DEMO-PC-02';
     INSERT INTO oportunidades(tenant_id,ativo_id,pessoa,equipe,categoria,evidencia_resumida,impacto,recomendacao,status,origem,detectada_em_utc)
-    SELECT v_tenant,a.id,'Bruno Lima','Fiscal','SitesNaoProdutivos','27 min em YouTube entre 14:03 e 14:30','Medio','Reforçar política de uso e orientar sobre foco nas atividades.','EmAndamento','Regra demonstrativa',now()-interval '2 hours'
-      FROM ativos a WHERE a.tenant_id=v_tenant AND a.hostname='DEMO-PC-02';
+    SELECT v_tenant,a.id,'Gabriela Alves','Financeiro','SitesNaoProdutivos','43 min em Instagram e redes sociais','Medio','Reforçar política de uso e conscientização sobre produtividade.','Pendente','Regra demonstrativa',now()-interval '2 hours 30 minutes' FROM ativos a WHERE a.tenant_id=v_tenant AND a.hostname='DEMO-PC-07';
     INSERT INTO oportunidades(tenant_id,ativo_id,pessoa,equipe,categoria,evidencia_resumida,impacto,recomendacao,status,origem,detectada_em_utc)
-    SELECT v_tenant,a.id,'Carla Souza','Contábil','BaixaContinuidade','Alternou 18 vezes de aplicativo em 1h (10:00–11:00)','Medio','Apoiar na organização da rotina e priorização de tarefas.','Pendente','Regra demonstrativa',now()-interval '3 hours'
-      FROM ativos a WHERE a.tenant_id=v_tenant AND a.hostname='DEMO-PC-03';
+    SELECT v_tenant,a.id,'João Ribeiro','Financeiro','SitesNaoProdutivos','Uso recorrente de vídeo em horário comercial','Medio','Validar contexto e reforçar diretrizes de navegação.','Pendente','Regra demonstrativa',now()-interval '3 hours' FROM ativos a WHERE a.tenant_id=v_tenant AND a.hostname='DEMO-PC-10';
     INSERT INTO oportunidades(tenant_id,ativo_id,pessoa,equipe,categoria,evidencia_resumida,impacto,recomendacao,status,origem,detectada_em_utc)
-    SELECT v_tenant,a.id,'Elisa Rocha','Departamento Pessoal','BaixoUsoSistemaPrincipal','Apenas 36 min de uso do ERP em um dia de 8h','Alto','Treinamento prático no ERP e acompanhamento inicial.','Pendente','Regra demonstrativa',now()-interval '4 hours'
-      FROM ativos a WHERE a.tenant_id=v_tenant AND a.hostname='DEMO-PC-05';
+    SELECT v_tenant,a.id,'Mariana Lima','Fiscal','SitesNaoProdutivos','Acessos classificados como Atenção acima do padrão','Baixo','Revisar classificação e orientar uso quando necessário.','Pendente','Regra demonstrativa',now()-interval '3 hours 20 minutes' FROM ativos a WHERE a.tenant_id=v_tenant AND a.hostname='DEMO-PC-13';
     INSERT INTO oportunidades(tenant_id,ativo_id,pessoa,equipe,categoria,evidencia_resumida,impacto,recomendacao,status,origem,detectada_em_utc)
-    SELECT v_tenant,a.id,'Isabela Melo','Administrativo','HomeOffice','Baixa atividade e longos períodos de inatividade (2h seguidas)','Medio','Revisar contexto, alinhar entregas e rotina no home office.','EmAndamento','Regra demonstrativa',now()-interval '5 hours'
-      FROM ativos a WHERE a.tenant_id=v_tenant AND a.hostname='DEMO-PC-09';
+    SELECT v_tenant,a.id,'Felipe Santos','Administrativo','SitesNaoProdutivos','Tempo relevante em navegação não relacionada ao ERP','Baixo','Orientar priorização e revisar atalhos/processo.','Pendente','Regra demonstrativa',now()-interval '3 hours 45 minutes' FROM ativos a WHERE a.tenant_id=v_tenant AND a.hostname='DEMO-PC-06';
+
     INSERT INTO oportunidades(tenant_id,ativo_id,pessoa,equipe,categoria,evidencia_resumida,impacto,recomendacao,status,origem,detectada_em_utc)
-    SELECT v_tenant,a.id,'Gabriela Alves','Comercial','SitesNaoProdutivos','43 min em redes sociais (Instagram e Facebook)','Medio','Reforçar política de uso e conscientização sobre produtividade.','Pendente','Regra demonstrativa',now()-interval '6 hours'
-      FROM ativos a WHERE a.tenant_id=v_tenant AND a.hostname='DEMO-PC-07';
+    SELECT v_tenant,a.id,'Carla Souza','Fiscal','BaixaContinuidade','Alternou 18 vezes de aplicativo em 1h','Medio','Apoiar na organização da rotina e priorização de tarefas.','Pendente','Regra demonstrativa',now()-interval '3 hours' FROM ativos a WHERE a.tenant_id=v_tenant AND a.hostname='DEMO-PC-03';
     INSERT INTO oportunidades(tenant_id,ativo_id,pessoa,equipe,categoria,evidencia_resumida,impacto,recomendacao,status,origem,detectada_em_utc)
-    SELECT v_tenant,a.id,'Renata Almeida','Financeiro','PossivelNecessidadeTreinamento','Dificuldade recorrente no Excel (erros em fórmulas)','Baixo','Treinamento em Excel intermediário e materiais de apoio.','Concluida','Regra demonstrativa',now()-interval '1 day'
-      FROM ativos a WHERE a.tenant_id=v_tenant AND a.hostname='DEMO-PC-15';
+    SELECT v_tenant,a.id,'Henrique Costa','Contábil','BaixaContinuidade','Muitas trocas entre navegador, planilha e e-mail','Medio','Organizar blocos de foco e reduzir interrupções.','Pendente','Regra demonstrativa',now()-interval '4 hours' FROM ativos a WHERE a.tenant_id=v_tenant AND a.hostname='DEMO-PC-08';
     INSERT INTO oportunidades(tenant_id,ativo_id,pessoa,equipe,categoria,evidencia_resumida,impacto,recomendacao,status,origem,detectada_em_utc)
-    VALUES(v_tenant,NULL,NULL,'Administrativo','HomeOffice','Média de 28% a mais de ociosidade em dias de home office','Medio','Revisar diretrizes, definir metas claras e rotina de acompanhamento.','Pendente','Regra demonstrativa',now()-interval '1 day 2 hours');
+    SELECT v_tenant,a.id,'Isabela Melo','Administrativo','BaixaContinuidade','Sequência fragmentada entre Word, navegador e e-mail','Baixo','Organizar janelas de concentração e reduzir alternâncias.','Pendente','Regra demonstrativa',now()-interval '4 hours 20 minutes' FROM ativos a WHERE a.tenant_id=v_tenant AND a.hostname='DEMO-PC-09';
+
     INSERT INTO oportunidades(tenant_id,ativo_id,pessoa,equipe,categoria,evidencia_resumida,impacto,recomendacao,status,origem,detectada_em_utc)
-    SELECT v_tenant,a.id,'Karen Freitas','Administrativo','OciosidadeAlta','1h18 ociosa no período da manhã','Medio','Validar agenda e distribuição de demandas.','Pendente','Regra demonstrativa',now()-interval '2 days'
-      FROM ativos a WHERE a.tenant_id=v_tenant AND a.hostname='DEMO-PC-11';
+    SELECT v_tenant,a.id,'Renata Almeida','Financeiro','PossivelNecessidadeTreinamento','Dificuldade recorrente no Excel (erros em fórmulas)','Baixo','Treinamento em Excel intermediário e materiais de apoio.','Concluida','Regra demonstrativa',now()-interval '5 hours' FROM ativos a WHERE a.tenant_id=v_tenant AND a.hostname='DEMO-PC-15';
     INSERT INTO oportunidades(tenant_id,ativo_id,pessoa,equipe,categoria,evidencia_resumida,impacto,recomendacao,status,origem,detectada_em_utc)
-    SELECT v_tenant,a.id,'Felipe Santos','Administrativo','PossivelNecessidadeTreinamento','Baixo uso do ERP e repetição de tarefas manuais','Baixo','Avaliar treinamento e melhoria do processo.','Pendente','Regra demonstrativa',now()-interval '2 days 3 hours'
-      FROM ativos a WHERE a.tenant_id=v_tenant AND a.hostname='DEMO-PC-06';
+    SELECT v_tenant,a.id,'Felipe Santos','Administrativo','PossivelNecessidadeTreinamento','Baixo uso do ERP e repetição de tarefas manuais','Baixo','Avaliar treinamento e melhoria do processo.','Pendente','Regra demonstrativa',now()-interval '5 hours 30 minutes' FROM ativos a WHERE a.tenant_id=v_tenant AND a.hostname='DEMO-PC-06';
     INSERT INTO oportunidades(tenant_id,ativo_id,pessoa,equipe,categoria,evidencia_resumida,impacto,recomendacao,status,origem,detectada_em_utc)
-    SELECT v_tenant,a.id,'Henrique Costa','Contábil','BaixaContinuidade','Muitas trocas entre navegador, planilha e e-mail','Medio','Organizar blocos de foco e reduzir interrupções.','Pendente','Regra demonstrativa',now()-interval '3 days'
-      FROM ativos a WHERE a.tenant_id=v_tenant AND a.hostname='DEMO-PC-08';
+    SELECT v_tenant,a.id,'Elisa Rocha','Comercial','PossivelNecessidadeTreinamento','Uso reduzido de recursos esperados do ERP','Medio','Treinamento prático no ERP e acompanhamento inicial.','Pendente','Regra demonstrativa',now()-interval '6 hours' FROM ativos a WHERE a.tenant_id=v_tenant AND a.hostname='DEMO-PC-05';
     INSERT INTO oportunidades(tenant_id,ativo_id,pessoa,equipe,categoria,evidencia_resumida,impacto,recomendacao,status,origem,detectada_em_utc)
-    SELECT v_tenant,a.id,'Mariana Lima','Fiscal','BaixoUsoSistemaPrincipal','Uso abaixo da média do sistema fiscal principal','Baixo','Revisar fluxo e necessidade de capacitação.','Pendente','Regra demonstrativa',now()-interval '4 days'
-      FROM ativos a WHERE a.tenant_id=v_tenant AND a.hostname='DEMO-PC-13';
+    SELECT v_tenant,a.id,'Mariana Lima','Fiscal','PossivelNecessidadeTreinamento','Padrão de uso sugere dúvidas no sistema fiscal','Baixo','Validar necessidade de capacitação com o responsável.','Pendente','Regra demonstrativa',now()-interval '6 hours 20 minutes' FROM ativos a WHERE a.tenant_id=v_tenant AND a.hostname='DEMO-PC-13';
+
+    INSERT INTO oportunidades(tenant_id,ativo_id,pessoa,equipe,categoria,evidencia_resumida,impacto,recomendacao,status,origem,detectada_em_utc)
+    SELECT v_tenant,a.id,'Elisa Rocha','Comercial','BaixoUsoSistemaPrincipal','Apenas 36 min de uso do ERP em um dia de 8h','Alto','Treinamento prático no ERP e acompanhamento inicial.','Pendente','Regra demonstrativa',now()-interval '4 hours' FROM ativos a WHERE a.tenant_id=v_tenant AND a.hostname='DEMO-PC-05';
+    INSERT INTO oportunidades(tenant_id,ativo_id,pessoa,equipe,categoria,evidencia_resumida,impacto,recomendacao,status,origem,detectada_em_utc)
+    SELECT v_tenant,a.id,'Mariana Lima','Fiscal','BaixoUsoSistemaPrincipal','Uso abaixo da média do sistema fiscal principal','Baixo','Revisar fluxo e necessidade de capacitação.','Pendente','Regra demonstrativa',now()-interval '4 days' FROM ativos a WHERE a.tenant_id=v_tenant AND a.hostname='DEMO-PC-13';
+    INSERT INTO oportunidades(tenant_id,ativo_id,pessoa,equipe,categoria,evidencia_resumida,impacto,recomendacao,status,origem,detectada_em_utc)
+    SELECT v_tenant,a.id,'Felipe Santos','Administrativo','BaixoUsoSistemaPrincipal','Baixo uso do sistema principal e alto volume manual','Medio','Revisar aderência ao processo e treinar recursos do sistema.','Pendente','Regra demonstrativa',now()-interval '6 hours 40 minutes' FROM ativos a WHERE a.tenant_id=v_tenant AND a.hostname='DEMO-PC-06';
+
+    -- Oportunidades específicas do contexto de local para alimentar o Insight Principal e recomendações.
+    INSERT INTO oportunidades(tenant_id,ativo_id,pessoa,equipe,categoria,evidencia_resumida,impacto,recomendacao,status,origem,detectada_em_utc)
+    SELECT v_tenant,a.id,'Isabela Melo','Administrativo','HomeOffice','Home office com ociosidade acima do escritório','Medio','Revisar contexto, alinhar entregas e rotina no home office.','EmAndamento','Regra demonstrativa',now()-interval '5 hours' FROM ativos a WHERE a.tenant_id=v_tenant AND a.hostname='DEMO-PC-09';
+    INSERT INTO oportunidades(tenant_id,ativo_id,pessoa,equipe,categoria,evidencia_resumida,impacto,recomendacao,status,origem,detectada_em_utc)
+    VALUES(v_tenant,NULL,NULL,'Administrativo','HomeOffice','Média de ociosidade maior em dias de home office','Medio','Revisar diretrizes, definir metas claras e rotina de acompanhamento.','Pendente','Regra demonstrativa',now()-interval '1 day 2 hours');
 
     RAISE NOTICE 'Empresa demonstração atualizada. Login: demonstracao@clara.local / senha: demonstracao';
 END $$;

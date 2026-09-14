@@ -9,6 +9,12 @@
     var pctOcioso = (int)Math.Round(Model.SegundosOciososHoje*100d/observado);
     string Classe(string estado) => estado switch { "Ativo"=>"verde","Ocioso"=>"amarelo","Reunião"=>"roxo","Offline"=>"vermelho",_=>"azul" };
     string NomeCategoria(string codigo) => codigo switch { "OciosidadeAlta"=>"Ociosidade em horário comercial","SitesNaoProdutivos"=>"Acesso a site não produtivo","BaixaContinuidade"=>"Baixa continuidade","PossivelNecessidadeTreinamento"=>"Possível necessidade de treinamento","BaixoUsoSistemaPrincipal"=>"Baixo uso do sistema principal","HomeOffice"=>"Oportunidade em home office",_=>codigo };
+    var appsHoje = Model.TimelineHoje
+        .Where(x => !string.IsNullOrWhiteSpace(x.ProcessoExecutavel))
+        .GroupBy(x => x.ProcessoExecutavel!, StringComparer.OrdinalIgnoreCase)
+        .Select(g => new { Nome = g.Key, Segundos = (long)g.Sum(x => Math.Max(0, (x.FimUtc-x.InicioUtc).TotalSeconds)) })
+        .OrderByDescending(x => x.Segundos).Take(5).ToArray();
+    var totalAppsHoje = Math.Max(1L, appsHoje.Sum(x => x.Segundos));
 }
 @if(TempData["Mensagem"] is string mensagem){<div class="mensagem-sucesso">@mensagem</div>}
 <section class="cabecalho-estacao">
@@ -42,6 +48,24 @@
     </aside>
 </section>
 
+<section class="painel-clara resumo-dia-estacao">
+    <div class="titulo-painel"><div><span class="sobrelinha">JORNADA DE HOJE</span><h2>No que trabalhou hoje</h2><p>Resumo dos aplicativos observados na timeline do dia.</p></div><span class="atividade-agora"><i class="ponto @Classe(Model.EstadoAtual)"></i>Agora: @(Model.ProcessoAtual ?? Model.EstadoAtual)</span></div>
+    @if(appsHoje.Length==0)
+    {
+        <div class="estado-vazio">Ainda não há aplicativos suficientes na timeline de hoje.</div>
+    }
+    else
+    {
+        <div class="lista-trabalho-dia">
+        @foreach(var appHoje in appsHoje)
+        {
+            var pct = Math.Max(3, (int)Math.Round(appHoje.Segundos*100d/totalAppsHoje));
+            <a href="#" data-drilldown-url="/indicadores/detalhes?tipo=aplicativo&valor=@Uri.EscapeDataString(appHoje.Nome)&dias=1"><strong>@appHoje.Nome</strong><i><b style="width:@pct%"></b></i><span>@Tempo(appHoje.Segundos)</span></a>
+        }
+        </div>
+    }
+</section>
+
 <section id="timeline" class="grade-timeline-estacao">
     <article class="painel-clara">
         <div class="titulo-painel"><h2>◷ &nbsp;Timeline de hoje</h2>@if(Model.AgenteId.HasValue){<a href="/timeline/@Model.AgenteId">Ver timeline completa →</a>}</div>
@@ -57,6 +81,22 @@
         @foreach(var e in Model.Evidencias.Take(6)){<a href="#" data-drilldown-url="/indicadores/detalhes?tipo=evidencia&valor=@Uri.EscapeDataString(e.Categoria)&dias=30"><time>@e.ObservadaEmUtc.ToLocalTime().ToString("HH:mm")</time><span><strong>@e.Resumo</strong><small>@e.Detalhe</small></span></a>}
     </aside>
 </section>
+
+@if(Model.EvidenciasVisuais.Count > 0)
+{
+<section class="painel-clara evidencias-visuais-estacao">
+    <div class="titulo-painel"><div><span class="sobrelinha">EVIDÊNCIA VISUAL</span><h2>Capturas recentes</h2><p>Contexto visual associado à estação quando permitido pela política do cliente.</p></div><a href="/evidencias">Ver todas →</a></div>
+    <div class="grade-evidencias-visuais">
+    @foreach(var v in Model.EvidenciasVisuais.Take(4))
+    {
+        <a class="card-evidencia-visual" href="@v.Url" target="_blank" rel="noopener">
+            <span class="miniatura-evidencia"><img src="@v.Url" alt="@v.Titulo" loading="lazy" />@if(v.Demonstrativa){<b>DEMONSTRAÇÃO</b>}</span>
+            <span class="meta-evidencia-visual"><strong>@v.Titulo</strong><small>@v.CapturadaEmUtc.ToLocalTime().ToString("dd/MM HH:mm")</small><em>@v.Descricao</em></span>
+        </a>
+    }
+    </div>
+</section>
+}
 
 <details class="painel-clara detalhes-colapsados">
     <summary>Editar cadastro administrativo</summary>

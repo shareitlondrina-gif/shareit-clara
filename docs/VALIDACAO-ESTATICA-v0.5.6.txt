@@ -1,0 +1,51 @@
+Share IT .Clara v0.5.6 - RELATORIO DE VALIDACAO ESTATICA
+
+- OK: VERSAO.txt = 0.5.6
+- OK: Directory.Build.props = 0.5.6
+- OK: logs/BUILD.txt = 0.5.6-package
+- OK: src/ShareIT.Clara.Web/Program.cs fallback 0.5.6
+- OK: src/ShareIT.Clara.Web/Controllers/PainelController.cs fallback 0.5.6
+- OK: src/ShareIT.Clara.Agente/Comunicacao/ClienteApiClara.cs fallback 0.5.6
+- OK: 7 migrations (['0001_base_operacional.sql', '0002_indices_dashboard.sql', '0003_contexto_inventario_integracoes.sql', '0004_multiempresa_perfis_acesso.sql', '0005_inteligencia_configuracoes_demonstracao.sql', '0006_distribuicao_navegacao_saas.sql', '0007_evidencias_visuais_demonstracao.sql'])
+- OK: migration 0001 immutable (ed572fe355fb)
+- OK: migration 0002 immutable (92c622cff008)
+- OK: migration 0003 immutable (3fab0587f2c8)
+- OK: migration 0004 immutable (6b8066ce8389)
+- OK: migration 0005 immutable (1c39de83c946)
+- OK: migration 0006 immutable (3837c8056af2)
+- OK: migration 0007 creates evidencias_visuais
+- OK: demo requires migration 0007
+- OK: demo deletes visual evidence before assets
+- OK: demo has >=10 textual evidence inserts (14)
+- OK: demo has >=15 opportunity inserts (21)
+- OK: demo has 6 visual evidence inserts (6)
+- OK: demo status pattern 7 active/2 meeting/3 idle/3 offline
+- OK: demo auto-repair implemented
+- OK: visual evidence repository method
+- OK: evidence visual gallery in Evidencias
+- OK: station journey summary
+- OK: station visual gallery
+- OK: 6 demo screenshot assets (['demo-outlook.png', 'demo-word.png', 'demo-teams.png', 'demo-excel.png', 'demo-erp.png', 'demo-browser.png'])
+- OK: asset demo-outlook.png nonempty (40347)
+- OK: asset demo-word.png nonempty (42299)
+- OK: asset demo-teams.png nonempty (40706)
+- OK: asset demo-excel.png nonempty (40824)
+- OK: asset demo-erp.png nonempty (42723)
+- OK: asset demo-browser.png nonempty (43463)
+- OK: docs/MANUAL-USABILIDADE-ILUSTRADO-v0.5.6.md exists
+- OK: docs/MANUAL-USABILIDADE-ILUSTRADO-v0.5.6.pdf exists
+- OK: docs/REVISAO-FUNCIONAL-v0.5.6.md exists
+- OK: docs/ALTERACOES-v0.5.6.md exists
+- OK: docs/VALIDACAO-v0.5.6.md exists
+- OK: manifest.json valid
+- OK: ConfiguracaoClara.exemplo.xml valid XML
+- OK: ConfiguracaoPublicacao.exemplo.xml valid XML
+- OK: SegredosClara.local.exemplo.xml valid XML
+- OK: Docker uses absolute installer paths
+- OK: src/ShareIT.Clara.Web/Servicos/ServicoRelogioDemonstracao.cs brace balance ({=8 }=8)
+- OK: src/ShareIT.Clara.Dados/Repositorios/RepositorioInteligencia.cs brace balance ({=79 }=79)
+- OK: src/ShareIT.Clara.Dominio/Contratos/InteligenciaGerencial.cs brace balance ({=0 }=0)
+- OK: src/ShareIT.Clara.Web/Controllers/PainelController.cs brace balance ({=56 }=56)
+
+Resultado: APROVADO NA VALIDACAO ESTATICA.
+Observacao: o ambiente de geracao nao possui .NET SDK 10; build/teste definitivo deve ser executado pelo PUBLICAR-CLARA.cmd no Windows/Render.

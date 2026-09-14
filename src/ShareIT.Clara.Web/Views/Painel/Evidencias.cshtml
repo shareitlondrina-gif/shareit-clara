@@ -20,6 +20,23 @@
 
 <form method="get" action="/evidencias" class="painel-clara filtros-evidencias"><label>Período<select name="dias"><option selected="@(dias==1)" value="1">Hoje</option><option selected="@(dias==7)" value="7">Últimos 7 dias</option><option selected="@(dias==30)" value="30">Últimos 30 dias</option></select></label><label>Pessoa<input name="pessoa" value="@pessoa" placeholder="Todos" /></label><label>Categoria<select name="categoria"><option value="">Todas</option>@foreach(var c in Model.Evidencias.Select(x=>x.Categoria).Distinct().OrderBy(x=>x)){<option selected="@(categoria==c)" value="@c">@c</option>}</select></label><label>Gravidade<select name="gravidade"><option value="">Todas</option><option selected="@(gravidade=="Positiva")">Positiva</option><option selected="@(gravidade=="Informativa")">Informativa</option><option selected="@(gravidade=="Atencao")" value="Atencao">Atenção</option><option selected="@(gravidade=="Alta")">Alta</option></select></label><a href="/evidencias">Limpar filtros</a><button type="submit">Aplicar filtros</button></form>
 
+@if(Model.EvidenciasVisuais.Count > 0)
+{
+<section class="painel-clara painel-evidencias-visuais">
+    <div class="titulo-painel"><div><h2>Evidências visuais recentes</h2><p>Capturas autorizadas ajudam a contextualizar o que estava em uso no momento observado.</p></div><span class="selo-demo-visual">@Model.EvidenciasVisuais.Count captura(s)</span></div>
+    <div class="grade-evidencias-visuais">
+    @foreach(var v in Model.EvidenciasVisuais.Take(8))
+    {
+        <a class="card-evidencia-visual" href="@v.Url" target="_blank" rel="noopener">
+            <span class="miniatura-evidencia"><img src="@v.Url" alt="@v.Titulo" loading="lazy" />@if(v.Demonstrativa){<b>DEMONSTRAÇÃO</b>}</span>
+            <span class="meta-evidencia-visual"><strong>@v.Titulo</strong><small>@(v.Pessoa ?? v.Hostname ?? "Ambiente") · @v.CapturadaEmUtc.ToLocalTime().ToString("HH:mm")</small><em>@v.Descricao</em></span>
+        </a>
+    }
+    </div>
+    <p class="nota-visual">Capturas demonstrativas são 100% fictícias. Em clientes reais, a coleta visual depende da política de privacidade, perfil de acesso, auditoria, retenção e armazenamento configurados.</p>
+</section>
+}
+
 <section class="painel-clara painel-evidencias"><div class="titulo-painel"><div><h2>Linha do tempo de evidências</h2><p>Fatos observados no ambiente de trabalho, organizados por horário. Esses registros apoiam a análise e a tomada de decisão gerencial.</p></div><a class="link-botao" href="/evidencias/exportar?dias=@dias&pessoa=@Uri.EscapeDataString(pessoa??string.Empty)&categoria=@Uri.EscapeDataString(categoria??string.Empty)&gravidade=@Uri.EscapeDataString(gravidade??string.Empty)">Exportar CSV⌄</a></div>
     <div class="tabela-responsiva"><table class="tabela-clara tabela-evidencias"><thead><tr><th>Horário</th><th>Pessoa / equipe</th><th>Evidência</th><th>Categoria</th><th>Gravidade</th><th>Fonte</th><th>Ações</th></tr></thead><tbody>
     @foreach(var e in Model.Evidencias){<tr><td><strong>@e.ObservadaEmUtc.ToLocalTime().ToString("HH:mm")</strong></td><td><strong>@(e.Pessoa??e.Equipe??"Ambiente")</strong><small>@e.Equipe</small></td><td><strong>@e.Resumo</strong><small>@e.Detalhe</small></td><td><span class="categoria-pill">@e.Categoria</span></td><td><span class="gravidade-pill @e.Gravidade.ToLowerInvariant()"><i></i>@GravidadeNome(e.Gravidade)</span></td><td>@(e.Hostname??e.Fonte??"—")</td><td><a href="#" data-drilldown-url="/indicadores/detalhes?tipo=evidencia&valor=@Uri.EscapeDataString(e.Categoria)&dias=@dias">•••</a></td></tr>}

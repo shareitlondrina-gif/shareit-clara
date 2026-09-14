@@ -115,9 +115,11 @@ public sealed class RepositorioInteligencia(FabricaConexoesClara fabrica)
     {
         dias = Math.Clamp(dias, 1, 365);
         var evidencias = await ListarEvidenciasAsync(tenantId, dias, pessoa, categoria, gravidade, 500, ct);
+        var evidenciasVisuais = await ListarEvidenciasVisuaisAsync(tenantId, dias, null, 24, ct);
         var metricas = await ObterMetricasEvidenciasAsync(tenantId, ct);
         return new PainelEvidencias(
             evidencias,
+            evidenciasVisuais,
             metricas.Produtividade,
             metricas.PeriodosOciosos,
             metricas.AcessosNaoProdutivos,
@@ -171,6 +173,50 @@ public sealed class RepositorioInteligencia(FabricaConexoesClara fabrica)
                 leitor.IsDBNull(8) ? null : leitor.GetString(8),
                 leitor.IsDBNull(9) ? null : leitor.GetString(9),
                 ComoDataHora(leitor, 10)));
+        }
+        return lista;
+    }
+
+    public async Task<IReadOnlyCollection<EvidenciaVisualResumo>> ListarEvidenciasVisuaisAsync(
+        Guid tenantId,
+        int dias,
+        Guid? ativoId = null,
+        int limite = 24,
+        CancellationToken ct = default)
+    {
+        const string sql = """
+            SELECT v.id,v.ativo_id,at.hostname,v.pessoa,v.tipo,v.titulo,v.descricao,v.arquivo_relativo,
+                   v.capturada_em_utc,v.demonstrativa
+            FROM evidencias_visuais v
+            LEFT JOIN ativos at ON at.id=v.ativo_id AND at.tenant_id=v.tenant_id
+            WHERE v.tenant_id=@tenant
+              AND v.capturada_em_utc >= now() - (@dias * interval '1 day')
+              AND (@ativo IS NULL OR v.ativo_id=@ativo)
+            ORDER BY v.capturada_em_utc DESC
+            LIMIT @limite;
+            """;
+        var lista = new List<EvidenciaVisualResumo>();
+        await using var conexao = fabrica.Criar();
+        await conexao.OpenAsync(ct);
+        await using var comando = new NpgsqlCommand(sql, conexao);
+        comando.Parameters.AddWithValue("tenant", tenantId);
+        comando.Parameters.AddWithValue("dias", Math.Clamp(dias, 1, 3650));
+        comando.Parameters.AddWithValue("ativo", NpgsqlDbType.Uuid, (object?)ativoId ?? DBNull.Value);
+        comando.Parameters.AddWithValue("limite", Math.Clamp(limite, 1, 200));
+        await using var leitor = await comando.ExecuteReaderAsync(ct);
+        while (await leitor.ReadAsync(ct))
+        {
+            lista.Add(new EvidenciaVisualResumo(
+                leitor.GetGuid(0),
+                leitor.IsDBNull(1) ? null : leitor.GetGuid(1),
+                leitor.IsDBNull(2) ? null : leitor.GetString(2),
+                leitor.IsDBNull(3) ? null : leitor.GetString(3),
+                leitor.GetString(4),
+                leitor.GetString(5),
+                leitor.IsDBNull(6) ? null : leitor.GetString(6),
+                NormalizarUrlEvidencia(leitor.GetString(7)),
+                ComoDataHora(leitor, 8),
+                leitor.GetBoolean(9)));
         }
         return lista;
     }
@@ -457,11 +503,12 @@ public sealed class RepositorioInteligencia(FabricaConexoesClara fabrica)
         }
 
         var oportunidades = await ListarOportunidadesPorAtivoAsync(conexao, tenantId, ativoId, 6, ct);
-        var evidencias = await ListarEvidenciasPorAtivoAsync(conexao, tenantId, ativoId, 6, ct);
+        var evidencias = await ListarEvidenciasPorAtivoAsync(conexao, tenantId, ativoId, 8, ct);
+        var evidenciasVisuais = await ListarEvidenciasVisuaisAsync(tenantId, 30, ativoId, 8, ct);
         var foco = observado > 0 ? Math.Clamp((int)Math.Round(produtivo * 100d / observado), 0, 100) : 0;
         return new ContextoGerencialEstacao(
             agenteId, unidade, departamento, status, estado, processo, local,
-            produtivo, ocioso, aplicativoPrincipal, foco, timeline, oportunidades, evidencias);
+            produtivo, ocioso, aplicativoPrincipal, foco, timeline, oportunidades, evidencias, evidenciasVisuais);
     }
 
     public async Task<PainelDrilldown> ObterDrilldownAsync(Guid tenantId, string tipo, string? valor, int dias = 30, CancellationToken ct = default)
@@ -945,6 +992,14 @@ public sealed class RepositorioInteligencia(FabricaConexoesClara fabrica)
             leitor.GetFieldValue<TimeOnly>(13).ToString("HH:mm"), leitor.GetFieldValue<TimeOnly>(14).ToString("HH:mm"), leitor.GetString(15),
             leitor.GetInt32(16), leitor.GetInt32(17), leitor.GetBoolean(18), leitor.GetBoolean(19),
             leitor.IsDBNull(20) ? null : leitor.GetString(20), ComoDataHora(leitor, 21));
+
+    private static string NormalizarUrlEvidencia(string valor)
+    {
+        valor = (valor ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(valor)) return string.Empty;
+        if (valor.StartsWith("/", StringComparison.Ordinal)) return valor;
+        return "/" + valor.TrimStart('/');
+    }
 
     private static string NomeCategoria(string codigo) => codigo switch
     {

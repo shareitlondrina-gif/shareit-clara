@@ -134,10 +134,21 @@ Somente depois de RBAC, auditoria, política, retenção, armazenamento protegid
 - Diagnóstico de publicação mais objetivo e menor repetição de mensagens.
 - Sem alterações de schema: 6 migrations.
 
-## v0.5.4 — Correção do build Docker no Render — CANDIDATA À HOMOLOGAÇÃO
+## v0.5.5 — Correção do build Docker no Render — CANDIDATA À HOMOLOGAÇÃO
 
 - Corrigir caminhos relativos dos scripts do instalador após `cd /out/pacote` no Dockerfile.
 - Usar `/src/Ferramentas/...` para cópias executadas no build Linux do Render.
 - Validar arquivos obrigatórios antes do build local e dentro do Docker.
 - Remover warning `NomeCategoria` não utilizada.
 - Sem alterações de banco/migrations.
+
+
+## v0.5.6 - Demonstração gerencial e evidências visuais
+
+- auto-reparo da empresa Demonstração;
+- oportunidades/evidências/pontos de atenção populados;
+- Insight principal com base demonstrativa diferenciada por local;
+- “No que trabalhou hoje” no detalhe da estação;
+- migration 0007 para metadados de evidências visuais;
+- galeria de capturas fictícias no demo;
+- captura real continua pendente de RBAC, auditoria, retenção/storage e governança.

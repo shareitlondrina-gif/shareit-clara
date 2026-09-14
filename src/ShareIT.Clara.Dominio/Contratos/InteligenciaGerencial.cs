@@ -53,8 +53,27 @@ public sealed record EvidenciaResumo(
     string? Fonte,
     DateTimeOffset ObservadaEmUtc);
 
+/// <summary>
+/// Objetivo: representar uma evidência visual autorizada sem armazenar o binário da imagem no banco.
+/// Origem: captura governada do agente ou conteúdo fictício da empresa Demonstração.
+/// Destino: Evidências e detalhe da estação.
+/// Desenvolvedor: Paulo Andrade
+/// </summary>
+public sealed record EvidenciaVisualResumo(
+    Guid Id,
+    Guid? AtivoId,
+    string? Hostname,
+    string? Pessoa,
+    string Tipo,
+    string Titulo,
+    string? Descricao,
+    string Url,
+    DateTimeOffset CapturadaEmUtc,
+    bool Demonstrativa);
+
 public sealed record PainelEvidencias(
     IReadOnlyCollection<EvidenciaResumo> Evidencias,
+    IReadOnlyCollection<EvidenciaVisualResumo> EvidenciasVisuais,
     int ProdutividadeObservada,
     int PeriodosOciosos,
     int AcessosNaoProdutivos,
@@ -104,7 +123,8 @@ public sealed record ContextoGerencialEstacao(
     int IndiceFoco,
     IReadOnlyCollection<LinhaTimeline> TimelineHoje,
     IReadOnlyCollection<OportunidadeResumo> Oportunidades,
-    IReadOnlyCollection<EvidenciaResumo> Evidencias);
+    IReadOnlyCollection<EvidenciaResumo> Evidencias,
+    IReadOnlyCollection<EvidenciaVisualResumo> EvidenciasVisuais);
 
 public sealed record PainelDetalheEstacao(
     DetalheEstacao Estacao,
@@ -121,7 +141,8 @@ public sealed record PainelDetalheEstacao(
     int IndiceFoco,
     IReadOnlyCollection<LinhaTimeline> TimelineHoje,
     IReadOnlyCollection<OportunidadeResumo> Oportunidades,
-    IReadOnlyCollection<EvidenciaResumo> Evidencias);
+    IReadOnlyCollection<EvidenciaResumo> Evidencias,
+    IReadOnlyCollection<EvidenciaVisualResumo> EvidenciasVisuais);
 
 public sealed record PainelDrilldown(
     string Titulo,

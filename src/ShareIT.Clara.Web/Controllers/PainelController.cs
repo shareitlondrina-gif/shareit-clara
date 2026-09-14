@@ -162,7 +162,7 @@ public sealed class PainelController(
             estacao, gerencial.AgenteId, gerencial.Unidade, gerencial.Departamento, gerencial.StatusAtual,
             gerencial.EstadoAtual, gerencial.ProcessoAtual, gerencial.LocalTrabalho,
             gerencial.SegundosProdutivosHoje, gerencial.SegundosOciososHoje, gerencial.AplicativoPrincipal,
-            gerencial.IndiceFoco, gerencial.TimelineHoje, gerencial.Oportunidades, gerencial.Evidencias));
+            gerencial.IndiceFoco, gerencial.TimelineHoje, gerencial.Oportunidades, gerencial.Evidencias, gerencial.EvidenciasVisuais));
     }
 
     [HttpPost("estacoes/{ativoId:guid}/salvar")]
@@ -417,7 +417,7 @@ public sealed class PainelController(
     }
 
     private static string ObterVersaoAplicacao()
-        => Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.5.4";
+        => Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.5.6";
 
     private async Task PrepararDemonstracaoAsync(Guid tenant, CancellationToken ct)
         => await relogioDemonstracao.AtualizarSeNecessarioAsync(tenant, ct);
