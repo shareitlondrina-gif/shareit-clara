@@ -1,0 +1,27 @@
+Share IT .Clara v0.5.4 - RELATORIO DE VALIDACAO ESTATICA
+==========================================================
+
+Base: v0.5.3
+Objetivo: corrigir o build Docker do Render identificado na homologacao da v0.5.3.
+
+RESULTADO: APROVADO NA VALIDACAO ESTATICA
+
+Validacoes executadas:
+- OK: VERSAO.txt = 0.5.4.
+- OK: Directory.Build.props = 0.5.4.
+- OK: manifest.json valido e versao 0.5.4.
+- OK: marcadores Web/Agente/Extensao/Demo atualizados para 0.5.4.
+- OK: Dockerfile usa caminhos absolutos /src/Ferramentas/Instalacao e /src/Ferramentas/Diagnostico.
+- OK: Dockerfile nao usa mais os caminhos relativos que falharam apos cd /out/pacote.
+- OK: quatro scripts exigidos pelo Docker existem no pacote fonte.
+- OK: Dockerfile faz test -f dos quatro scripts antes da etapa de empacotamento.
+- OK: publicador Windows valida os mesmos quatro scripts antes de compilar/publicar.
+- OK: funcao local NomeCategoria nao utilizada foi removida.
+- OK: Deploy Hook persistente da v0.5.3 foi preservado.
+- OK: logs continuam centralizados em logs\.
+- OK: 8 projetos C# encontrados.
+- OK: 6 migrations encontradas e nenhuma migration nova adicionada.
+- OK: nenhum segredo local foi incluido no pacote.
+
+Limitacao do ambiente de geracao:
+- A homologacao definitiva continua sendo o PUBLICAR-CLARA.cmd no Windows e o build real do Render.

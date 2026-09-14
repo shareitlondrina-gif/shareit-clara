@@ -13,7 +13,6 @@
     string Tempo(long segundos) { var t = TimeSpan.FromSeconds(Math.Max(0, segundos)); return t.TotalHours >= 1 ? $"{(int)t.TotalHours}h {t.Minutes:00}m" : $"{t.Minutes}m"; }
     string EstadoVisual(string? estado) => (estado ?? "").ToLowerInvariant() switch { "ativo" => "Ativo", "ocioso" => "Ocioso", "reuniao" => "Reunião", "offline" => "Offline", "bloqueado" => "Bloqueado", _ => estado ?? "Online" };
     string ClasseEstado(string? estado) => (estado ?? "").ToLowerInvariant() switch { "ativo" => "verde", "ocioso" => "amarelo", "reuniao" => "roxo", "offline" => "vermelho", "bloqueado" => "cinza", _ => "azul" };
-    string NomeCategoria(string codigo) => codigo switch { "OciosidadeAlta" => "Ociosidade alta", "SitesNaoProdutivos" => "Sites não produtivos", "BaixaContinuidade" => "Baixa continuidade", "PossivelNecessidadeTreinamento" => "Necessidade de treinamento", "BaixoUsoSistemaPrincipal" => "Baixo uso do sistema", "HomeOffice" => "Home office", _ => codigo };
 }
 <section class="cabecalho-pagina cabecalho-clara">
     <div><span class="sobrelinha">VISÃO OPERACIONAL</span><h1>Agora</h1><p>O que está acontecendo nas estações monitoradas neste momento.</p></div>

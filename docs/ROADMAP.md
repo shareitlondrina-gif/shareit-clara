@@ -133,3 +133,11 @@ Somente depois de RBAC, auditoria, política, retenção, armazenamento protegid
 - Configurador local protegido para o hook.
 - Diagnóstico de publicação mais objetivo e menor repetição de mensagens.
 - Sem alterações de schema: 6 migrations.
+
+## v0.5.4 — Correção do build Docker no Render — CANDIDATA À HOMOLOGAÇÃO
+
+- Corrigir caminhos relativos dos scripts do instalador após `cd /out/pacote` no Dockerfile.
+- Usar `/src/Ferramentas/...` para cópias executadas no build Linux do Render.
+- Validar arquivos obrigatórios antes do build local e dentro do Docker.
+- Remover warning `NomeCategoria` não utilizada.
+- Sem alterações de banco/migrations.

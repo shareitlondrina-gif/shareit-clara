@@ -6,6 +6,11 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 RUN dotnet restore ShareIT.Clara.sln
+RUN test -f /src/Ferramentas/Instalacao/INSTALAR-AGENTE.cmd \
+    && test -f /src/Ferramentas/Instalacao/Instalar-Agente.ps1 \
+    && test -f /src/Ferramentas/Diagnostico/DIAGNOSTICAR-AGENTE.cmd \
+    && test -f /src/Ferramentas/Diagnostico/Diagnosticar-Agente.ps1
+
 RUN VERSION=$(cat VERSAO.txt | tr -d '\r\n') \
     && dotnet publish src/ShareIT.Clara.Agente/ShareIT.Clara.Agente.csproj -c Release -r win-x64 --self-contained true -o /out/pacote/Agente -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:Version=$VERSION \
     && dotnet publish src/ShareIT.Clara.Sessao/ShareIT.Clara.Sessao.csproj -c Release -r win-x64 --self-contained true -o /out/pacote/Sessao -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:Version=$VERSION \
@@ -23,8 +28,8 @@ RUN VERSION=$(cat VERSAO.txt | tr -d '\r\n') \
     && printf '{\n  "versao": "%s",\n  "urlPacote": "/api/v1/agentes/atualizacao/pacote/%s",\n  "sha256": "%s",\n  "obrigatoria": false,\n  "publicadaEmUtc": "%s"\n}\n' "$VERSION" "$VERSION" "$SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > /out/web/atualizacoes/agente/manifesto.json \
     && mkdir -p /out/instalador/Pacote \
     && cp -R /out/pacote/. /out/instalador/Pacote/ \
-    && cp Ferramentas/Instalacao/INSTALAR-AGENTE.cmd Ferramentas/Instalacao/Instalar-Agente.ps1 /out/instalador/ \
-    && cp Ferramentas/Diagnostico/DIAGNOSTICAR-AGENTE.cmd Ferramentas/Diagnostico/Diagnosticar-Agente.ps1 /out/instalador/ \
+    && cp /src/Ferramentas/Instalacao/INSTALAR-AGENTE.cmd /src/Ferramentas/Instalacao/Instalar-Agente.ps1 /out/instalador/ \
+    && cp /src/Ferramentas/Diagnostico/DIAGNOSTICAR-AGENTE.cmd /src/Ferramentas/Diagnostico/Diagnosticar-Agente.ps1 /out/instalador/ \
     && cd /out/instalador \
     && zip -qr /out/Clara-Instalador-v${VERSION}.zip . \
     && mkdir -p /out/web/instaladores/agente \

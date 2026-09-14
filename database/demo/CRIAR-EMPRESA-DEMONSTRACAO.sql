@@ -1,5 +1,5 @@
 -- ============================================================================
--- Share IT .Clara v0.5.3 - Empresa Demonstração
+-- Share IT .Clara v0.5.4 - Empresa Demonstração
 -- Requer migrations até 0006_distribuicao_navegacao_saas.sql.
 --
 -- Login de demonstração:
@@ -224,7 +224,7 @@ BEGIN
             id,tenant_id,ativo_id,identificador_agente,token_hash,versao,hostname,usuario_windows,
             sistema_operacional,fabricante,modelo,ultima_comunicacao_utc,status,ativo,registrado_em_utc,atualizado_em_utc,
             numero_serie,uuid_equipamento,arquitetura,memoria_total_bytes,disco_total_bytes,endereco_ip_local,endereco_ip_publico,processo_atual)
-        SELECT v_agente,v_tenant,v_ativo,gen_random_uuid(),encode(digest(gen_random_uuid()::text,'sha256'),'hex'),'0.5.3',
+        SELECT v_agente,v_tenant,v_ativo,gen_random_uuid(),encode(digest(gen_random_uuid()::text,'sha256'),'hex'),'0.5.4',
                a.hostname,v_usuario_windows,a.sistema_operacional,a.fabricante,a.modelo,
                CASE WHEN v_i<=12 THEN now()-(v_i||' seconds')::interval ELSE now()-interval '2 hours'-(v_i||' minutes')::interval END,
                CASE WHEN v_i<=12 THEN 'Online' ELSE 'Offline' END,true,now()-interval '45 days',now(),

@@ -475,6 +475,21 @@ try {
     if (-not $dotnetVersao.StartsWith('10.')) { Falhar ".NET SDK 10 obrigatorio. Encontrado: $dotnetVersao" }
     if ($executarGit) { Garantir-Comando 'git.exe' 'Git.Git' 'Git' }
 
+
+    $arquivosObrigatoriosInstalador = @(
+        'Ferramentas\Instalacao\INSTALAR-AGENTE.cmd',
+        'Ferramentas\Instalacao\Instalar-Agente.ps1',
+        'Ferramentas\Diagnostico\DIAGNOSTICAR-AGENTE.cmd',
+        'Ferramentas\Diagnostico\Diagnosticar-Agente.ps1'
+    )
+    foreach ($arquivoObrigatorio in $arquivosObrigatoriosInstalador) {
+        $caminhoObrigatorio = Join-Path $Raiz $arquivoObrigatorio
+        if (-not (Test-Path -LiteralPath $caminhoObrigatorio -PathType Leaf)) {
+            Falhar "Arquivo obrigatorio para o pacote/Render ausente: $arquivoObrigatorio"
+        }
+    }
+    Ok 'Arquivos de instalacao e diagnostico exigidos pelo Docker/instalador foram encontrados.'
+
     Etapa 'Limpando artefatos anteriores'
     if (Test-Path $Release) { Remove-Item $Release -Recurse -Force }
     New-Item -ItemType Directory -Force -Path $Release | Out-Null

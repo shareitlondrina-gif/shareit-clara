@@ -1,6 +1,6 @@
-# Share IT .Clara v0.5.3 — candidata
+# Share IT .Clara v0.5.4 — correção Render/Docker
 
-A v0.5.3 preserva todas as funcionalidades da v0.5.2 e fortalece o fluxo GitHub → Render depois da homologação que confirmou o push no GitHub, mas mostrou o serviço online ainda em v0.3.2 durante toda a janela de espera.
+A v0.5.4 preserva todas as funcionalidades da v0.5.3 e corrige o erro real identificado no build Docker do Render: após `cd /out/pacote`, o Dockerfile tentava copiar scripts de `Ferramentas` usando caminho relativo, fazendo o build procurar os arquivos no diretório errado. A versão também remove o warning `NomeCategoria` não utilizada e adiciona validações preventivas dos arquivos exigidos pelo instalador.
 
 ## Principais correções
 
@@ -23,3 +23,7 @@ A v0.5.3 preserva todas as funcionalidades da v0.5.2 e fortalece o fluxo GitHub 
 4. A publicação só é aprovada quando versão, Build ID, banco `shareit_clara` e quantidade de migrations coincidirem.
 
 > O pacote não contém a URL real do Deploy Hook nem outros segredos.
+
+## Correção principal da v0.5.4
+
+O Deploy Log da v0.5.3 mostrou que os projetos .NET eram publicados corretamente, mas o Docker falhava ao copiar `Ferramentas/Instalacao/INSTALAR-AGENTE.cmd` e `Instalar-Agente.ps1`. O comando era executado depois de `cd /out/pacote`, então o caminho relativo apontava para o local errado. A v0.5.4 usa caminhos absolutos `/src/Ferramentas/...` e valida esses arquivos antes do empacotamento.

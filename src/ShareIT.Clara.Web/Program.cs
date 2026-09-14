@@ -241,7 +241,7 @@ else
 await app.WaitForShutdownAsync();
 
 static string ObterVersaoAplicacao()
-    => Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.5.3";
+    => Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.5.4";
 
 static string ObterIdentificadorBuild()
 {
