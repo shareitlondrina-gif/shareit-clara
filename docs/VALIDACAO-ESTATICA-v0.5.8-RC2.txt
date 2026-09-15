@@ -1,0 +1,13 @@
+SHARE IT .CLARA v0.5.8-RC2 — VALIDAÇÃO ESTÁTICA DE HOTFIX
+
+[OK] VERSAO.txt permanece 0.5.8.
+[OK] Directory.Build.props permanece Version 0.5.8.
+[OK] logs/BUILD.txt identifica o pacote 0.5.8-RC2.
+[OK] 9 migrations presentes.
+[OK] Não existe referência a jornada.SobrescritaEstacao.
+[OK] ConfiguracaoJornadaEstacao declara PossuiSobrescrita.
+[OK] Estacao.cshtml usa PossuiSobrescrita.
+[OK] Todas as propriedades jornada.* utilizadas em Estacao.cshtml existem em ConfiguracaoJornadaEstacao.
+[OK] Nenhuma migration foi modificada por este hotfix.
+
+Observação: compilação .NET 10 deve ser confirmada no Windows pelo PUBLICAR-CLARA.cmd.

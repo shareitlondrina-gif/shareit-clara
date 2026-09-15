@@ -14,11 +14,17 @@ namespace ShareIT.Clara.Web.Controllers;
 /// Desenvolvedor: Paulo Andrade
 /// </summary>
 [Authorize(Roles = "Master")]
-public sealed class MasterController(RepositorioMaster repositorio, ServicoEmpresaDemonstracao demonstracao) : Controller
+public sealed class MasterController(RepositorioMaster repositorio, RepositorioGestaoExecutiva gestao, ServicoEmpresaDemonstracao demonstracao) : Controller
 {
     [HttpGet("master/empresas")]
     public async Task<IActionResult> Empresas(CancellationToken ct)
-        => View(await repositorio.ListarEmpresasAsync(ct));
+    {
+        var empresas = await repositorio.ListarEmpresasAsync(ct);
+        var integracoes = new Dictionary<Guid, ShareIT.Clara.Dominio.Contratos.IntegracaoProdutoShareItResumo>();
+        foreach (var empresa in empresas) integracoes[empresa.TenantId] = await gestao.ObterIntegracaoVisaoAsync(empresa.TenantId, ct);
+        ViewBag.IntegracoesVisao = integracoes;
+        return View(empresas);
+    }
 
     [HttpPost("master/empresas/criar")]
     [ValidateAntiForgeryToken]
@@ -65,6 +71,20 @@ public sealed class MasterController(RepositorioMaster repositorio, ServicoEmpre
         {
             TempData["Erro"] = ex.Message;
         }
+        return RedirectToAction(nameof(Empresas));
+    }
+
+    [HttpPost("master/empresas/{tenantId:guid}/visao")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ConfigurarVisao(Guid tenantId,bool contratado=false,bool integracaoAtiva=false,string? urlBase=null,bool gerarNovoToken=false,CancellationToken ct=default)
+    {
+        try
+        {
+            var token = await gestao.ConfigurarVisaoAsync(tenantId,contratado,integracaoAtiva,urlBase,gerarNovoToken,ct);
+            TempData["Mensagem"] = contratado ? ".VISÃO marcado conforme contratação do cliente. A Clara continua independente desse produto." : ".VISÃO desmarcado para este tenant; o Contexto TI ficará invisível.";
+            if(!string.IsNullOrWhiteSpace(token)) TempData["VisaoToken"] = token;
+        }
+        catch(Exception ex){TempData["Erro"]=ex.Message;}
         return RedirectToAction(nameof(Empresas));
     }
 

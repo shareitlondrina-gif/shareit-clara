@@ -40,6 +40,7 @@ public sealed record UsuarioAcessoResumo(
     string Nome,
     string Email,
     string PerfilSistema,
+    Guid? PerfilAcessoId,
     string? PerfilAcesso,
     bool Ativo,
     DateTimeOffset CriadoEmUtc);

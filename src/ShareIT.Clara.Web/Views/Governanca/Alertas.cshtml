@@ -1,0 +1,42 @@
+@model IReadOnlyCollection<RegraAlertaResumo>
+@{
+  ViewData["Title"]="Alertas e regras";
+  var departamentos=(IReadOnlyCollection<OpcaoCadastro>)(ViewBag.Departamentos ?? Array.Empty<OpcaoCadastro>());
+  var estacoes=(IReadOnlyCollection<EstacaoResumo>)(ViewBag.Estacoes ?? Array.Empty<EstacaoResumo>());
+  var historico=(IReadOnlyCollection<NotificacaoResumo>)(ViewBag.HistoricoAlertas ?? Array.Empty<NotificacaoResumo>());
+}
+@if(TempData["Mensagem"] is string msg){<div class="mensagem-sucesso">@msg</div>}
+<section class="cabecalho-pagina"><div><span class="sobrelinha">ADMINISTRAÇÃO</span><h1>Alertas e regras</h1><p>Defina limites, escopo, severidade e quem recebe as notificações.</p></div></section>
+<section class="grade-alertas-admin">
+  <article class="painel"><div class="titulo-painel"><div><h2>Regras configuradas</h2><p>O limite é um parâmetro factual; a interpretação permanece com o gestor.</p></div></div>
+    <div class="lista-regras-alerta">
+      @foreach(var r in Model){<div class="regra-alerta-item"><div><strong>@r.Nome</strong><small>@r.Tipo · @r.LimiteMinutos min · @r.EscopoTipo @(r.Departamento is null?"":$"· {r.Departamento}") @(r.Hostname is null?"":$"· {r.Hostname}")</small><span>Plataforma: @(r.CanalPlataforma?"sim":"não") · E-mail: @(r.CanalEmail?"sim":"não") · Perfis: @r.DestinatariosPerfis</span></div><span class="selo @(r.Ativo?"selo-ok":"selo-neutro")">@(r.Ativo?"Ativa":"Pausada")</span><form method="post" action="/administracao/alertas/@r.Id/alternar">@Html.AntiForgeryToken()<input type="hidden" name="ativo" value="@(!r.Ativo)"/><button class="botao-secundario" type="submit">@(r.Ativo?"Pausar":"Ativar")</button></form></div>}
+    </div>
+  </article>
+  <article class="painel"><div class="titulo-painel"><div><h2>Nova regra</h2><p>Ex.: site não produtivo acima de 20 minutos.</p></div></div>
+    <form method="post" action="/administracao/alertas/criar" class="formulario-vertical">@Html.AntiForgeryToken()
+      <label>Nome<input name="nome" required placeholder="Uso não produtivo acima do limite"/></label>
+      <label>Tipo<select name="tipo"><option value="UsoNaoProdutivo">Uso não produtivo</option><option value="Ociosidade">Ociosidade</option><option value="ProdutivoForaJornada">Produtivo fora da jornada</option><option value="EstacaoOffline">Estação offline</option><option value="InicioTardio">Início após a referência</option><option value="SaidaAntecipada">Saída antes da referência</option><option value="IntervaloLongo">Intervalo/ociosidade contínua</option><option value="AusenciaAtividade">Sem atividade no dia</option><option value="CargaAbaixo">Carga observada abaixo da referência</option><option value="CargaAcima">Carga observada acima da referência</option></select></label>
+      <label>Limite (minutos)<input type="number" min="1" max="1440" name="limiteMinutos" value="20"/></label>
+      <label>Escopo<select name="escopoTipo" data-escopo-alerta><option value="Todos">Empresa / todos</option><option value="Departamento">Equipe/departamento</option><option value="Estacao">Estação</option></select></label>
+      <label>Departamento<select name="departamentoId"><option value="">—</option>@foreach(var d in departamentos){<option value="@d.Id">@d.Nome</option>}</select></label>
+      <label>Estação<select name="ativoId"><option value="">—</option>@foreach(var e in estacoes){<option value="@e.AtivoId">@e.Hostname · @(e.Responsavel ?? e.UsuarioWindows ?? "sem responsável")</option>}</select></label>
+      <label>Severidade<select name="severidade"><option>Informativa</option><option selected>Atencao</option><option>Alta</option><option>Critica</option></select></label>
+      <label class="linha-toggle"><span><strong>Central da plataforma</strong><small>Exibe no sino de notificações.</small></span><input type="checkbox" name="canalPlataforma" value="true" checked/></label>
+      <label class="linha-toggle"><span><strong>E-mail</strong><small>Usa a caixa de saída da .Clara.</small></span><input type="checkbox" name="canalEmail" value="true"/></label>
+      <label>Perfis destinatários<input name="destinatariosPerfis" value="Administrador,Supervisor"/></label>
+      <label>E-mails adicionais<input name="destinatariosEmail" placeholder="gestor@empresa.com, rh@empresa.com"/></label>
+      <label class="linha-toggle"><span><strong>Gerar evidência</strong></span><input type="checkbox" name="gerarEvidencia" value="true" checked/></label>
+      <label class="linha-toggle"><span><strong>Gerar oportunidade</strong></span><input type="checkbox" name="gerarOportunidade" value="true"/></label>
+      <button type="submit">Criar regra</button>
+    </form>
+  </article>
+</section>
+
+<section class="painel historico-alertas">
+  <div class="titulo-painel"><div><span class="sobrelinha">HISTÓRICO</span><h2>Alertas disparados</h2><p>Últimos 100 disparos das regras parametrizadas. O registro mostra o fato e o limite configurado no momento do alerta.</p></div></div>
+  <div class="tabela-responsiva"><table><thead><tr><th>Quando</th><th>Severidade</th><th>Alerta</th><th>Resumo</th><th></th></tr></thead><tbody>
+  @foreach(var h in historico){<tr><td>@h.CriadaEmUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td><td><span class="selo selo-info">@h.Severidade</span></td><td><strong>@h.Titulo</strong><span class="subtexto-tabela">@h.Tipo</span></td><td>@h.Resumo</td><td>@if(!string.IsNullOrWhiteSpace(h.UrlDestino)){<a class="link-principal" href="@h.UrlDestino">Abrir</a>}</td></tr>}
+  @if(historico.Count==0){<tr><td colspan="5"><div class="estado-vazio"><strong>Nenhum alerta disparado ainda.</strong><span>Quando uma regra atingir o limite, o evento aparecerá aqui e na Central de Notificações conforme o canal configurado.</span></div></td></tr>}
+  </tbody></table></div>
+</section>

@@ -28,11 +28,20 @@ public sealed record ConfiguracoesMonitoramento(
     bool AlertaEstacaoOffline,
     bool NotificarPorEmail,
     string? DestinatariosAlertas,
-    DateTimeOffset AtualizadoEmUtc);
+    DateTimeOffset AtualizadoEmUtc,
+    string JornadaInicio,
+    string JornadaFim,
+    int CargaHorariaDiariaMinutos,
+    int MargemAntesMinutos,
+    int MargemDepoisMinutos,
+    string DiasJornada,
+    string FusoHorario);
 
 /// <summary>
 /// Objetivo: enviar ao agente apenas os parâmetros necessários para a coleta autorizada.
-/// Origem: configuracoes_monitoramento do tenant autenticado pelo agente.
+/// HorarioInicio/HorarioFim representam o PERÍODO DE MONITORAMENTO efetivo; fora dele o
+/// processo de sessão não coleta telemetria. A jornada de referência é usada somente no servidor.
+/// Origem: configuracoes_monitoramento + eventual sobrescrita da estação.
 /// Destino: configuração local em ProgramData e processo ShareIT.Clara.Sessao.
 /// Desenvolvedor: Paulo Andrade
 /// </summary>
@@ -50,4 +59,7 @@ public sealed record PoliticaMonitoramentoAgente(
     int IntervaloCapturaMinutos,
     int RetencaoEvidenciasDias,
     bool AnonimizacaoParcial,
+    IReadOnlyCollection<string> AplicativosExcluidos,
+    IReadOnlyCollection<string> DominiosExcluidos,
+    string FusoHorario,
     DateTimeOffset AtualizadaEmUtc);

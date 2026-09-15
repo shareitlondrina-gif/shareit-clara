@@ -25,6 +25,8 @@ public sealed class PainelController(
     RepositorioAdministracao administracao,
     RepositorioContexto contexto,
     RepositorioInteligencia inteligencia,
+    RepositorioGovernanca governanca,
+    RepositorioGestaoExecutiva gestao,
     ServicoRelogioDemonstracao relogioDemonstracao,
     ConfiguracaoClara configuracao,
     IWebHostEnvironment ambiente) : Controller
@@ -158,6 +160,7 @@ public sealed class PainelController(
         ViewBag.Empresas = await administracao.ListarEmpresasAsync(tenant, ct);
         ViewBag.Unidades = await administracao.ListarUnidadesAsync(tenant, ct);
         ViewBag.Departamentos = await administracao.ListarDepartamentosAsync(tenant, ct);
+        ViewBag.Jornada = await governanca.ObterJornadaEstacaoAsync(tenant, ativoId, ct);
         return View(new PainelDetalheEstacao(
             estacao, gerencial.AgenteId, gerencial.Unidade, gerencial.Departamento, gerencial.StatusAtual,
             gerencial.EstadoAtual, gerencial.ProcessoAtual, gerencial.LocalTrabalho,
@@ -223,6 +226,33 @@ public sealed class PainelController(
         await contexto.RemoverRegraSiteAsync(ObterTenant(), id, ct);
         TempData["Mensagem"] = "Regra de site removida.";
         return RedirectToAction(nameof(NavegacaoWeb), new { dias = Math.Clamp(dias, 1, 90) });
+    }
+
+
+    [HttpGet("pulso-operacao")]
+    public async Task<IActionResult> PulsoOperacao(int dias = 7, CancellationToken ct = default)
+    {
+        if (!TemModulo("pulso-operacao")) return Forbid();
+        var tenant = ObterTenant();
+        await PrepararDemonstracaoAsync(tenant, ct);
+        ViewBag.Dias = Math.Clamp(dias, 1, 90);
+        ViewBag.CustosSoftware = await gestao.ListarCustosSoftwareAsync(tenant, ct);
+        ViewBag.AdocaoIa = await gestao.ObterAdocaoIaAsync(tenant, Math.Clamp(dias,1,90), ct);
+        ViewBag.Capacidade = await gestao.ObterCapacidadeOperacionalAsync(tenant, Math.Clamp(dias,1,90), ct);
+        ViewBag.PadroesRepetitivos = await gestao.ObterPadroesRepetitivosAsync(tenant, Math.Clamp(dias,1,90), ct);
+        return View(await gestao.ObterPulsoAsync(tenant, dias, ct));
+    }
+
+    [HttpGet("contexto-ti")]
+    public async Task<IActionResult> ContextoTi(int dias = 7, CancellationToken ct = default)
+    {
+        if (!TemModulo("contexto-ti")) return Forbid();
+        var tenant = ObterTenant();
+        var integracao = await gestao.ObterIntegracaoVisaoAsync(tenant, ct);
+        if (!integracao.Contratado || !integracao.IntegracaoAtiva) return NotFound();
+        ViewBag.IntegracaoVisao = integracao;
+        ViewBag.Dias = Math.Clamp(dias, 1, 90);
+        return View(await gestao.ListarContextoVisaoAsync(tenant, dias, 300, ct));
     }
 
     [HttpGet("indice-geral")]
@@ -336,7 +366,14 @@ public sealed class PainelController(
     public async Task<IActionResult> Configuracoes(CancellationToken ct)
     {
         if (!TemModulo("configuracoes") || !User.IsInRole("Administrador")) return Forbid();
-        return View(await inteligencia.ObterConfiguracoesAsync(ObterTenant(), ct));
+        var tenant = ObterTenant();
+        ViewBag.Retencao = await gestao.ObterRetencaoAsync(tenant, ct);
+        ViewBag.Exclusoes = await gestao.ListarExclusoesAsync(tenant, ct);
+        ViewBag.Departamentos = await administracao.ListarDepartamentosAsync(tenant, ct);
+        ViewBag.CustosSoftware = await gestao.ListarCustosSoftwareAsync(tenant, ct);
+        ViewBag.ReferenciasOperacionais = await gestao.ListarReferenciasOperacionaisAsync(tenant, ct);
+        ViewBag.AdocaoIa = await gestao.ObterAdocaoIaAsync(tenant, 30, ct);
+        return View(await inteligencia.ObterConfiguracoesAsync(tenant, ct));
     }
 
     [HttpPost("administracao/configuracoes/salvar")]
@@ -362,6 +399,13 @@ public sealed class PainelController(
         bool alertaEstacaoOffline,
         bool notificarPorEmail,
         string? destinatariosAlertas,
+        string jornadaInicio,
+        string jornadaFim,
+        int cargaHorariaDiariaMinutos,
+        int margemAntesMinutos,
+        int margemDepoisMinutos,
+        string diasJornada,
+        string fusoHorario,
         CancellationToken ct)
     {
         if (!TemModulo("configuracoes") || !User.IsInRole("Administrador")) return Forbid();
@@ -373,9 +417,68 @@ public sealed class PainelController(
             false, // captura de tela segue estruturalmente preparada, mas desabilitada nesta baseline.
             intervaloCapturaMinutos, retencaoEvidenciasDias, anonimizacaoParcial,
             horarioInicio, horarioFim, diasMonitorados, intervaloHeartbeatSegundos, tempoOfflineMinutos,
-            alertaEstacaoOffline, notificarPorEmail, destinatariosAlertas, atual.AtualizadoEmUtc);
+            alertaEstacaoOffline, notificarPorEmail, destinatariosAlertas, atual.AtualizadoEmUtc,
+            jornadaInicio, jornadaFim, cargaHorariaDiariaMinutos, margemAntesMinutos, margemDepoisMinutos, diasJornada, fusoHorario);
         await inteligencia.SalvarConfiguracoesAsync(ObterTenant(), configuracoes, ct);
         TempData["Mensagem"] = "Configurações salvas. Os agentes receberão a política na próxima sincronização.";
+        return RedirectToAction(nameof(Configuracoes));
+    }
+
+    [HttpPost("administracao/configuracoes/retencao")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SalvarRetencao(int telemetriaDias,int evidenciasDias,int notificacoesDias,int emailsDias,int auditoriaDias,CancellationToken ct)
+    {
+        if (!TemModulo("configuracoes") || !User.IsInRole("Administrador")) return Forbid();
+        await gestao.SalvarRetencaoAsync(ObterTenant(),telemetriaDias,evidenciasDias,notificacoesDias,emailsDias,auditoriaDias,ct);
+        TempData["Mensagem"]="Política de retenção atualizada. O expurgo automático respeitará os novos prazos.";
+        return RedirectToAction(nameof(Configuracoes));
+    }
+
+    [HttpPost("administracao/configuracoes/exclusoes/criar")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CriarExclusaoMonitoramento(Guid? departamentoId,string tipo,string valor,string? motivo,CancellationToken ct)
+    {
+        if (!TemModulo("configuracoes") || !User.IsInRole("Administrador")) return Forbid();
+        try { await gestao.CriarExclusaoAsync(ObterTenant(),departamentoId,tipo,valor,motivo,ct); TempData["Mensagem"]="Exclusão de privacidade registrada."; }
+        catch(Exception ex){TempData["Erro"]=ex.Message;}
+        return RedirectToAction(nameof(Configuracoes));
+    }
+
+    [HttpPost("administracao/configuracoes/exclusoes/{id:guid}/alternar")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AlternarExclusaoMonitoramento(Guid id,bool ativo,CancellationToken ct)
+    {
+        if (!TemModulo("configuracoes") || !User.IsInRole("Administrador")) return Forbid();
+        await gestao.AlternarExclusaoAsync(ObterTenant(),id,ativo,ct);
+        return RedirectToAction(nameof(Configuracoes));
+    }
+
+    [HttpPost("administracao/configuracoes/custos-software/salvar")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SalvarCustoSoftware(string processoOuProduto,int quantidadeLicencas,decimal custoMensalUnitario,string? observacao,CancellationToken ct)
+    {
+        if (!TemModulo("configuracoes") || !User.IsInRole("Administrador")) return Forbid();
+        try { await gestao.SalvarCustoSoftwareAsync(ObterTenant(),processoOuProduto,quantidadeLicencas,custoMensalUnitario,observacao,ct); TempData["Mensagem"]="Custo/licenciamento registrado para análise de utilização."; }
+        catch(Exception ex){TempData["Erro"]=ex.Message;}
+        return RedirectToAction(nameof(Configuracoes));
+    }
+
+    [HttpPost("administracao/configuracoes/custos-software/{id:guid}/alternar")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AlternarCustoSoftware(Guid id,bool ativo,CancellationToken ct)
+    {
+        if (!TemModulo("configuracoes") || !User.IsInRole("Administrador")) return Forbid();
+        await gestao.AlternarCustoSoftwareAsync(ObterTenant(),id,ativo,ct);
+        return RedirectToAction(nameof(Configuracoes));
+    }
+
+    [HttpPost("administracao/configuracoes/referencias/salvar")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SalvarReferenciaOperacional(Guid? departamentoId,string nome,string metrica,decimal valorReferencia,string unidade,CancellationToken ct)
+    {
+        if (!TemModulo("configuracoes") || !User.IsInRole("Administrador")) return Forbid();
+        try { await gestao.SalvarReferenciaOperacionalAsync(ObterTenant(),departamentoId,nome,metrica,valorReferencia,unidade,ct); TempData["Mensagem"]="Referência operacional registrada."; }
+        catch(Exception ex){TempData["Erro"]=ex.Message;}
         return RedirectToAction(nameof(Configuracoes));
     }
 
@@ -417,7 +520,7 @@ public sealed class PainelController(
     }
 
     private static string ObterVersaoAplicacao()
-        => Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.5.6";
+        => Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.5.8";
 
     private async Task PrepararDemonstracaoAsync(Guid tenant, CancellationToken ct)
         => await relogioDemonstracao.AtualizarSeNecessarioAsync(tenant, ct);

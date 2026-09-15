@@ -1,0 +1,12 @@
+@model PainelNotificacoes
+<div class="cabecalho-notificacoes"><div><strong>Notificações</strong><small>@Model.NaoLidas não lida(s)</small></div>@if(Model.NaoLidas>0){<form method="post" action="/notificacoes/todas-lidas">@Html.AntiForgeryToken()<button type="submit" class="link-botao">Marcar todas como lidas</button></form>}</div>
+<div class="lista-notificacoes">
+@foreach(var n in Model.Itens){
+  <article class="notificacao-item @(n.Lida?"lida":"nao-lida") severidade-@n.Severidade.ToLowerInvariant()">
+    <span class="ponto-notificacao"></span>
+    <div><a href="@(n.UrlDestino ?? "#")"><strong>@n.Titulo</strong><small>@n.CriadaEmUtc.ToLocalTime().ToString("dd/MM HH:mm") · @n.Severidade</small><p>@n.Resumo</p></a></div>
+    @if(!n.Lida){<form method="post" action="/notificacoes/@n.Id/lida">@Html.AntiForgeryToken()<input type="hidden" name="retorno" value="@(n.UrlDestino ?? "/")"/><button type="submit" title="Marcar como lida">✓</button></form>}
+  </article>
+}
+@if(Model.Itens.Count==0){<div class="estado-vazio compacto"><strong>Nenhuma notificação.</strong><span>Os alertas configurados aparecerão aqui.</span></div>}
+</div>

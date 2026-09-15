@@ -1,6 +1,6 @@
 -- ============================================================================
--- Share IT .Clara v0.5.6 - Empresa Demonstração
--- Requer migrations até 0007_evidencias_visuais_demonstracao.sql.
+-- Share IT .Clara v0.5.8 - Empresa Demonstração
+-- Requer migrations até 0009_fechamento_operacional_coexistencia_gestao.sql.
 --
 -- Login de demonstração:
 --   E-mail: demonstracao@clara.local
@@ -67,6 +67,7 @@ BEGIN
 
     INSERT INTO perfis_acesso(tenant_id,codigo,nome,padrao,sistema) VALUES
       (v_tenant,'ADMINISTRADOR','Administrador',false,true),
+      (v_tenant,'SUPERVISOR','Supervisor',false,true),
       (v_tenant,'PADRAO','Padrão',true,true)
     ON CONFLICT(tenant_id,codigo) DO UPDATE SET nome=EXCLUDED.nome,ativo=true;
 
@@ -79,8 +80,8 @@ BEGIN
     INSERT INTO perfil_modulos(perfil_id,modulo_codigo,permitido)
     SELECT p.id,m.codigo,true
     FROM perfis_acesso p JOIN modulos m ON m.codigo IN
-      ('agora','estacoes','aplicativos','locais','integracoes','indice-geral','oportunidades','evidencias')
-    WHERE p.tenant_id=v_tenant AND p.codigo='PADRAO'
+      ('agora','estacoes','aplicativos','locais','integracoes','indice-geral','oportunidades','evidencias','relatorios')
+    WHERE p.tenant_id=v_tenant AND p.codigo IN ('PADRAO','SUPERVISOR')
     ON CONFLICT(perfil_id,modulo_codigo) DO UPDATE SET permitido=true,atualizado_em_utc=now();
 
     -- Hash PBKDF2-SHA256 compatível com SenhaSegura. Senha demo: demonstracao.
@@ -103,10 +104,12 @@ BEGIN
         redes_confiaveis_cidr,considerar_vpn_escritorio,classificar_ip_publico,captura_screenshots,
         intervalo_captura_minutos,retencao_evidencias_dias,anonimizacao_parcial,horario_inicio,horario_fim,
         dias_monitorados,intervalo_heartbeat_segundos,tempo_offline_minutos,alerta_estacao_offline,
-        notificar_por_email,destinatarios_alertas,atualizado_em_utc)
+        notificar_por_email,destinatarios_alertas,atualizado_em_utc,
+        jornada_inicio,jornada_fim,carga_horaria_diaria_minutos,margem_antes_minutos,margem_depois_minutos,dias_jornada,fuso_horario)
     VALUES(v_tenant,true,true,true,3,5,10,'10.10.0.0/16, 192.168.50.0/24',true,true,false,
-           5,90,true,'08:00','18:00','1,2,3,4,5',300,15,true,true,
-           'ti@empresa.com, gestor@empresa.com',now())
+           5,90,true,'07:00','20:00','1,2,3,4,5',300,15,true,true,
+           'ti@empresa.com, gestor@empresa.com',now(),
+           '08:00','18:00',480,30,60,'1,2,3,4,5','America/Sao_Paulo')
     ON CONFLICT(tenant_id) DO UPDATE SET
         permitir_classificacao_web=EXCLUDED.permitir_classificacao_web,
         monitorar_urls_dominios=EXCLUDED.monitorar_urls_dominios,
@@ -127,7 +130,11 @@ BEGIN
         tempo_offline_minutos=EXCLUDED.tempo_offline_minutos,
         alerta_estacao_offline=EXCLUDED.alerta_estacao_offline,
         notificar_por_email=EXCLUDED.notificar_por_email,
-        destinatarios_alertas=EXCLUDED.destinatarios_alertas,atualizado_em_utc=now();
+        destinatarios_alertas=EXCLUDED.destinatarios_alertas,
+        jornada_inicio=EXCLUDED.jornada_inicio,jornada_fim=EXCLUDED.jornada_fim,
+        carga_horaria_diaria_minutos=EXCLUDED.carga_horaria_diaria_minutos,
+        margem_antes_minutos=EXCLUDED.margem_antes_minutos,margem_depois_minutos=EXCLUDED.margem_depois_minutos,
+        dias_jornada=EXCLUDED.dias_jornada,fuso_horario=EXCLUDED.fuso_horario,atualizado_em_utc=now();
 
     INSERT INTO categorias_atividade(tenant_id,nome,classificacao)
     SELECT v_tenant,x.nome,x.classificacao FROM (VALUES
@@ -225,7 +232,7 @@ BEGIN
             id,tenant_id,ativo_id,identificador_agente,token_hash,versao,hostname,usuario_windows,
             sistema_operacional,fabricante,modelo,ultima_comunicacao_utc,status,ativo,registrado_em_utc,atualizado_em_utc,
             numero_serie,uuid_equipamento,arquitetura,memoria_total_bytes,disco_total_bytes,endereco_ip_local,endereco_ip_publico,processo_atual)
-        SELECT v_agente,v_tenant,v_ativo,gen_random_uuid(),encode(digest(gen_random_uuid()::text,'sha256'),'hex'),'0.5.6',
+        SELECT v_agente,v_tenant,v_ativo,gen_random_uuid(),encode(digest(gen_random_uuid()::text,'sha256'),'hex'),'0.5.8',
                a.hostname,v_usuario_windows,a.sistema_operacional,a.fabricante,a.modelo,
                CASE WHEN v_i IN (6,12,15) THEN now()-interval '2 hours'-(v_i||' minutes')::interval ELSE now()-(v_i||' seconds')::interval END,
                CASE WHEN v_i IN (6,12,15) THEN 'Offline' ELSE 'Online' END,true,now()-interval '45 days',now(),
@@ -466,6 +473,40 @@ BEGIN
     SELECT v_tenant,a.id,'Isabela Melo','Administrativo','HomeOffice','Home office com ociosidade acima do escritório','Medio','Revisar contexto, alinhar entregas e rotina no home office.','EmAndamento','Regra demonstrativa',now()-interval '5 hours' FROM ativos a WHERE a.tenant_id=v_tenant AND a.hostname='DEMO-PC-09';
     INSERT INTO oportunidades(tenant_id,ativo_id,pessoa,equipe,categoria,evidencia_resumida,impacto,recomendacao,status,origem,detectada_em_utc)
     VALUES(v_tenant,NULL,NULL,'Administrativo','HomeOffice','Média de ociosidade maior em dias de home office','Medio','Revisar diretrizes, definir metas claras e rotina de acompanhamento.','Pendente','Regra demonstrativa',now()-interval '1 day 2 hours');
+
+
+    -- v0.5.8-RC: contexto executivo e integração opcional .VISÃO apenas para a empresa de demonstração.
+    INSERT INTO integracoes_produtos_shareit(tenant_id,produto,contratado,integracao_ativa,url_base,ultimo_sucesso_utc,atualizado_em_utc)
+    VALUES(v_tenant,'Visao',true,true,'https://visao.demo.local',now()-interval '9 minutes',now())
+    ON CONFLICT(tenant_id,produto) DO UPDATE SET contratado=true,integracao_ativa=true,url_base=EXCLUDED.url_base,ultimo_sucesso_utc=EXCLUDED.ultimo_sucesso_utc,atualizado_em_utc=now();
+
+    DELETE FROM contexto_tecnico_visao WHERE tenant_id=v_tenant;
+    INSERT INTO contexto_tecnico_visao(tenant_id,ativo_id,hostname,categoria,severidade,resumo,detalhe,referencia_externa,observado_em_utc)
+    SELECT v_tenant,a.id,a.hostname,'Performance','Atencao','Uso de memória acima da referência','Memória observada acima de 90% durante parte do expediente.','VIS-DEMO-001',now()-interval '48 minutes' FROM ativos a WHERE a.tenant_id=v_tenant AND a.hostname='DEMO-PC-03';
+    INSERT INTO contexto_tecnico_visao(tenant_id,ativo_id,hostname,categoria,severidade,resumo,detalhe,referencia_externa,observado_em_utc)
+    SELECT v_tenant,a.id,a.hostname,'Rede','Alta','Oscilação de conectividade observada','Perda de pacotes e latência acima da referência no mesmo período de queda operacional.','VIS-DEMO-002',now()-interval '2 hours' FROM ativos a WHERE a.tenant_id=v_tenant AND a.hostname='DEMO-PC-07';
+    INSERT INTO contexto_tecnico_visao(tenant_id,ativo_id,hostname,categoria,severidade,resumo,detalhe,referencia_externa,observado_em_utc)
+    SELECT v_tenant,a.id,a.hostname,'Sistema','Informativa','Estação tecnicamente saudável','Sem sinais técnicos relevantes no período analisado.','VIS-DEMO-003',now()-interval '3 hours' FROM ativos a WHERE a.tenant_id=v_tenant AND a.hostname='DEMO-PC-01';
+
+    INSERT INTO custos_software(tenant_id,processo_ou_produto,quantidade_licencas,custo_mensal_unitario,observacao,ativo)
+    VALUES(v_tenant,'ERPDEMO.EXE',15,129.90,'Licenças fictícias para demonstração de utilização/custo.',true)
+    ON CONFLICT(tenant_id,(lower(processo_ou_produto))) DO UPDATE SET quantidade_licencas=15,custo_mensal_unitario=129.90,observacao=EXCLUDED.observacao,ativo=true,atualizado_em_utc=now();
+    INSERT INTO custos_software(tenant_id,processo_ou_produto,quantidade_licencas,custo_mensal_unitario,observacao,ativo)
+    VALUES(v_tenant,'POWERPNT.EXE',10,45.00,'Exemplo de software com possível subutilização.',true)
+    ON CONFLICT(tenant_id,(lower(processo_ou_produto))) DO UPDATE SET quantidade_licencas=10,custo_mensal_unitario=45.00,observacao=EXCLUDED.observacao,ativo=true,atualizado_em_utc=now();
+
+    DELETE FROM referencias_operacionais WHERE tenant_id=v_tenant;
+    INSERT INTO referencias_operacionais(tenant_id,departamento_id,nome,metrica,valor_referencia,unidade,ativo) VALUES
+      (v_tenant,NULL,'Foco operacional da empresa','FocoPercentual',75,'%',true),
+      (v_tenant,v_dep_fin,'Ociosidade de referência - Financeiro','OciosidadePercentual',15,'%',true),
+      (v_tenant,v_dep_fiscal,'Uso esperado do sistema principal - Fiscal','UsoSistemaPrincipalMinutos',240,'min/dia',true);
+
+    -- Adoção de IA é medida apenas por ferramenta/domínio e duração; nenhum prompt/conteúdo é lido.
+    INSERT INTO sites_utilizados(tenant_id,ativo_id,agente_id,usuario_windows,dominio,navegador,inicio_utc,fim_utc)
+    SELECT v_tenant,a.id,g.id,'carla.souza','chatgpt.com','Edge',now()-interval '4 hours',now()-interval '3 hours 42 minutes'
+    FROM ativos a JOIN agentes g ON g.ativo_id=a.id AND g.tenant_id=a.tenant_id
+    WHERE a.tenant_id=v_tenant AND a.hostname='DEMO-PC-03'
+    LIMIT 1;
 
     RAISE NOTICE 'Empresa demonstração atualizada. Login: demonstracao@clara.local / senha: demonstracao';
 END $$;

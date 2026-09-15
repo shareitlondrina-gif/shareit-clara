@@ -1,0 +1,81 @@
+Share IT .Clara v0.5.7 - RELATORIO DE VALIDACAO ESTATICA
+
+Verificacoes: 75 | OK: 75 | FALHAS: 0
+
+- OK: VERSAO.txt = 0.5.7
+- OK: Directory.Build.props = 0.5.7
+- OK: logs/BUILD.txt = 0.5.7-package
+- OK: manifest navegador = 0.5.7
+- OK: versão runtime em Program.cs
+- OK: versão runtime em PainelController.cs
+- OK: versão runtime em ClienteApiClara.cs
+- OK: versão runtime em _Layout.cshtml
+- OK: versão runtime em CRIAR-EMPRESA-DEMONSTRACAO.sql
+- OK: 8 migrations — 8
+- OK: migration 0001 preservada
+- OK: migration 0002 preservada
+- OK: migration 0003 preservada
+- OK: migration 0004 preservada
+- OK: migration 0005 preservada
+- OK: migration 0006 preservada
+- OK: migration 0007 preservada
+- OK: migration 0008 presente
+- OK: Docker usa /src Ferramentas instalação
+- OK: Docker usa /src Ferramentas diagnóstico
+- OK: publicador conta migrations dinamicamente
+- OK: publicador usa pasta logs
+- OK: logs operacionais centralizados em logs/
+- OK: sem Deploy Hook/senha real no pacote
+- OK: render.yaml contém CLARA_EMAIL_SMTP_HOST
+- OK: render.yaml contém CLARA_EMAIL_SMTP_PORT
+- OK: render.yaml contém CLARA_EMAIL_SMTP_SSL
+- OK: render.yaml contém CLARA_EMAIL_SMTP_USER
+- OK: render.yaml contém CLARA_EMAIL_SMTP_PASSWORD
+- OK: render.yaml contém CLARA_EMAIL_FROM
+- OK: render.yaml contém CLARA_EMAIL_FROM_NAME
+- OK: remetente oficial configurado
+- OK: tema claro off-white
+- OK: tema escuro definido
+- OK: tema sistema definido
+- OK: perfil de tema existe
+- OK: config agente avalia período
+- OK: sessão bloqueia fora do período
+- OK: navegação agente bloqueia fora do período
+- OK: host navegador tem status de política
+- OK: extensão consulta status antes de coletar
+- OK: arquivo presente src/ShareIT.Clara.Web/Views/Governanca/Relatorios.cshtml
+- OK: arquivo presente src/ShareIT.Clara.Web/Views/Governanca/Alertas.cshtml
+- OK: arquivo presente src/ShareIT.Clara.Web/Views/Governanca/Governanca.cshtml
+- OK: arquivo presente src/ShareIT.Clara.Web/Views/Governanca/_Notificacoes.cshtml
+- OK: arquivo presente src/ShareIT.Clara.Web/Servicos/ServicoAlertas.cs
+- OK: arquivo presente src/ShareIT.Clara.Web/Servicos/ServicoFilaEmail.cs
+- OK: arquivo presente docs/Juridico/MODELO-POLITICA-MONITORAMENTO-PRODUTIVIDADE-PRIVACIDADE.md
+- OK: arquivo presente docs/Juridico/ANEXO-TECNICO-SHAREIT-CLARA.md
+- OK: arquivo presente docs/Juridico/CLAUSULAS-CONTRATUAIS-MODULO-CLARA.md
+- OK: arquivo presente docs/Juridico/FLUXO-GOVERNANCA-RECURSOS-RESTRITOS.md
+- OK: arquivo presente docs/CONFIGURACAO-EMAIL-v0.5.7.md
+- OK: arquivo presente docs/GUIA-NOVIDADES-v0.5.7.md
+- OK: 0008 contém jornada_inicio
+- OK: 0008 contém carga_horaria_diaria_minutos
+- OK: 0008 contém regras_alerta
+- OK: 0008 contém notificacoes
+- OK: 0008 contém fila_emails
+- OK: 0008 contém documentos_governanca
+- OK: 0008 contém solicitacoes_aprovacao_juridica
+- OK: 0008 contém autorizacoes_governanca
+- OK: 0008 contém ciencias_politica
+- OK: 0008 contém SUPERVISOR
+- OK: 0008 migra jornada a partir do período anterior
+- OK: agente não contém captura webcam
+- OK: agente não contém captura áudio
+- OK: captura screenshot permanece desabilitada no save
+- OK: usuário pode receber Supervisor
+- OK: Administrador não alterado via seletor
+- OK: solicitação jurídica expira automaticamente
+- OK: aviso de autorização a vencer
+- OK: XML válido SegredosClara.local.exemplo.xml
+- OK: XML válido ConfiguracaoClara.exemplo.xml
+- OK: XML válido ConfiguracaoPublicacao.exemplo.xml
+- OK: balanceamento léxico C#
+
+LIMITACAO: este ambiente nao possui .NET SDK 10 nem PowerShell. A compilacao, testes e publicacao real devem ser confirmados no Windows com PUBLICAR-CLARA.cmd.

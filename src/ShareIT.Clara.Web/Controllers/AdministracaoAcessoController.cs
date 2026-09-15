@@ -24,13 +24,30 @@ public sealed class AdministracaoAcessoController(RepositorioUsuariosAcesso repo
 
     [HttpPost("administracao/usuarios/criar")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> CriarUsuario(string nome, string email, string senha, CancellationToken ct)
+    public async Task<IActionResult> CriarUsuario(string nome, string email, string senha, string perfilCodigo, CancellationToken ct)
     {
         if (!TemModulo("usuarios")) return Forbid();
         try
         {
-            await repositorio.CriarUsuarioPadraoAsync(ObterTenant(), nome, email, senha, ct);
-            TempData["Mensagem"] = "Usuário criado com o perfil Padrão.";
+            await repositorio.CriarUsuarioAsync(ObterTenant(), nome, email, senha, perfilCodigo, ct);
+            TempData["Mensagem"] = $"Usuário criado com o perfil {(perfilCodigo?.Equals("SUPERVISOR", StringComparison.OrdinalIgnoreCase) == true ? "Supervisor" : "Padrão")}.";
+        }
+        catch (Exception ex)
+        {
+            TempData["Erro"] = ex.Message;
+        }
+        return RedirectToAction(nameof(Usuarios));
+    }
+
+    [HttpPost("administracao/usuarios/{usuarioId:guid}/perfil")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AtualizarPerfilUsuario(Guid usuarioId, string perfilCodigo, CancellationToken ct)
+    {
+        if (!TemModulo("usuarios")) return Forbid();
+        try
+        {
+            await repositorio.AtualizarPerfilUsuarioAsync(ObterTenant(), usuarioId, perfilCodigo, ct);
+            TempData["Mensagem"] = "Perfil do usuário atualizado. A nova permissão será aplicada no próximo login.";
         }
         catch (Exception ex)
         {

@@ -1,6 +1,7 @@
 using System.IO.Pipes;
 using System.Text.Json;
 using ShareIT.Clara.Dominio.Modelos;
+using ShareIT.Clara.Agente.Configuracao;
 
 namespace ShareIT.Clara.Agente.Telemetria;
 
@@ -12,7 +13,7 @@ namespace ShareIT.Clara.Agente.Telemetria;
 /// Impacto: separa corretamente o Windows Service da sessão e reduz o volume para períodos de até um minuto ou por mudança de contexto.
 /// Desenvolvedor: Paulo Andrade
 /// </summary>
-public sealed class ServidorPipeSessao(FilaOffline fila, ILogger<ServidorPipeSessao> logger) : BackgroundService
+public sealed class ServidorPipeSessao(FilaOffline fila, ConfiguracaoAgenteLocal configuracao, ILogger<ServidorPipeSessao> logger) : BackgroundService
 {
     public const string NomePipe = "ShareIT.Clara.Sessao";
     private EventoSessao? _amostraInicialPeriodo;
@@ -31,6 +32,21 @@ public sealed class ServidorPipeSessao(FilaOffline fila, ILogger<ServidorPipeSes
                 if (string.IsNullOrWhiteSpace(linha)) continue;
                 var evento = JsonSerializer.Deserialize<EventoSessao>(linha, new JsonSerializerOptions(JsonSerializerDefaults.Web));
                 if (evento is null) continue;
+
+                // Fora do período efetivo de monitoramento não agregamos nem persistimos
+                // atividade da sessão. Heartbeat/inventário técnico permanecem independentes.
+                if (!configuracao.EstaDentroPeriodoMonitoramento(evento.MomentoUtc))
+                {
+                    _amostraInicialPeriodo = null;
+                    _ultimaAmostra = null;
+                    continue;
+                }
+
+                // Exclusão de privacidade não elimina o fato de atividade/ociosidade; apenas remove
+                // o contexto do aplicativo excluído antes que ele entre na agregação/fila.
+                if (configuracao.AplicativoEstaExcluido(evento.ProcessoExecutavel))
+                    evento = evento with { ProcessoExecutavel = null };
+
                 await ProcessarAmostraAsync(evento, stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { }

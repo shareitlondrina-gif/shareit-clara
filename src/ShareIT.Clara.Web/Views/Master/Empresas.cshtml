@@ -1,12 +1,14 @@
 @model IReadOnlyCollection<ShareIT.Clara.Dominio.Contratos.EmpresaMasterResumo>
 @{
     ViewData["Title"] = "Empresas";
+    var integracoesVisao = ViewBag.IntegracoesVisao as Dictionary<Guid, IntegracaoProdutoShareItResumo> ?? new();
 }
 <div class="cabecalho-pagina">
     <div><span class="sobretitulo">ADMINISTRAÇÃO MASTER</span><h1>Empresas</h1><p>Crie clientes do .Clara e defina o primeiro administrador de cada empresa.</p></div>
 </div>
 @if (TempData["Mensagem"] is string mensagem) { <div class="mensagem-sucesso">@mensagem</div> }
 @if (TempData["Erro"] is string erro) { <div class="erro">@erro</div> }
+@if (TempData["VisaoToken"] is string tokenVisao) { <div class="aviso-config"><span>!</span><div><strong>Token de integração .VISÃO — copie agora</strong><small>Este segredo será exibido somente nesta resposta. Configure-o no conector do .VISÃO e não envie por chamado/e-mail.</small><code style="word-break:break-all">@tokenVisao</code></div></div> }
 <section class="cartao-clara">
     <h2>Nova empresa</h2>
     <form method="post" action="/master/empresas/criar" class="grade-formulario">
@@ -56,6 +58,18 @@
                         <label>Vencimento<input name="vencimento" type="date" value="@(item.Vencimento?.ToString("yyyy-MM-dd"))" /></label>
                         <label class="campo-largo">Observação<input name="observacao" maxlength="500" value="@item.ObservacaoAssinatura" placeholder="Opcional" /></label>
                         <button type="submit">Salvar plano</button>
+                    </form>
+                    @{ integracoesVisao.TryGetValue(item.TenantId, out var iv); iv ??= new IntegracaoProdutoShareItResumo("Visao",false,false,null,null,null); }
+                    <hr/>
+                    <form method="post" action="/master/empresas/@item.TenantId/visao" class="form-assinatura-master">@Html.AntiForgeryToken()
+                        <strong>Integração opcional .VISÃO</strong>
+                        <small>Aparece na Clara somente quando o cliente também contratou o produto/serviço que fornece o contexto técnico.</small>
+                        <label><input type="checkbox" name="contratado" value="true" checked="@iv.Contratado"/> Produto/serviço .VISÃO contratado</label>
+                        <label><input type="checkbox" name="integracaoAtiva" value="true" checked="@iv.IntegracaoAtiva"/> Integração técnica ativa</label>
+                        <label class="campo-largo">URL base opcional<input name="urlBase" maxlength="500" value="@iv.UrlBase" placeholder="URL da API/serviço .VISÃO" /></label>
+                        <label><input type="checkbox" name="gerarNovoToken" value="true"/> Gerar/rotacionar token de integração</label>
+                        <small>Último contexto: @(iv.UltimoSucessoUtc?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "nunca recebido")</small>
+                        <button type="submit">Salvar .VISÃO</button>
                     </form></details></td>
                 </tr>
             }

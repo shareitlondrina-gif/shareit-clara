@@ -12,6 +12,7 @@ namespace ShareIT.Clara.NavegadorHost;
 /// Destino: ShareIT.Clara.Agente, pipe ShareIT.Clara.Navegador.
 /// Dependências: protocolo Native Messaging e Named Pipes do Windows.
 /// Impacto: permite contexto web autorizado sem coletar caminho da URL, query string, título, conteúdo, senha ou texto digitado.
+/// Fora do período efetivo de monitoramento, responde apenas ao status e não recebe/persiste domínio.
 /// Desenvolvedor: Paulo Andrade
 /// </summary>
 public static class Program
@@ -32,12 +33,34 @@ public static class Program
                 return 2;
             }
 
+            var politica = LerPoliticaLocal();
+            if (string.Equals(mensagem.Acao, "status", StringComparison.OrdinalIgnoreCase))
+            {
+                await ResponderAsync(saida, new { ok = true, monitorar = politica.PodeMonitorarAgora });
+                return 0;
+            }
+
+            // Defesa em profundidade: mesmo que uma extensão antiga envie domínio diretamente,
+            // o host não encaminha nada fora da janela efetiva de monitoramento.
+            if (!politica.PodeMonitorarAgora)
+            {
+                await ResponderAsync(saida, new { ok = true, monitorar = false });
+                return 0;
+            }
+
             var dominio = NormalizarDominio(mensagem.Dominio);
             var navegador = NormalizarNavegador(mensagem.Navegador);
             if (dominio is null)
             {
                 await ResponderAsync(saida, new { ok = false, erro = "Domínio inválido." });
                 return 3;
+            }
+
+            if (DominioExcluido(dominio, politica.DominiosExcluidos))
+            {
+                // Não expõe a lista de exclusões à extensão e não encaminha domínio ao agente.
+                await ResponderAsync(saida, new { ok = true, monitorar = false });
+                return 0;
             }
 
             var usuario = string.IsNullOrWhiteSpace(Environment.UserDomainName)
@@ -50,7 +73,7 @@ public static class Program
             await pipe.ConnectAsync(cts.Token);
             await using var escritor = new StreamWriter(pipe, new UTF8Encoding(false)) { AutoFlush = true };
             await escritor.WriteLineAsync(JsonSerializer.Serialize(evento, Json));
-            await ResponderAsync(saida, new { ok = true, dominio });
+            await ResponderAsync(saida, new { ok = true, monitorar = true, dominio });
             return 0;
         }
         catch (Exception ex)
@@ -60,6 +83,77 @@ public static class Program
             try { await ResponderAsync(Console.OpenStandardOutput(), new { ok = false, erro = "Agente local indisponível." }); } catch { }
             return 1;
         }
+    }
+
+    private static PoliticaLocal LerPoliticaLocal()
+    {
+        try
+        {
+            var caminho = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                "ShareIT", "Clara", "configuracao-agente.json");
+            if (!File.Exists(caminho)) return PoliticaLocal.Bloqueada;
+
+            using var doc = JsonDocument.Parse(File.ReadAllText(caminho));
+            var raiz = doc.RootElement;
+            if (!raiz.TryGetProperty("monitorarUrlsDominios", out var monitorar) || monitorar.ValueKind != JsonValueKind.True)
+                return PoliticaLocal.Bloqueada;
+
+            var horarioInicio = raiz.TryGetProperty("horarioInicio", out var i) ? i.GetString() ?? "08:00" : "08:00";
+            var horarioFim = raiz.TryGetProperty("horarioFim", out var f) ? f.GetString() ?? "18:00" : "18:00";
+            var diasMonitorados = raiz.TryGetProperty("diasMonitorados", out var d) ? d.GetString() ?? "1,2,3,4,5" : "1,2,3,4,5";
+            var fusoHorario = raiz.TryGetProperty("fusoHorario", out var z) ? z.GetString() ?? "America/Sao_Paulo" : "America/Sao_Paulo";
+
+            var dominiosExcluidos = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (raiz.TryGetProperty("dominiosExcluidos", out var exclusoes) && exclusoes.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var item in exclusoes.EnumerateArray())
+                {
+                    var valor = item.GetString()?.Trim().Trim('.').ToLowerInvariant();
+                    if (!string.IsNullOrWhiteSpace(valor)) dominiosExcluidos.Add(valor);
+                }
+            }
+
+            var agora = ConverterParaFusoConfigurado(DateTimeOffset.UtcNow, fusoHorario);
+            var isoDia = ((int)agora.DayOfWeek + 6) % 7 + 1;
+            var dias = diasMonitorados
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(x => int.TryParse(x, out var n) ? n : 0)
+                .ToHashSet();
+            if (dias.Count > 0 && !dias.Contains(isoDia)) return new PoliticaLocal(false, dominiosExcluidos);
+
+            var inicio = TimeSpan.TryParse(horarioInicio, out var hi) ? hi : TimeSpan.FromHours(8);
+            var fim = TimeSpan.TryParse(horarioFim, out var hf) ? hf : TimeSpan.FromHours(18);
+            var atual = agora.TimeOfDay;
+            var permitido = fim >= inicio ? atual >= inicio && atual <= fim : atual >= inicio || atual <= fim;
+            return new PoliticaLocal(permitido, dominiosExcluidos);
+        }
+        catch
+        {
+            // Falha fechada: sem política legível, não coleta contexto web.
+            return PoliticaLocal.Bloqueada;
+        }
+    }
+
+    private static DateTimeOffset ConverterParaFusoConfigurado(DateTimeOffset agora, string fusoHorario)
+    {
+        try
+        {
+            var zona = TimeZoneInfo.FindSystemTimeZoneById(string.IsNullOrWhiteSpace(fusoHorario) ? "America/Sao_Paulo" : fusoHorario.Trim());
+            return TimeZoneInfo.ConvertTime(agora, zona);
+        }
+        catch
+        {
+            // Fallback conservador: usa relógio local apenas quando a configuração de fuso for inválida.
+            return agora.ToLocalTime();
+        }
+    }
+
+    private static bool DominioExcluido(string dominio, IReadOnlyCollection<string> exclusoes)
+    {
+        var d = dominio.Trim().Trim('.').ToLowerInvariant();
+        return exclusoes.Any(x => d.Equals(x, StringComparison.OrdinalIgnoreCase)
+                                || d.EndsWith("." + x, StringComparison.OrdinalIgnoreCase));
     }
 
     private static async Task<MensagemExtensao?> LerMensagemAsync(Stream entrada, CancellationToken ct)
@@ -112,5 +206,10 @@ public static class Program
             _ => "Chromium"
         };
 
-    private sealed record MensagemExtensao(string? Dominio, string? Navegador, string? MomentoUtc);
+    private sealed record PoliticaLocal(bool PodeMonitorarAgora, IReadOnlyCollection<string> DominiosExcluidos)
+    {
+        public static PoliticaLocal Bloqueada { get; } = new(false, Array.Empty<string>());
+    }
+
+    private sealed record MensagemExtensao(string? Acao, string? Dominio, string? Navegador, string? MomentoUtc);
 }

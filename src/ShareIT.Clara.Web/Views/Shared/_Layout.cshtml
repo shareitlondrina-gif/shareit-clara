@@ -1,3 +1,5 @@
+@inject RepositorioGovernanca RepositorioGovernanca
+@inject RepositorioGestaoExecutiva RepositorioGestaoExecutiva
 @{
     var autenticado = User.Identity?.IsAuthenticated == true;
     var caminho = Context.Request.Path.Value?.ToLowerInvariant() ?? "/";
@@ -8,16 +10,31 @@
     var empresaNome = User.FindFirst("empresa_nome")?.Value;
     var demonstracao = string.Equals(tenantId, "d0000000-0000-4000-8000-000000000001", StringComparison.OrdinalIgnoreCase);
     var contextoEmpresa = empresaNome ?? tenantNome ?? "Share IT .Clara";
+    var visaoIntegrado = false;
+    if (autenticado && !master && Guid.TryParse(tenantId, out var tenantGuidLayout))
+    {
+        try { visaoIntegrado = await RepositorioGestaoExecutiva.VisaoDisponivelAsync(tenantGuidLayout); }
+        catch { visaoIntegrado = false; }
+    }
+    var temaPreferido = Context.Request.Cookies["clara_tema"];
+    if (autenticado && Guid.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var usuarioTemaId))
+    {
+        try { temaPreferido = await RepositorioGovernanca.ObterTemaUsuarioAsync(usuarioTemaId); }
+        catch { temaPreferido ??= "Sistema"; }
+    }
+    temaPreferido ??= "Sistema";
+    var temaAtributo = temaPreferido == "Escuro" ? "dark" : temaPreferido == "Claro" ? "light" : "system";
+    var corTemaNavegador = temaAtributo == "dark" ? "#111827" : "#f8f5ee";
     if (demonstracao && !contextoEmpresa.Contains("Demonstração", StringComparison.OrdinalIgnoreCase)) contextoEmpresa += " - Demonstração";
     bool Pode(string modulo) => !master && User.HasClaim("modulo", modulo);
     string Ativo(string prefixo) => caminho == prefixo || caminho.StartsWith(prefixo + "/") ? "ativo" : "";
 }
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="@temaAtributo">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#ffffff" />
+    <meta name="theme-color" content="@corTemaNavegador" />
     <title>@ViewData["Title"] - Share IT .Clara</title>
     <link rel="icon" type="image/png" sizes="32x32" href="~/img/favicon.png" />
     <link rel="icon" href="~/img/favicon.ico" />
@@ -46,37 +63,42 @@
                     @if (Pode("estacoes")) { <a class='@Ativo("/estacoes")' href="/estacoes"><span class="icone-menu">▣</span>Estações</a> }
                     @if (Pode("aplicativos")) { <a class='@Ativo("/aplicativos")' href="/aplicativos"><span class="icone-menu">▥</span>Aplicativos</a> }
                 }
-                @if (Pode("locais") || Pode("integracoes"))
+                @if (Pode("locais") || Pode("integracoes") || (Pode("contexto-ti") && visaoIntegrado))
                 {
                     <span class="grupo-menu">CONTEXTO</span>
                     @if (Pode("locais")) { <a class='@Ativo("/locais")' href="/locais"><span class="icone-menu">⌂</span>Home x Escritório</a> }
                     @if (Pode("integracoes")) { <a class='@Ativo("/integracoes")' href="/integracoes"><span class="icone-menu">◇</span>Integrações</a> }
+                    @if (Pode("contexto-ti") && visaoIntegrado) { <a class='@Ativo("/contexto-ti")' href="/contexto-ti"><span class="icone-menu">⌁</span>Contexto TI (.VISÃO)</a> }
                 }
-                @if (Pode("indice-geral") || Pode("oportunidades") || Pode("evidencias"))
+                @if (Pode("pulso-operacao") || Pode("indice-geral") || Pode("oportunidades") || Pode("evidencias") || Pode("relatorios"))
                 {
                     <span class="grupo-menu">INTELIGÊNCIA</span>
+                    @if (Pode("pulso-operacao")) { <a class='@Ativo("/pulso-operacao")' href="/pulso-operacao"><span class="icone-menu">◈</span>Pulso da Operação</a> }
                     @if (Pode("indice-geral")) { <a class='@Ativo("/indice-geral")' href="/indice-geral"><span class="icone-menu">◎</span>Índice Geral</a> }
                     @if (Pode("oportunidades")) { <a class='@Ativo("/oportunidades")' href="/oportunidades"><span class="icone-menu">◌</span>Oportunidades</a> }
                     @if (Pode("evidencias")) { <a class='@Ativo("/evidencias")' href="/evidencias"><span class="icone-menu">▧</span>Evidências</a> }
+                    @if (Pode("relatorios")) { <a class='@Ativo("/relatorios")' href="/relatorios"><span class="icone-menu">▤</span>Relatórios</a> }
                 }
-                @if (administrador && (Pode("usuarios") || Pode("perfis") || Pode("configuracoes") || Pode("instalacao-agente")))
+                @if (administrador && (Pode("usuarios") || Pode("perfis") || Pode("configuracoes") || Pode("instalacao-agente") || Pode("alertas") || Pode("governanca")))
                 {
                     <span class="grupo-menu">ADMINISTRAÇÃO</span>
                     @if (Pode("usuarios")) { <a class='@Ativo("/administracao/usuarios")' href="/administracao/usuarios"><span class="icone-menu">♙</span>Usuários</a> }
                     @if (Pode("perfis")) { <a class='@Ativo("/administracao/perfis")' href="/administracao/perfis"><span class="icone-menu">☷</span>Perfis</a> }
                     @if (Pode("configuracoes")) { <a class='@Ativo("/administracao/configuracoes")' href="/administracao/configuracoes"><span class="icone-menu">⚙</span>Configurações</a> }
                     @if (Pode("instalacao-agente")) { <a class='@Ativo("/administracao/instalacao")' href="/administracao/instalacao"><span class="icone-menu">⇩</span>Instalação</a> }
+                    @if (Pode("alertas")) { <a class='@Ativo("/administracao/alertas")' href="/administracao/alertas"><span class="icone-menu">!</span>Alertas e regras</a> }
+                    @if (Pode("governanca")) { <a class='@Ativo("/administracao/governanca")' href="/administracao/governanca"><span class="icone-menu">◆</span>Governança</a> }
                 }
             }
         </nav>
         <div class="rodape-menu">
             @if (!master)
             {
-                <div class="empresa-rodape"><strong>@(empresaNome ?? tenantNome)</strong>@if (demonstracao){<small>Ambiente de demonstração</small>}<small>Share IT .Clara v0.5.6</small></div>
+                <div class="empresa-rodape"><strong>@(empresaNome ?? tenantNome)</strong>@if (demonstracao){<small>Ambiente de demonstração</small>}<small>Share IT .Clara v0.5.8</small></div>
             }
             else
             {
-                <div class="empresa-rodape"><strong>Share IT .Clara</strong><small>Master da plataforma</small><small>v0.5.6</small></div>
+                <div class="empresa-rodape"><strong>Share IT .Clara</strong><small>Master da plataforma</small><small>v0.5.8</small></div>
             }
             <form method="post" action="/sair">@Html.AntiForgeryToken()<button class="botao-sair" type="submit">Sair</button></form>
         </div>
@@ -97,15 +119,22 @@
                         <span>⌕</span><input name="busca" value="@(Context.Request.Query["busca"])" placeholder="Buscar estação, pessoa, patrimônio..." aria-label="Buscar" />
                     </form>
                 }
-                <span class="sino-topo" title="Notificações">♧<i></i></span>
-                <span class="avatar-topo">@string.Join("", (User.Identity?.Name ?? "U").Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(x => char.ToUpperInvariant(x[0])))</span>
-                <span class="usuario-topo"><strong>@User.Identity?.Name</strong><small>@(master ? "Master" : administrador ? "Administradora" : "Usuário")</small></span>
-                <span class="seta-topo">⌄</span>
+                @if (!master)
+                {
+                    <button type="button" class="sino-topo" title="Notificações" data-notificacoes-url="/notificacoes/painel" aria-expanded="false">🔔<i data-notificacoes-badge hidden></i></button>
+                }
+                <a class="perfil-topo" href="/perfil" title="Meu perfil e aparência"><span class="avatar-topo">@string.Join("", (User.Identity?.Name ?? "U").Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(x => char.ToUpperInvariant(x[0])))</span><span class="usuario-topo"><strong>@User.Identity?.Name</strong><small>@(master ? "Master" : administrador ? "Administradora" : "Usuário")</small></span><span class="seta-topo">⌄</span></a>
             </div>
         </header>
     }
     <main class="conteudo">@RenderBody()</main>
 </div>
+
+
+@if (autenticado && !master)
+{
+    <aside id="painelNotificacoes" class="painel-notificacoes-flutuante" hidden aria-hidden="true"><div class="carregando-modal">Carregando notificações…</div></aside>
+}
 
 @if (autenticado && !master)
 {

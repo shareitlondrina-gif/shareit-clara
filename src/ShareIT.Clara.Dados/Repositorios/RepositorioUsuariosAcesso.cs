@@ -18,7 +18,7 @@ public sealed class RepositorioUsuariosAcesso(FabricaConexoesClara fabrica)
     public async Task<IReadOnlyCollection<UsuarioAcessoResumo>> ListarUsuariosAsync(Guid tenantId, CancellationToken ct = default)
     {
         const string sql = """
-            SELECT u.id,u.nome,u.email,u.perfil,p.nome,u.ativo,u.criado_em_utc
+            SELECT u.id,u.nome,u.email,u.perfil,p.id,p.nome,u.ativo,u.criado_em_utc
             FROM usuarios u
             LEFT JOIN perfis_acesso p ON p.id=u.perfil_acesso_id AND p.tenant_id=u.tenant_id
             WHERE u.tenant_id=@tenant
@@ -34,13 +34,13 @@ public sealed class RepositorioUsuariosAcesso(FabricaConexoesClara fabrica)
         {
             lista.Add(new UsuarioAcessoResumo(
                 leitor.GetGuid(0), leitor.GetString(1), leitor.GetString(2), leitor.GetString(3),
-                leitor.IsDBNull(4) ? null : leitor.GetString(4), leitor.GetBoolean(5),
-                new DateTimeOffset(DateTime.SpecifyKind(leitor.GetDateTime(6), DateTimeKind.Utc))));
+                leitor.IsDBNull(4) ? null : leitor.GetGuid(4), leitor.IsDBNull(5) ? null : leitor.GetString(5), leitor.GetBoolean(6),
+                new DateTimeOffset(DateTime.SpecifyKind(leitor.GetDateTime(7), DateTimeKind.Utc))));
         }
         return lista;
     }
 
-    public async Task CriarUsuarioPadraoAsync(Guid tenantId, string nome, string email, string senha, CancellationToken ct = default)
+    public async Task CriarUsuarioAsync(Guid tenantId, string nome, string email, string senha, string perfilCodigo = "PADRAO", CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(nome)) throw new ArgumentException("Nome é obrigatório.");
         if (string.IsNullOrWhiteSpace(email)) throw new ArgumentException("E-mail é obrigatório.");
@@ -50,7 +50,8 @@ public sealed class RepositorioUsuariosAcesso(FabricaConexoesClara fabrica)
         await c.OpenAsync(ct);
         await using var t = await c.BeginTransactionAsync(ct);
 
-        var perfilId = await ObterPerfilPadraoAsync(c, t, tenantId, ct);
+        var codigoNormalizado = NormalizarPerfilSelecionavel(perfilCodigo);
+        var perfilId = await ObterPerfilPorCodigoAsync(c, t, tenantId, codigoNormalizado, ct);
         var empresaId = await ObterEmpresaPrincipalAsync(c, t, tenantId, ct);
         var (hash, sal) = SenhaSegura.Criar(senha);
         const string sql = """
@@ -66,6 +67,28 @@ public sealed class RepositorioUsuariosAcesso(FabricaConexoesClara fabrica)
         cmd.Parameters.AddWithValue("sal", sal);
         cmd.Parameters.AddWithValue("perfil", perfilId);
         await cmd.ExecuteNonQueryAsync(ct);
+        await t.CommitAsync(ct);
+    }
+
+    public async Task AtualizarPerfilUsuarioAsync(Guid tenantId, Guid usuarioId, string perfilCodigo, CancellationToken ct = default)
+    {
+        var codigoNormalizado = NormalizarPerfilSelecionavel(perfilCodigo);
+        await using var c = fabrica.Criar();
+        await c.OpenAsync(ct);
+        await using var t = await c.BeginTransactionAsync(ct);
+
+        var perfilId = await ObterPerfilPorCodigoAsync(c, t, tenantId, codigoNormalizado, ct);
+        const string sql = """
+            UPDATE usuarios
+            SET perfil_acesso_id=@perfil
+            WHERE id=@usuario AND tenant_id=@tenant AND perfil <> 'Administrador';
+            """;
+        await using var cmd = new NpgsqlCommand(sql, c, t);
+        cmd.Parameters.AddWithValue("perfil", perfilId);
+        cmd.Parameters.AddWithValue("usuario", usuarioId);
+        cmd.Parameters.AddWithValue("tenant", tenantId);
+        if (await cmd.ExecuteNonQueryAsync(ct) != 1)
+            throw new InvalidOperationException("Usuário não encontrado ou perfil Administrador não pode ser alterado por esta ação.");
         await t.CommitAsync(ct);
     }
 
@@ -130,11 +153,23 @@ public sealed class RepositorioUsuariosAcesso(FabricaConexoesClara fabrica)
         await t.CommitAsync(ct);
     }
 
-    private static async Task<Guid> ObterPerfilPadraoAsync(NpgsqlConnection c, NpgsqlTransaction t, Guid tenantId, CancellationToken ct)
+    private static string NormalizarPerfilSelecionavel(string? perfilCodigo)
     {
-        await using var cmd = new NpgsqlCommand("SELECT id FROM perfis_acesso WHERE tenant_id=@tenant AND padrao=true AND ativo=true ORDER BY criado_em_utc LIMIT 1", c, t);
+        var codigo = (perfilCodigo ?? "PADRAO").Trim().ToUpperInvariant();
+        return codigo switch
+        {
+            "PADRAO" => "PADRAO",
+            "SUPERVISOR" => "SUPERVISOR",
+            _ => throw new ArgumentException("Perfil inválido. Selecione Padrão ou Supervisor.")
+        };
+    }
+
+    private static async Task<Guid> ObterPerfilPorCodigoAsync(NpgsqlConnection c, NpgsqlTransaction t, Guid tenantId, string codigo, CancellationToken ct)
+    {
+        await using var cmd = new NpgsqlCommand("SELECT id FROM perfis_acesso WHERE tenant_id=@tenant AND codigo=@codigo AND ativo=true LIMIT 1", c, t);
         cmd.Parameters.AddWithValue("tenant", tenantId);
-        return (Guid)(await cmd.ExecuteScalarAsync(ct) ?? throw new InvalidOperationException("Perfil padrão não configurado."));
+        cmd.Parameters.AddWithValue("codigo", codigo);
+        return (Guid)(await cmd.ExecuteScalarAsync(ct) ?? throw new InvalidOperationException($"Perfil {codigo} não configurado para a empresa."));
     }
 
     private static async Task<Guid> ObterEmpresaPrincipalAsync(NpgsqlConnection c, NpgsqlTransaction t, Guid tenantId, CancellationToken ct)

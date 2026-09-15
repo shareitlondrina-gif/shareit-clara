@@ -139,7 +139,7 @@ public sealed class RepositorioAgentes(FabricaConexoesClara fabrica)
                 disco_total_bytes=@disco,
                 endereco_ip_local=@ipLocal,
                 endereco_ip_publico=CAST(@ipPublico AS inet),
-                processo_atual=COALESCE(@processo,processo_atual),
+                processo_atual=@processo,
                 ultima_comunicacao_utc=@momento,
                 status='Online',
                 atualizado_em_utc=now()
@@ -147,12 +147,14 @@ public sealed class RepositorioAgentes(FabricaConexoesClara fabrica)
             """;
         await using var conexao = fabrica.Criar();
         await conexao.OpenAsync(ct);
+        var exclusoes = await CarregarExclusoesAsync(conexao, contexto, ct);
+        var processoAtual = AplicativoExcluido(exclusoes, heartbeat.ProcessoAtual) ? null : heartbeat.ProcessoAtual;
         await using var transacao = await conexao.BeginTransactionAsync(ct);
         await using (var comando = new NpgsqlCommand(agenteSql, conexao, transacao))
         {
             AdicionarParametrosInventario(comando, contexto.TenantId, contexto.AtivoId, heartbeat.VersaoAgente, heartbeat.Inventario, enderecoIpPublico);
             comando.Parameters.AddWithValue("momento", heartbeat.MomentoUtc);
-            comando.Parameters.AddWithValue("processo", (object?)heartbeat.ProcessoAtual ?? DBNull.Value);
+            comando.Parameters.AddWithValue("processo", (object?)processoAtual ?? DBNull.Value);
             comando.Parameters.AddWithValue("agente", contexto.AgenteId);
             await comando.ExecuteNonQueryAsync(ct);
         }
@@ -166,6 +168,11 @@ public sealed class RepositorioAgentes(FabricaConexoesClara fabrica)
         if (lista.Count == 0) return;
         await using var conexao = fabrica.Criar();
         await conexao.OpenAsync(ct);
+        var exclusoes = await CarregarExclusoesAsync(conexao, contexto, ct);
+        // Exclusão de aplicativo remove o contexto do processo, mas preserva o fato de atividade/ociosidade.
+        lista = lista.Select(p => AplicativoExcluido(exclusoes, p.ProcessoExecutavel)
+            ? p with { ProcessoExecutavel = null }
+            : p).ToList();
         await using var transacao = await conexao.BeginTransactionAsync(ct);
 
         const string sql = """
@@ -231,6 +238,8 @@ public sealed class RepositorioAgentes(FabricaConexoesClara fabrica)
             .OrderBy(p => p.InicioUtc)
             .Take(1000)
             .ToList();
+        var exclusoes = await CarregarExclusoesAsync(conexao, contexto, ct);
+        lista = lista.Where(p => !DominioExcluido(exclusoes, p.Dominio)).ToList();
         if (lista.Count == 0) return;
 
         await using var transacao = await conexao.BeginTransactionAsync(ct);
@@ -252,6 +261,44 @@ public sealed class RepositorioAgentes(FabricaConexoesClara fabrica)
             await comando.ExecuteNonQueryAsync(ct);
         }
         await transacao.CommitAsync(ct);
+    }
+
+
+    private static async Task<Dictionary<string, HashSet<string>>> CarregarExclusoesAsync(NpgsqlConnection conexao, ContextoAgente contexto, CancellationToken ct)
+    {
+        const string sql="""
+            SELECT x.tipo,lower(trim(x.valor))
+            FROM exclusoes_monitoramento x
+            JOIN ativos a ON a.id=@ativo AND a.tenant_id=@tenant
+            WHERE x.tenant_id=@tenant AND x.ativo=true
+              AND (x.departamento_id IS NULL OR x.departamento_id=a.departamento_id);
+            """;
+        var retorno=new Dictionary<string,HashSet<string>>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Aplicativo"] = new(StringComparer.OrdinalIgnoreCase),
+            ["Dominio"] = new(StringComparer.OrdinalIgnoreCase)
+        };
+        await using var cmd=new NpgsqlCommand(sql,conexao);cmd.Parameters.AddWithValue("tenant",contexto.TenantId);cmd.Parameters.AddWithValue("ativo",contexto.AtivoId);
+        await using var r=await cmd.ExecuteReaderAsync(ct);
+        while(await r.ReadAsync(ct))
+        {
+            var tipo=r.GetString(0);var valor=r.GetString(1);
+            if(retorno.TryGetValue(tipo,out var set)&&!string.IsNullOrWhiteSpace(valor))set.Add(valor);
+        }
+        return retorno;
+    }
+
+    private static bool AplicativoExcluido(Dictionary<string,HashSet<string>> exclusoes,string? processo)
+    {
+        if(string.IsNullOrWhiteSpace(processo))return false;
+        var original=processo.Trim();var nome=Path.GetFileName(original);
+        return exclusoes["Aplicativo"].Any(x=>string.Equals(x,original,StringComparison.OrdinalIgnoreCase)||string.Equals(x,nome,StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static bool DominioExcluido(Dictionary<string,HashSet<string>> exclusoes,string dominio)
+    {
+        var d=dominio.Trim().Trim('.').ToLowerInvariant();
+        return exclusoes["Dominio"].Any(x=>{var e=x.Trim().Trim('.').ToLowerInvariant();return d==e||d.EndsWith("."+e,StringComparison.OrdinalIgnoreCase);});
     }
 
     public async Task RegistrarStatusAtualizacaoAsync(ContextoAgente contexto, StatusAtualizacaoAgente status, CancellationToken ct = default)

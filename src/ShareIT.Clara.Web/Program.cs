@@ -30,6 +30,12 @@ builder.Services.AddScoped<RepositorioContexto>();
 builder.Services.AddScoped<RepositorioMaster>();
 builder.Services.AddScoped<RepositorioUsuariosAcesso>();
 builder.Services.AddScoped<RepositorioInteligencia>();
+builder.Services.AddScoped<RepositorioGovernanca>();
+builder.Services.AddScoped<RepositorioGestaoExecutiva>();
+builder.Services.AddHostedService<ServicoFilaEmail>();
+builder.Services.AddHostedService<ServicoAlertas>();
+builder.Services.AddHostedService<ServicoRetencao>();
+builder.Services.AddHostedService<ServicoRelatoriosAgendados>();
 builder.Services.AddScoped<ServicoEmpresaDemonstracao>();
 builder.Services.AddScoped<ServicoRelogioDemonstracao>();
 
@@ -117,7 +123,7 @@ app.MapGet("/api/versao", () => Results.Ok(new
     utc = DateTimeOffset.UtcNow
 }));
 
-app.MapGet("/api/health/live", (EstadoInicializacaoBanco estado) => Results.Ok(new
+app.MapGet("/api/health/live", (EstadoInicializacaoBanco estado, IConfiguration cfg) => Results.Ok(new
 {
     produto = "Share IT .Clara",
     versao = ObterVersaoAplicacao(),
@@ -125,6 +131,7 @@ app.MapGet("/api/health/live", (EstadoInicializacaoBanco estado) => Results.Ok(n
     commit = ObterCommitImplantado(),
     aplicacao = "ok",
     inicializacaoBanco = estado.Situacao,
+    emailConfigurado = !string.IsNullOrWhiteSpace(cfg["CLARA_EMAIL_SMTP_HOST"]),
     utc = DateTimeOffset.UtcNow
 }));
 
@@ -241,7 +248,7 @@ else
 await app.WaitForShutdownAsync();
 
 static string ObterVersaoAplicacao()
-    => Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.5.6";
+    => Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.5.8";
 
 static string ObterIdentificadorBuild()
 {

@@ -262,7 +262,9 @@ public sealed class RepositorioInteligencia(FabricaConexoesClara fabrica)
                    redes_confiaveis_cidr,considerar_vpn_escritorio,classificar_ip_publico,
                    captura_screenshots,intervalo_captura_minutos,retencao_evidencias_dias,anonimizacao_parcial,
                    horario_inicio,horario_fim,dias_monitorados,intervalo_heartbeat_segundos,tempo_offline_minutos,
-                   alerta_estacao_offline,notificar_por_email,destinatarios_alertas,atualizado_em_utc
+                   alerta_estacao_offline,notificar_por_email,destinatarios_alertas,atualizado_em_utc,
+                   jornada_inicio,jornada_fim,carga_horaria_diaria_minutos,margem_antes_minutos,margem_depois_minutos,
+                   dias_jornada,fuso_horario
             FROM configuracoes_monitoramento WHERE tenant_id=@tenant;
             """;
         await using var conexao = fabrica.Criar();
@@ -288,11 +290,13 @@ public sealed class RepositorioInteligencia(FabricaConexoesClara fabrica)
                 redes_confiaveis_cidr,considerar_vpn_escritorio,classificar_ip_publico,
                 captura_screenshots,intervalo_captura_minutos,retencao_evidencias_dias,anonimizacao_parcial,
                 horario_inicio,horario_fim,dias_monitorados,intervalo_heartbeat_segundos,tempo_offline_minutos,
-                alerta_estacao_offline,notificar_por_email,destinatarios_alertas,atualizado_em_utc)
+                alerta_estacao_offline,notificar_por_email,destinatarios_alertas,atualizado_em_utc,
+                jornada_inicio,jornada_fim,carga_horaria_diaria_minutos,margem_antes_minutos,margem_depois_minutos,dias_jornada,fuso_horario)
             VALUES(
                 @tenant,@classificacaoWeb,@urls,@categorias,@ociosidade,@continuidade,@alternancia,
                 @redes,@vpn,@ipPublico,@screenshots,@captura,@retencao,@anonimizacao,
-                CAST(@inicio AS time),CAST(@fim AS time),@dias,@heartbeat,@offline,@alertaOffline,@email,@destinatarios,now())
+                CAST(@inicio AS time),CAST(@fim AS time),@dias,@heartbeat,@offline,@alertaOffline,@email,@destinatarios,now(),
+                CAST(@jornadaInicio AS time),CAST(@jornadaFim AS time),@carga,@margemAntes,@margemDepois,@diasJornada,@fuso)
             ON CONFLICT(tenant_id) DO UPDATE SET
                 permitir_classificacao_web=EXCLUDED.permitir_classificacao_web,
                 monitorar_urls_dominios=EXCLUDED.monitorar_urls_dominios,
@@ -315,6 +319,13 @@ public sealed class RepositorioInteligencia(FabricaConexoesClara fabrica)
                 alerta_estacao_offline=EXCLUDED.alerta_estacao_offline,
                 notificar_por_email=EXCLUDED.notificar_por_email,
                 destinatarios_alertas=EXCLUDED.destinatarios_alertas,
+                jornada_inicio=EXCLUDED.jornada_inicio,
+                jornada_fim=EXCLUDED.jornada_fim,
+                carga_horaria_diaria_minutos=EXCLUDED.carga_horaria_diaria_minutos,
+                margem_antes_minutos=EXCLUDED.margem_antes_minutos,
+                margem_depois_minutos=EXCLUDED.margem_depois_minutos,
+                dias_jornada=EXCLUDED.dias_jornada,
+                fuso_horario=EXCLUDED.fuso_horario,
                 atualizado_em_utc=now();
             """;
         await using var conexao = fabrica.Criar();
@@ -342,6 +353,13 @@ public sealed class RepositorioInteligencia(FabricaConexoesClara fabrica)
         comando.Parameters.AddWithValue("alertaOffline", configuracoes.AlertaEstacaoOffline);
         comando.Parameters.AddWithValue("email", configuracoes.NotificarPorEmail);
         comando.Parameters.Add("destinatarios", NpgsqlDbType.Text).Value = (object?)Limpar(configuracoes.DestinatariosAlertas) ?? DBNull.Value;
+        comando.Parameters.AddWithValue("jornadaInicio", NormalizarHorario(configuracoes.JornadaInicio, "08:00"));
+        comando.Parameters.AddWithValue("jornadaFim", NormalizarHorario(configuracoes.JornadaFim, "18:00"));
+        comando.Parameters.AddWithValue("carga", Math.Clamp(configuracoes.CargaHorariaDiariaMinutos, 1, 1440));
+        comando.Parameters.AddWithValue("margemAntes", Math.Clamp(configuracoes.MargemAntesMinutos, 0, 720));
+        comando.Parameters.AddWithValue("margemDepois", Math.Clamp(configuracoes.MargemDepoisMinutos, 0, 720));
+        comando.Parameters.AddWithValue("diasJornada", NormalizarDias(configuracoes.DiasJornada));
+        comando.Parameters.AddWithValue("fuso", string.IsNullOrWhiteSpace(configuracoes.FusoHorario) ? "America/Sao_Paulo" : configuracoes.FusoHorario.Trim());
         await comando.ExecuteNonQueryAsync(ct);
     }
 
@@ -355,16 +373,58 @@ public sealed class RepositorioInteligencia(FabricaConexoesClara fabrica)
         await comando.ExecuteNonQueryAsync(ct);
     }
 
-    public async Task<PoliticaMonitoramentoAgente> ObterPoliticaAgenteAsync(Guid tenantId, CancellationToken ct = default)
+    public async Task<PoliticaMonitoramentoAgente> ObterPoliticaAgenteAsync(Guid tenantId, Guid? ativoId = null, CancellationToken ct = default)
     {
         var c = await ObterConfiguracoesAsync(tenantId, ct);
+        var inicio = c.HorarioInicio;
+        var fim = c.HorarioFim;
+        var dias = c.DiasMonitorados;
+        var fuso = c.FusoHorario;
+        if (ativoId.HasValue)
+        {
+            await using var conexao = fabrica.Criar();
+            await conexao.OpenAsync(ct);
+            await using var comando = new NpgsqlCommand("SELECT monitoramento_inicio,monitoramento_fim,dias_monitorados,fuso_horario FROM configuracoes_jornada_ativo WHERE tenant_id=@tenant AND ativo_id=@ativo", conexao);
+            comando.Parameters.AddWithValue("tenant", tenantId);
+            comando.Parameters.AddWithValue("ativo", ativoId.Value);
+            await using var leitor = await comando.ExecuteReaderAsync(ct);
+            if (await leitor.ReadAsync(ct))
+            {
+                inicio = leitor.GetFieldValue<TimeOnly>(0).ToString("HH:mm");
+                fim = leitor.GetFieldValue<TimeOnly>(1).ToString("HH:mm");
+                dias = leitor.GetString(2);
+                fuso = leitor.GetString(3);
+            }
+        }
+        var aplicativosExcluidos = new List<string>();
+        var dominiosExcluidos = new List<string>();
+        if (ativoId.HasValue)
+        {
+            await using var conexao = fabrica.Criar();
+            await conexao.OpenAsync(ct);
+            const string sqlExclusoes = """
+                SELECT x.tipo,x.valor FROM exclusoes_monitoramento x
+                JOIN ativos a ON a.id=@ativo AND a.tenant_id=@tenant
+                WHERE x.tenant_id=@tenant AND x.ativo=true
+                  AND (x.departamento_id IS NULL OR x.departamento_id=a.departamento_id)
+                ORDER BY x.tipo,x.valor;
+                """;
+            await using var comando = new NpgsqlCommand(sqlExclusoes, conexao);
+            comando.Parameters.AddWithValue("tenant", tenantId); comando.Parameters.AddWithValue("ativo", ativoId.Value);
+            await using var leitor = await comando.ExecuteReaderAsync(ct);
+            while (await leitor.ReadAsync(ct))
+            {
+                var tipo = leitor.GetString(0); var valor = leitor.GetString(1);
+                if (tipo == "Aplicativo") aplicativosExcluidos.Add(valor); else if (tipo == "Dominio") dominiosExcluidos.Add(valor);
+            }
+        }
         return new PoliticaMonitoramentoAgente(
             c.IntervaloHeartbeatSegundos,
             c.TempoOfflineMinutos,
             c.TempoMinimoOciosidadeMinutos,
-            c.HorarioInicio,
-            c.HorarioFim,
-            c.DiasMonitorados,
+            inicio,
+            fim,
+            dias,
             c.PermitirClassificacaoWeb,
             c.MonitorarUrlsDominios,
             c.UsarCategoriasWeb,
@@ -372,6 +432,9 @@ public sealed class RepositorioInteligencia(FabricaConexoesClara fabrica)
             c.IntervaloCapturaMinutos,
             c.RetencaoEvidenciasDias,
             c.AnonimizacaoParcial,
+            aplicativosExcluidos,
+            dominiosExcluidos,
+            fuso,
             c.AtualizadoEmUtc);
     }
 
@@ -991,7 +1054,9 @@ public sealed class RepositorioInteligencia(FabricaConexoesClara fabrica)
             leitor.GetBoolean(9), leitor.GetInt32(10), leitor.GetInt32(11), leitor.GetBoolean(12),
             leitor.GetFieldValue<TimeOnly>(13).ToString("HH:mm"), leitor.GetFieldValue<TimeOnly>(14).ToString("HH:mm"), leitor.GetString(15),
             leitor.GetInt32(16), leitor.GetInt32(17), leitor.GetBoolean(18), leitor.GetBoolean(19),
-            leitor.IsDBNull(20) ? null : leitor.GetString(20), ComoDataHora(leitor, 21));
+            leitor.IsDBNull(20) ? null : leitor.GetString(20), ComoDataHora(leitor, 21),
+            leitor.GetFieldValue<TimeOnly>(22).ToString("HH:mm"), leitor.GetFieldValue<TimeOnly>(23).ToString("HH:mm"),
+            leitor.GetInt32(24), leitor.GetInt32(25), leitor.GetInt32(26), leitor.GetString(27), leitor.GetString(28));
 
     private static string NormalizarUrlEvidencia(string valor)
     {

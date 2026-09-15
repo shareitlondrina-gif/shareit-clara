@@ -33,14 +33,22 @@ public sealed class ServidorPipeNavegacao(
                 using var leitor = new StreamReader(pipe);
                 var linha = await leitor.ReadLineAsync(stoppingToken);
                 if (string.IsNullOrWhiteSpace(linha)) continue;
-                if (!configuracao.MonitorarUrlsDominios)
+                if (!configuracao.MonitorarUrlsDominios || !configuracao.EstaDentroPeriodoMonitoramento(DateTimeOffset.UtcNow))
                 {
+                    // Fora da janela efetiva de monitoramento não persistimos domínio nem continuidade da navegação.
                     _inicio = null;
                     _ultimo = null;
                     continue;
                 }
                 var evento = JsonSerializer.Deserialize<EventoNavegacao>(linha, new JsonSerializerOptions(JsonSerializerDefaults.Web));
                 if (evento is null || string.IsNullOrWhiteSpace(evento.Dominio)) continue;
+                if (configuracao.DominioEstaExcluido(evento.Dominio))
+                {
+                    // O domínio excluído não deve formar continuidade nem ser persistido.
+                    _inicio = null;
+                    _ultimo = null;
+                    continue;
+                }
                 await ProcessarAsync(evento, stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { }

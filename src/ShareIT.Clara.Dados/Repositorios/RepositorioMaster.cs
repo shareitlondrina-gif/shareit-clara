@@ -175,6 +175,7 @@ public sealed class RepositorioMaster(FabricaConexoesClara fabrica)
         const string perfis = """
             INSERT INTO perfis_acesso(tenant_id,codigo,nome,padrao,sistema) VALUES
             (@tenant,'ADMINISTRADOR','Administrador',false,true),
+            (@tenant,'SUPERVISOR','Supervisor',false,true),
             (@tenant,'PADRAO','Padrão',true,true)
             ON CONFLICT(tenant_id,codigo) DO NOTHING;
             """;
@@ -191,6 +192,19 @@ public sealed class RepositorioMaster(FabricaConexoesClara fabrica)
             ON CONFLICT(perfil_id,modulo_codigo) DO UPDATE SET permitido=true,atualizado_em_utc=now();
             """;
         await using (var cmd = new NpgsqlCommand(modulosAdmin, c, t))
+        {
+            cmd.Parameters.AddWithValue("tenant", tenantId);
+            await cmd.ExecuteNonQueryAsync(ct);
+        }
+
+        const string modulosSupervisor = """
+            INSERT INTO perfil_modulos(perfil_id,modulo_codigo,permitido)
+            SELECT p.id,m.codigo,true FROM perfis_acesso p JOIN modulos m
+              ON m.codigo IN ('agora','estacoes','aplicativos','locais','integracoes','indice-geral','oportunidades','evidencias','relatorios')
+            WHERE p.tenant_id=@tenant AND p.codigo='SUPERVISOR'
+            ON CONFLICT(perfil_id,modulo_codigo) DO UPDATE SET permitido=true,atualizado_em_utc=now();
+            """;
+        await using (var cmd = new NpgsqlCommand(modulosSupervisor, c, t))
         {
             cmd.Parameters.AddWithValue("tenant", tenantId);
             await cmd.ExecuteNonQueryAsync(ct);

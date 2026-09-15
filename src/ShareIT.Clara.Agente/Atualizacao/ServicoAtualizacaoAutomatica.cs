@@ -28,6 +28,7 @@ public sealed class ServicoAtualizacaoAutomatica(
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         Directory.CreateDirectory(_pastaAtualizacoes);
+        LimparArtefatosAntigos();
         await ReportarResultadoPendenteAsync(stoppingToken);
 
         while (!stoppingToken.IsCancellationRequested)
@@ -48,6 +49,12 @@ public sealed class ServicoAtualizacaoAutomatica(
     {
         var manifesto = await api.ConsultarAtualizacaoAsync(ct);
         if (manifesto is null || !ComparadorVersao.HaVersaoMaisNova(api.VersaoAtual, manifesto.Versao)) return;
+
+        if (AtualizacaoVisaoEmAndamento())
+        {
+            logger.LogInformation("Atualização da .Clara adiada: foi detectada manutenção/atualização recente do .VISÃO na mesma estação.");
+            return;
+        }
 
         var pastaVersao = Path.Combine(_pastaAtualizacoes, manifesto.Versao);
         Directory.CreateDirectory(pastaVersao);
@@ -102,6 +109,44 @@ public sealed class ServicoAtualizacaoAutomatica(
         });
 
         logger.LogInformation("Atualizador externo iniciado para a versão {Versao}.", versaoDestino);
+    }
+
+
+    private static bool AtualizacaoVisaoEmAndamento()
+    {
+        try
+        {
+            var raiz = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "ShareIT", "Visao", "Updates");
+            if (!Directory.Exists(raiz)) return false;
+            var limite = DateTime.UtcNow.AddMinutes(-20);
+            return Directory.GetDirectories(raiz).Any(p => Directory.GetLastWriteTimeUtc(p) >= limite);
+        }
+        catch { return false; }
+    }
+
+    private void LimparArtefatosAntigos()
+    {
+        try
+        {
+            var limite = DateTime.UtcNow.AddDays(-14);
+            foreach (var pasta in Directory.GetDirectories(_pastaAtualizacoes))
+            {
+                var nome = Path.GetFileName(pasta);
+                if ((nome.StartsWith("executor-", StringComparison.OrdinalIgnoreCase) || char.IsDigit(nome.FirstOrDefault()))
+                    && Directory.GetLastWriteTimeUtc(pasta) < limite)
+                {
+                    try { Directory.Delete(pasta, true); } catch { }
+                }
+            }
+
+            var backup = Path.Combine(ConfiguracaoAgenteLocal.DiretorioDados, "backup");
+            if (Directory.Exists(backup))
+            {
+                foreach (var pasta in Directory.GetDirectories(backup).OrderByDescending(Directory.GetLastWriteTimeUtc).Skip(3))
+                    try { Directory.Delete(pasta, true); } catch { }
+            }
+        }
+        catch (Exception ex) { logger.LogDebug(ex, "Limpeza de artefatos antigos de atualização não concluída."); }
     }
 
     private async Task ReportarResultadoPendenteAsync(CancellationToken ct)

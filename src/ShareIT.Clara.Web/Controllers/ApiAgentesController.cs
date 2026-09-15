@@ -63,7 +63,7 @@ public sealed class ApiAgentesController(
     {
         var contexto = await AutenticarAsync(ct);
         if (contexto is null) return Unauthorized();
-        return Ok(await inteligencia.ObterPoliticaAgenteAsync(contexto.TenantId, ct));
+        return Ok(await inteligencia.ObterPoliticaAgenteAsync(contexto.TenantId, contexto.AtivoId, ct));
     }
 
     [HttpGet("atualizacao")]

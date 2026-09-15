@@ -1,0 +1,139 @@
+Share IT .Clara v0.5.8-RC - RELATÓRIO DE VALIDAÇÃO ESTÁTICA
+
+Total de verificações: 127
+Aprovadas: 127
+Falhas: 0
+
+- OK: Raiz da release existe — /mnt/data/final058/ShareIT.Clara-v0.5.8-RC
+- OK: VERSAO.txt = 0.5.8 — 0.5.8
+- OK: BUILD.txt = 0.5.8-RC — 0.5.8-RC
+- OK: Directory.Build.props versão 0.5.8
+- OK: TargetFramework net10.0
+- OK: global.json SDK 10.0
+- OK: Solução presente
+- OK: Publicador único presente
+- OK: Dockerfile presente
+- OK: render.yaml presente
+- OK: README v0.5.8-RC presente
+- OK: Nenhum log solto na raiz
+- OK: Pasta logs presente
+- OK: BUILD fica em logs
+- OK: Publicador usa pasta logs
+- OK: Publicador usa PUBLICACAO-ULTIMA em logs
+- OK: Exatamente 9 migrations — 9
+- OK: Migration 0009 presente
+- OK: Migration 0001 imutável vs v0.5.7 — ed572fe355fbd2ca9cbac5cbaef4879fa1d5d09f0cd4bfef883e201a362a31fd
+- OK: Migration 0002 imutável vs v0.5.7 — 92c622cff008b5efb736e4d507ca21fb82ed554bf102f5e175bfbd2b38c89d21
+- OK: Migration 0003 imutável vs v0.5.7 — 3fab0587f2c86386bfa51cf340339d8cb39562ca350f3650a722298869bbf410
+- OK: Migration 0004 imutável vs v0.5.7 — 6b8066ce83898415a9e7ec19d76d55d45b624f94ba54f3c9158a21253368b53b
+- OK: Migration 0005 imutável vs v0.5.7 — 1c39de83c946f5be2a2de445c4beef07315b490795c6dbb126b2539ac57cd5b2
+- OK: Migration 0006 imutável vs v0.5.7 — 3837c8056af236c922155065e1b05ea2ada80f12d3044b5cea178dec3fbb78e8
+- OK: Migration 0007 imutável vs v0.5.7 — e059bb2158c389a4a037e508188f57b4d6f1426caf5fd19a62ee18487a3933bc
+- OK: Migration 0008 imutável vs v0.5.7 — 70e0730b26b672d8e93f2d6874be66dd85f4cf2ddc2b40e3d2a7064d775acce6
+- OK: 0009 inclui relatorios_agendados
+- OK: 0009 inclui filtros_salvos_relatorio
+- OK: 0009 inclui integracoes_produtos_shareit
+- OK: 0009 inclui contexto_tecnico_visao
+- OK: 0009 inclui exclusoes_monitoramento
+- OK: 0009 inclui custos_software
+- OK: 0009 inclui referencias_operacionais
+- OK: 0009 inclui execucoes_retencao
+- OK: 0009 inclui pulso-operacao
+- OK: 0009 inclui contexto-ti
+- OK: 0009 inclui alerta InicioTardio
+- OK: 0009 inclui alerta SaidaAntecipada
+- OK: 0009 inclui alerta IntervaloLongo
+- OK: 0009 inclui alerta AusenciaAtividade
+- OK: 0009 inclui alerta CargaAbaixo
+- OK: 0009 inclui alerta CargaAcima
+- OK: Todos JSON válidos
+- OK: Todos XML/csproj/props válidos
+- OK: Sanidade de delimitadores C#
+- OK: Arquivo presente: src/ShareIT.Clara.Dados/Repositorios/RepositorioGestaoExecutiva.cs
+- OK: Arquivo presente: src/ShareIT.Clara.Web/Servicos/ServicoRetencao.cs
+- OK: Arquivo presente: src/ShareIT.Clara.Web/Servicos/ServicoRelatoriosAgendados.cs
+- OK: Arquivo presente: src/ShareIT.Clara.Agente/Servicos/ServicoVigilanciaSessao.cs
+- OK: Arquivo presente: src/ShareIT.Clara.Web/Controllers/ApiIntegracoesController.cs
+- OK: Arquivo presente: src/ShareIT.Clara.Web/Views/Painel/PulsoOperacao.cshtml
+- OK: Arquivo presente: src/ShareIT.Clara.Web/Views/Painel/ContextoTi.cshtml
+- OK: Arquivo presente: docs/ALTERACOES-v0.5.8-RC.md
+- OK: Arquivo presente: docs/CHECKLIST-HOMOLOGACAO-v0.5.8-RC.md
+- OK: Arquivo presente: docs/COEXISTENCIA-CLARA-VISAO-v0.5.8-RC.md
+- OK: Web registra AddScoped<RepositorioGestaoExecutiva>()
+- OK: Web registra AddHostedService<ServicoRetencao>()
+- OK: Web registra AddHostedService<ServicoRelatoriosAgendados>()
+- OK: Agente registra watchdog de sessão
+- OK: Agente grava marcador de saúde
+- OK: Layout consulta disponibilidade opcional do VISÃO
+- OK: Contexto TI não é menu incondicional — condicionado a visaoIntegrado && permissão do módulo
+- OK: Master configura VISÃO contratado/ativo
+- OK: API VISÃO exige tenant header
+- OK: API VISÃO exige token dedicado
+- OK: Token VISÃO armazenado como hash
+- OK: Comparação do token em tempo constante
+- OK: Pulso contém Pulso da Operação
+- OK: Pulso contém CAPACIDADE
+- OK: Pulso contém AUTOMAÇÃO
+- OK: Pulso contém Utilização de licenças
+- OK: Pulso contém Uso de ferramentas de IA
+- OK: Pulso contém Ontem em 60 segundos
+- OK: Pulso mostra Contexto TI somente quando disponível
+- OK: Relatórios contém name="inicio"
+- OK: Relatórios contém name="fim"
+- OK: Relatórios contém relatorios/agendar
+- OK: Relatórios contém relatorios/filtros/salvar
+- OK: Relatórios contém Relatórios automáticos
+- OK: Serviço de relatórios recorrentes executa em background
+- OK: Relatórios agendados usam fila de e-mail
+- OK: Retenção trata periodos_atividade
+- OK: Retenção trata sites_utilizados
+- OK: Retenção trata sessoes_usuario
+- OK: Retenção trata contexto_tecnico_visao
+- OK: Retenção trata evidencias_visuais
+- OK: Retenção trata evidencias_contextuais
+- OK: Retenção trata notificacoes
+- OK: Retenção trata fila_emails
+- OK: Retenção trata atualizacoes_agente
+- OK: Retenção trata auditoria
+- OK: Retenção não apaga documentos jurídicos
+- OK: Retenção audita execução
+- OK: Servidor remove contexto de aplicativo excluído
+- OK: Servidor descarta domínio excluído
+- OK: Config local recebe FusoHorario
+- OK: Config local recebe aplicativos excluídos
+- OK: Config local recebe domínios excluídos
+- OK: Política do servidor envia fuso/exclusões — montada em RepositorioInteligencia e desserializada pelo ClienteApiClara
+- OK: Atualizador contém Global\ShareIT.ProductUpdate
+- OK: Atualizador contém saude-agente.json
+- OK: Atualizador contém Rollback
+- OK: Atualizador contém RUNNING
+- OK: Atualizador contém ValidarPacote
+- OK: Clara detecta atividade recente de atualização do VISÃO
+- OK: Atualizador limpa artefatos antigos
+- OK: Docker usa caminho absoluto /src para instalador
+- OK: Docker usa caminho absoluto /src para diagnóstico
+- OK: Docker publica agente win-x64
+- OK: Publicador conta migrations dinamicamente
+- OK: Publicador valida shareit_clara
+- OK: Publicador valida Build ID
+- OK: Extensão navegador = 0.5.8 — 0.5.8
+- OK: Extensão não pede history permission — ['tabs', 'nativeMessaging', 'alarms']
+- OK: Extensão descrição limita a domínio
+- OK: Nenhum arquivo local real de segredos/.git
+- OK: Nenhum Deploy Hook/connection string concreta detectada
+- OK: Pacote fonte sem bin/obj/.git
+- OK: docs/ALTERACOES-v0.5.8-RC.md menciona Pulso
+- OK: docs/ALTERACOES-v0.5.8-RC.md menciona retenção
+- OK: docs/ALTERACOES-v0.5.8-RC.md menciona .VISÃO
+- OK: docs/ALTERACOES-v0.5.8-RC.md menciona relatórios
+- OK: docs/COEXISTENCIA-CLARA-VISAO-v0.5.8-RC.md menciona independentes
+- OK: docs/COEXISTENCIA-CLARA-VISAO-v0.5.8-RC.md menciona opcional
+- OK: docs/CHECKLIST-HOMOLOGACAO-v0.5.8-RC.md menciona 9 migrations
+- OK: docs/CHECKLIST-HOMOLOGACAO-v0.5.8-RC.md menciona PUBLICAR-CLARA.cmd
+- OK: Documentação não afirma assinatura de pacote ativa
+
+LIMITAÇÃO DO AMBIENTE
+O container desta sessão não possui .NET SDK 10, compilador C# nem PowerShell. Portanto esta é uma validação estática/estrutural, não uma compilação. O gate final da RC deve ser executado no Windows com PUBLICAR-CLARA.cmd, incluindo build, testes, Docker/Render, banco shareit_clara e confirmação de 9 migrations.
+
+ASSINATURA DE PACOTE
+A v0.5.8-RC mantém validação SHA-256, backup, health pós-atualização e rollback. Assinatura criptográfica de pacotes com chave privada Share IT NÃO está habilitada nesta RC porque não há infraestrutura/chave de produção provisionada.

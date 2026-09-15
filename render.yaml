@@ -26,3 +26,18 @@ services:
         value: "Share IT"
       - key: CLARA_TENANT_IDENTIFICADOR
         value: "shareit"
+      # Transporte de e-mail da plataforma. Host/usuário/senha são definidos como segredos no Render.
+      - key: CLARA_EMAIL_SMTP_HOST
+        sync: false
+      - key: CLARA_EMAIL_SMTP_PORT
+        value: "587"
+      - key: CLARA_EMAIL_SMTP_SSL
+        value: "true"
+      - key: CLARA_EMAIL_SMTP_USER
+        sync: false
+      - key: CLARA_EMAIL_SMTP_PASSWORD
+        sync: false
+      - key: CLARA_EMAIL_FROM
+        value: "monitoramento.clara@shareitbrasil.com.br"
+      - key: CLARA_EMAIL_FROM_NAME
+        value: "Share IT .Clara"

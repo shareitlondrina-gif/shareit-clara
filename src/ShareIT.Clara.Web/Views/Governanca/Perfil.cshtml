@@ -1,0 +1,15 @@
+@{
+    ViewData["Title"] = "Meu perfil";
+    var tema = (string)(ViewBag.Tema ?? "Sistema");
+}
+@if(TempData["Mensagem"] is string msg){<div class="mensagem-sucesso">@msg</div>}
+<section class="cabecalho-pagina"><div><span class="sobrelinha">PREFERÊNCIAS</span><h1>Meu perfil</h1><p>Preferências pessoais de uso da Share IT .Clara.</p></div></section>
+<section class="painel perfil-preferencias">
+  <div class="titulo-painel"><div><h2>Aparência</h2><p>O tema é salvo por usuário e não altera a experiência dos demais.</p></div></div>
+  <form method="post" action="/perfil/tema" class="grade-temas">@Html.AntiForgeryToken()
+    <label class="opcao-tema @(tema=="Claro"?"selecionado":"")"><input type="radio" name="tema" value="Claro" checked="@(tema=="Claro" ? "checked" : null)"/><span class="preview-tema claro"><i></i><b></b></span><strong>Claro</strong><small>Off-white/creme leve, padrão visual da .Clara.</small></label>
+    <label class="opcao-tema @(tema=="Escuro"?"selecionado":"")"><input type="radio" name="tema" value="Escuro" checked="@(tema=="Escuro" ? "checked" : null)"/><span class="preview-tema escuro"><i></i><b></b></span><strong>Escuro</strong><small>Grafite azulado com contraste para uso prolongado.</small></label>
+    <label class="opcao-tema @(tema=="Sistema"?"selecionado":"")"><input type="radio" name="tema" value="Sistema" checked="@(tema=="Sistema" ? "checked" : null)"/><span class="preview-tema sistema"><i></i><b></b></span><strong>Usar tema do sistema</strong><small>Acompanha a preferência claro/escuro do navegador.</small></label>
+    <div class="acoes-form"><button type="submit">Salvar preferência</button></div>
+  </form>
+</section>

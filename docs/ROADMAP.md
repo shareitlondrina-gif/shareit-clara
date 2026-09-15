@@ -134,7 +134,7 @@ Somente depois de RBAC, auditoria, política, retenção, armazenamento protegid
 - Diagnóstico de publicação mais objetivo e menor repetição de mensagens.
 - Sem alterações de schema: 6 migrations.
 
-## v0.5.5 — Correção do build Docker no Render — CANDIDATA À HOMOLOGAÇÃO
+## v0.5.4 — Correção do build Docker no Render — CANDIDATA À HOMOLOGAÇÃO
 
 - Corrigir caminhos relativos dos scripts do instalador após `cd /out/pacote` no Dockerfile.
 - Usar `/src/Ferramentas/...` para cópias executadas no build Linux do Render.
@@ -152,3 +152,17 @@ Somente depois de RBAC, auditoria, política, retenção, armazenamento protegid
 - migration 0007 para metadados de evidências visuais;
 - galeria de capturas fictícias no demo;
 - captura real continua pendente de RBAC, auditoria, retenção/storage e governança.
+
+
+## v0.5.7 — Jornada, histórico, alertas e governança — CANDIDATA À HOMOLOGAÇÃO
+
+- tema Claro/Escuro/Sistema por usuário;
+- jornada de referência e período efetivo de monitoramento;
+- sobrescrita de jornada por estação;
+- Relatórios e Histórico;
+- alertas parametrizados e Central de Notificações;
+- fila de e-mail com remetente padrão da Clara;
+- perfil Supervisor;
+- Governança e Privacidade com documentos, SHA-256, ciência e aprovação jurídica;
+- migration 0008;
+- recursos restritos continuam tecnicamente bloqueados até homologação específica.

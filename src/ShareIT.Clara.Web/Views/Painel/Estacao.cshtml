@@ -15,6 +15,8 @@
         .Select(g => new { Nome = g.Key, Segundos = (long)g.Sum(x => Math.Max(0, (x.FimUtc-x.InicioUtc).TotalSeconds)) })
         .OrderByDescending(x => x.Segundos).Take(5).ToArray();
     var totalAppsHoje = Math.Max(1L, appsHoje.Sum(x => x.Segundos));
+    var jornada = ViewBag.Jornada as ConfiguracaoJornadaEstacao;
+    var podeEditarJornada = User.IsInRole("Administrador") && User.HasClaim("modulo", "estacoes");
 }
 @if(TempData["Mensagem"] is string mensagem){<div class="mensagem-sucesso">@mensagem</div>}
 <section class="cabecalho-estacao">
@@ -65,6 +67,42 @@
         </div>
     }
 </section>
+
+@if(jornada is not null)
+{
+<section class="painel-clara painel-jornada-estacao">
+    <div class="titulo-painel"><div><span class="sobrelinha">JORNADA E COLETA</span><h2>Referência de trabalho</h2><p>A jornada é referência analítica. O período de monitoramento define quando a telemetria é coletada.</p></div><span class="selo @(jornada.PossuiSobrescrita?"selo-atencao":"selo-info")">@(jornada.PossuiSobrescrita?"Personalizada nesta estação":"Herdada da empresa")</span></div>
+    <div class="resumo-jornada-estacao">
+        <div><small>Jornada aproximada</small><strong>@jornada.JornadaInicio – @jornada.JornadaFim</strong><span>@jornada.CargaHorariaDiariaMinutos min/dia · dias @jornada.DiasJornada</span></div>
+        <div><small>Margem permitida</small><strong>-@jornada.MargemAntesMinutos / +@jornada.MargemDepoisMinutos min</strong><span>Usada para contextualizar atividade antes/depois.</span></div>
+        <div><small>Período monitorado</small><strong>@jornada.MonitoramentoInicio – @jornada.MonitoramentoFim</strong><span>Dias @jornada.DiasMonitorados · @jornada.FusoHorario</span></div>
+        <div><small>Regra</small><strong>Fatos, não julgamento</strong><span>Produtivo/neutro/não produtivo segue a classificação do cliente.</span></div>
+    </div>
+    @if(podeEditarJornada)
+    {
+        <details class="edicao-jornada-inline">
+            <summary>Personalizar jornada desta estação</summary>
+            <form method="post" action="/estacoes/@Model.Estacao.AtivoId/jornada" class="grade-form-jornada">@Html.AntiForgeryToken()
+                <label>Início da jornada<input type="time" name="jornadaInicio" value="@jornada.JornadaInicio" /></label>
+                <label>Fim da jornada<input type="time" name="jornadaFim" value="@jornada.JornadaFim" /></label>
+                <label>Carga diária (min)<input type="number" min="1" max="1440" name="cargaHorariaDiariaMinutos" value="@jornada.CargaHorariaDiariaMinutos" /></label>
+                <label>Margem antes (min)<input type="number" min="0" max="720" name="margemAntesMinutos" value="@jornada.MargemAntesMinutos" /></label>
+                <label>Margem depois (min)<input type="number" min="0" max="720" name="margemDepoisMinutos" value="@jornada.MargemDepoisMinutos" /></label>
+                <label>Dias da jornada<input name="diasJornada" value="@jornada.DiasJornada" /></label>
+                <label>Monitorar a partir de<input type="time" name="monitoramentoInicio" value="@jornada.MonitoramentoInicio" /></label>
+                <label>Monitorar até<input type="time" name="monitoramentoFim" value="@jornada.MonitoramentoFim" /></label>
+                <label>Dias monitorados<input name="diasMonitorados" value="@jornada.DiasMonitorados" /></label>
+                <label class="campo-largo">Fuso horário<input name="fusoHorario" value="@jornada.FusoHorario" /></label>
+                <div class="acoes-form campo-largo"><button type="submit">Salvar para esta estação</button></div>
+            </form>
+        </details>
+        @if(jornada.PossuiSobrescrita)
+        {
+            <form method="post" action="/estacoes/@Model.Estacao.AtivoId/jornada/herdar" class="form-herdar-jornada">@Html.AntiForgeryToken()<button type="submit" class="botao-secundario">Voltar a herdar o padrão da empresa</button></form>
+        }
+    }
+</section>
+}
 
 <section id="timeline" class="grade-timeline-estacao">
     <article class="painel-clara">
