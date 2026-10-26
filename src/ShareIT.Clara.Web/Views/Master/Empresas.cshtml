@@ -13,12 +13,12 @@
     <h2>Nova Administradora</h2>
     <form method="post" action="/master/empresas/criar" class="grade-formulario">
         @Html.AntiForgeryToken()
-        <label>Empresa<input name="nomeEmpresa" required maxlength="200" placeholder="Nome da Administradora" /></label>
+        <label>Administradora<input name="nomeEmpresa" required maxlength="200" placeholder="Nome da Administradora" /></label>
         <label>CNPJ/Documento<input name="documento" maxlength="30" placeholder="Opcional" /></label>
         <label>Administrador<input name="nomeAdministrador" required maxlength="200" placeholder="Nome do administrador" /></label>
         <label>E-mail do administrador<input name="emailAdministrador" type="email" required maxlength="320" /></label>
         <label>Senha inicial<input name="senhaAdministrador" type="password" required minlength="8" autocomplete="new-password" /></label>
-        <div class="campo-acao"><button type="submit">Criar empresa</button></div>
+        <div class="campo-acao"><button type="submit">Criar Administradora</button></div>
     </form>
 </section>
 <section class="cartao-clara destaque-demo">
@@ -43,7 +43,7 @@
                     <td><strong>@item.Plano</strong><small>Limite @item.LimiteEstacoes estações</small></td>
                     <td><strong>@item.Estacoes / @item.LimiteEstacoes</strong><div class="barra-mini"><i style="width:@percentual%"></i></div></td>
                     <td>@item.Usuarios</td>
-                    <td><span class="status-pill @(item.StatusAssinatura is "Ativa" or "Trial" ? "status-ok" : "status-off")">@item.StatusAssinatura</span><small>@(item.Vencimento.HasValue ? $"vence {item.Vencimento:dd/MM/yyyy}" : "sem vencimento")</small></td>
+                    <td><span class="status-pill @(item.StatusAssinatura == "Ativa" ? "status-ok" : item.StatusAssinatura == "Trial" ? "status-trial" : item.StatusAssinatura == "Suspensa" ? "status-warning" : item.StatusAssinatura == "Cancelada" ? "status-danger" : "status-off")">@item.StatusAssinatura</span><small>@(item.Vencimento.HasValue ? $"vence {item.Vencimento:dd/MM/yyyy}" : "sem vencimento")</small></td>
                     <td><details class="detalhes-inline"><summary>Gerenciar</summary><form method="post" action="/master/empresas/@item.TenantId/assinatura" class="form-assinatura-master">@Html.AntiForgeryToken()
                         <label>Plano<input name="plano" value="@item.Plano" maxlength="80" /></label>
                         <label>Status<select name="status">

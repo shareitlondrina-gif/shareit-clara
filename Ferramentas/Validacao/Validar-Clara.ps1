@@ -19,8 +19,8 @@ Add ("dotnet: "+$dotnet)
 if($dotnet -notmatch '^10\.'){Fail "SDK .NET 10 esperado; encontrado $dotnet"}
 $migs=@(Get-ChildItem (Join-Path $Raiz 'database\migrations') -Filter '*.sql' -File | Sort-Object Name)
 Add ("Migrations: "+$migs.Count)
-if($migs.Count -ne 10){Fail "Esperadas 10 migrations; encontradas $($migs.Count)."}
-$obrigatorios=@('PUBLICAR-CLARA.cmd','VALIDAR-ANTES-DE-PUBLICAR.cmd','Dockerfile','render.yaml','Ferramentas\Instalacao\INSTALAR-AGENTE.cmd','Ferramentas\Instalacao\Instalar-Agente.ps1','Ferramentas\Instalacao\MANUTENCAO-CLARA.cmd','Ferramentas\Instalacao\Manutencao-Clara.ps1','Ferramentas\Diagnostico\DIAGNOSTICAR-AGENTE.cmd','Ferramentas\Diagnostico\Diagnosticar-Agente.ps1')
+if($migs.Count -ne 11){Fail "Esperadas 11 migrations; encontradas $($migs.Count)."}
+$obrigatorios=@('PUBLICAR-CLARA.cmd','VALIDAR-ANTES-DE-PUBLICAR.cmd','Dockerfile','render.yaml','database\migrations\0011_perfil_usuario_identidade_visual.sql','Ferramentas\Instalacao\INSTALAR-AGENTE.cmd','Ferramentas\Instalacao\Instalar-Agente.ps1','Ferramentas\Instalacao\MANUTENCAO-CLARA.cmd','Ferramentas\Instalacao\Manutencao-Clara.ps1','Ferramentas\Diagnostico\DIAGNOSTICAR-AGENTE.cmd','Ferramentas\Diagnostico\Diagnosticar-Agente.ps1')
 foreach($r in $obrigatorios){if(-not (Test-Path (Join-Path $Raiz $r) -PathType Leaf)){Fail "Arquivo obrigatorio ausente: $r"}}
 $segredos=@('SegredosClara.local.xml','.env','appsettings.Production.json')
 foreach($n in $segredos){$achado=Get-ChildItem $Raiz -Recurse -Force -File -ErrorAction SilentlyContinue | Where-Object {$_.Name -eq $n};if($achado){Fail "Arquivo de segredo/local nao deve integrar release: $n"}}

@@ -17,7 +17,7 @@
 
 <section class="grade-instalacao-agente">
     <article class="painel-clara card-plano-instalacao">
-        <div class="titulo-painel"><div><span class="sobrelinha">PLANO ATUAL</span><h2>@Model.Assinatura.Plano</h2></div><span class="status-pill @(Model.Assinatura.Status is "Ativa" or "Trial" ? "status-ok" : "status-off")">@Model.Assinatura.Status</span></div>
+        <div class="titulo-painel"><div><span class="sobrelinha">PLANO ATUAL</span><h2>@Model.Assinatura.Plano</h2></div><span class="status-pill @(Model.Assinatura.Status == "Ativa" ? "status-ok" : Model.Assinatura.Status == "Trial" ? "status-trial" : Model.Assinatura.Status == "Suspensa" ? "status-warning" : Model.Assinatura.Status == "Cancelada" ? "status-danger" : "status-off")">@Model.Assinatura.Status</span></div>
         <div class="consumo-plano"><strong>@Model.EstacoesAtivas <small>/ @Model.Assinatura.LimiteEstacoes estações</small></strong><div class="barra-score"><i style="width:@percentual%"></i></div></div>
         <div class="mini-metricas"><span><b>@Model.Assinatura.RetencaoDias</b><small>dias de retenção</small></span><span><b>@Model.Assinatura.ArmazenamentoGb GB</b><small>armazenamento contratado</small></span><span><b>@(Model.Assinatura.Vencimento?.ToString("dd/MM/yyyy") ?? "—")</b><small>vencimento</small></span></div>
         @if (!podeInstalar) { <div class="nota-config alerta-config">A instalação de novas estações está bloqueada pelo status, vencimento ou limite do plano. O agente já instalado continua podendo comunicar para preservar diagnóstico.</div> }

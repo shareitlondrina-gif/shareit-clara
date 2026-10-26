@@ -15,6 +15,94 @@ namespace ShareIT.Clara.Dados.Repositorios;
 /// </summary>
 public sealed class RepositorioUsuariosAcesso(FabricaConexoesClara fabrica)
 {
+    public async Task<PerfilUsuarioResumo> ObterPerfilUsuarioAsync(Guid usuarioId, CancellationToken ct = default)
+    {
+        const string sql = """
+            SELECT u.id,u.nome,u.email,u.perfil,p.nome,t.nome,e.nome,u.telefone,u.cargo,(u.foto_perfil IS NOT NULL)
+            FROM usuarios u
+            JOIN tenants t ON t.id=u.tenant_id
+            LEFT JOIN empresas e ON e.id=u.empresa_id AND e.tenant_id=u.tenant_id
+            LEFT JOIN perfis_acesso p ON p.id=u.perfil_acesso_id AND p.tenant_id=u.tenant_id
+            WHERE u.id=@usuario AND u.ativo=true
+            LIMIT 1;
+            """;
+        await using var c = fabrica.Criar();
+        await c.OpenAsync(ct);
+        await using var cmd = new NpgsqlCommand(sql, c);
+        cmd.Parameters.AddWithValue("usuario", usuarioId);
+        await using var leitor = await cmd.ExecuteReaderAsync(ct);
+        if (!await leitor.ReadAsync(ct)) throw new InvalidOperationException("Usuário não encontrado.");
+        return new PerfilUsuarioResumo(
+            leitor.GetGuid(0), leitor.GetString(1), leitor.GetString(2), leitor.GetString(3),
+            leitor.IsDBNull(4) ? null : leitor.GetString(4), leitor.GetString(5),
+            leitor.IsDBNull(6) ? null : leitor.GetString(6), leitor.IsDBNull(7) ? null : leitor.GetString(7),
+            leitor.IsDBNull(8) ? null : leitor.GetString(8), leitor.GetBoolean(9));
+    }
+
+    public async Task SalvarPerfilUsuarioAsync(Guid usuarioId, string nome, string? telefone, string? cargo, CancellationToken ct = default)
+    {
+        nome = (nome ?? string.Empty).Trim();
+        if (nome.Length < 2 || nome.Length > 200) throw new ArgumentException("Informe um nome válido, com até 200 caracteres.");
+        telefone = Limpar(telefone, 30);
+        cargo = Limpar(cargo, 120);
+        const string sql = """
+            UPDATE usuarios
+            SET nome=@nome,telefone=@telefone,cargo=@cargo,perfil_atualizado_em_utc=now()
+            WHERE id=@usuario AND ativo=true;
+            """;
+        await using var c = fabrica.Criar();
+        await c.OpenAsync(ct);
+        await using var cmd = new NpgsqlCommand(sql, c);
+        cmd.Parameters.AddWithValue("usuario", usuarioId);
+        cmd.Parameters.AddWithValue("nome", nome);
+        cmd.Parameters.AddWithValue("telefone", (object?)telefone ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("cargo", (object?)cargo ?? DBNull.Value);
+        if (await cmd.ExecuteNonQueryAsync(ct) != 1) throw new InvalidOperationException("Usuário não encontrado.");
+    }
+
+    public async Task SalvarFotoPerfilAsync(Guid usuarioId, byte[] conteudo, string mimeType, CancellationToken ct = default)
+    {
+        if (conteudo.Length == 0 || conteudo.Length > 2 * 1024 * 1024) throw new ArgumentException("A foto deve possuir no máximo 2 MB.");
+        if (mimeType is not ("image/jpeg" or "image/png" or "image/webp")) throw new ArgumentException("Formato de foto não permitido.");
+        const string sql = """
+            UPDATE usuarios SET foto_perfil=@foto,foto_perfil_mime=@mime,perfil_atualizado_em_utc=now()
+            WHERE id=@usuario AND ativo=true;
+            """;
+        await using var c = fabrica.Criar();
+        await c.OpenAsync(ct);
+        await using var cmd = new NpgsqlCommand(sql, c);
+        cmd.Parameters.AddWithValue("usuario", usuarioId);
+        cmd.Parameters.AddWithValue("foto", conteudo);
+        cmd.Parameters.AddWithValue("mime", mimeType);
+        if (await cmd.ExecuteNonQueryAsync(ct) != 1) throw new InvalidOperationException("Usuário não encontrado.");
+    }
+
+    public async Task RemoverFotoPerfilAsync(Guid usuarioId, CancellationToken ct = default)
+    {
+        await using var c = fabrica.Criar();
+        await c.OpenAsync(ct);
+        await using var cmd = new NpgsqlCommand("UPDATE usuarios SET foto_perfil=NULL,foto_perfil_mime=NULL,perfil_atualizado_em_utc=now() WHERE id=@usuario", c);
+        cmd.Parameters.AddWithValue("usuario", usuarioId);
+        await cmd.ExecuteNonQueryAsync(ct);
+    }
+
+    public async Task<FotoPerfilUsuario?> ObterFotoPerfilAsync(Guid usuarioId, CancellationToken ct = default)
+    {
+        await using var c = fabrica.Criar();
+        await c.OpenAsync(ct);
+        await using var cmd = new NpgsqlCommand("SELECT foto_perfil,foto_perfil_mime FROM usuarios WHERE id=@usuario AND ativo=true", c);
+        cmd.Parameters.AddWithValue("usuario", usuarioId);
+        await using var leitor = await cmd.ExecuteReaderAsync(ct);
+        if (!await leitor.ReadAsync(ct) || leitor.IsDBNull(0) || leitor.IsDBNull(1)) return null;
+        return new FotoPerfilUsuario((byte[])leitor[0], leitor.GetString(1));
+    }
+
+    private static string? Limpar(string? valor, int maximo)
+    {
+        if (string.IsNullOrWhiteSpace(valor)) return null;
+        var limpo = valor.Trim();
+        return limpo.Length <= maximo ? limpo : limpo[..maximo];
+    }
     public async Task<IReadOnlyCollection<UsuarioAcessoResumo>> ListarUsuariosAsync(Guid tenantId, CancellationToken ct = default)
     {
         const string sql = """

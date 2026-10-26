@@ -1,4 +1,23 @@
 (() => {
+    const menuUsuario = document.querySelector('[data-menu-usuario]');
+    const botaoMenuUsuario = document.querySelector('[data-menu-usuario-botao]');
+
+    const fecharMenuUsuario = () => {
+        if (!menuUsuario || !botaoMenuUsuario) return;
+        menuUsuario.hidden = true;
+        botaoMenuUsuario.setAttribute('aria-expanded', 'false');
+    };
+
+    if (botaoMenuUsuario && menuUsuario) {
+        botaoMenuUsuario.addEventListener('click', e => {
+            e.preventDefault();
+            e.stopPropagation();
+            const abrir = menuUsuario.hidden;
+            menuUsuario.hidden = !abrir;
+            botaoMenuUsuario.setAttribute('aria-expanded', abrir ? 'true' : 'false');
+        });
+    }
+
     const painelNotificacoes = document.getElementById('painelNotificacoes');
     const botaoNotificacoes = document.querySelector('[data-notificacoes-url]');
     const badgeNotificacoes = document.querySelector('[data-notificacoes-badge]');
@@ -81,6 +100,9 @@
             !painelNotificacoes.contains(e.target) && !botaoNotificacoes?.contains(e.target)) {
             fecharNotificacoes();
         }
+        if (menuUsuario && !menuUsuario.hidden && !menuUsuario.contains(e.target) && !botaoMenuUsuario?.contains(e.target)) {
+            fecharMenuUsuario();
+        }
     });
 
     const modal = document.getElementById('modalIndicador');
@@ -122,5 +144,6 @@
         if (e.key !== 'Escape') return;
         fecharModal();
         fecharNotificacoes();
+        fecharMenuUsuario();
     });
 })();

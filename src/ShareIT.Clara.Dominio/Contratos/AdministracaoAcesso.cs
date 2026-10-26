@@ -58,3 +58,17 @@ public sealed record ModuloAcessoResumo(
     string Nome,
     string Grupo,
     bool Permitido);
+
+public sealed record PerfilUsuarioResumo(
+    Guid Id,
+    string Nome,
+    string Email,
+    string PerfilSistema,
+    string? PerfilAcesso,
+    string Administradora,
+    string? Empresa,
+    string? Telefone,
+    string? Cargo,
+    bool PossuiFoto);
+
+public sealed record FotoPerfilUsuario(byte[] Conteudo, string MimeType);

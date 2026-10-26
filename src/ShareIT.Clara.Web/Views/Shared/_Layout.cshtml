@@ -52,7 +52,7 @@
             @if (master)
             {
                 <span class="grupo-menu">MASTER</span>
-                <a class='@Ativo("/master/empresas")' href="/master/empresas"><span class="icone-menu">▦</span>Empresas</a>
+                <a class='@Ativo("/master/empresas")' href="/master/empresas"><span class="icone-menu">▦</span>Administradoras</a>
             }
             else
             {
@@ -102,7 +102,6 @@
             {
                 <div class="empresa-rodape"><strong>Share IT .Clara</strong><small>Master da plataforma</small><small>v0.6.0</small></div>
             }
-            <form method="post" action="/sair">@Html.AntiForgeryToken()<button class="botao-sair" type="submit">Sair</button></form>
         </div>
     </aside>
 }
@@ -125,7 +124,18 @@
                 {
                     <button type="button" class="sino-topo" title="Notificações" data-notificacoes-url="/notificacoes/painel" aria-expanded="false">🔔<i data-notificacoes-badge hidden></i></button>
                 }
-                <a class="perfil-topo" href="/perfil" title="Meu perfil e aparência"><span class="avatar-topo">@string.Join("", (User.Identity?.Name ?? "U").Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(x => char.ToUpperInvariant(x[0])))</span><span class="usuario-topo"><strong>@User.Identity?.Name</strong><small>@(master ? "Master" : administrador ? "Administradora" : "Usuário")</small></span><span class="seta-topo">⌄</span></a>
+                <div class="menu-usuario-topo">
+                    <button type="button" class="perfil-topo" data-menu-usuario-botao aria-expanded="false" aria-haspopup="menu" title="Abrir menu da conta">
+                        <img class="avatar-topo avatar-topo-foto" src="/perfil/foto" alt="" />
+                        <span class="usuario-topo"><strong>@User.Identity?.Name</strong><small>@(master ? "Master" : administrador ? "Administradora" : "Usuário")</small></span>
+                        <span class="seta-topo">⌄</span>
+                    </button>
+                    <div class="dropdown-usuario" data-menu-usuario hidden role="menu">
+                        <div class="dropdown-usuario-cabecalho"><img src="/perfil/foto" alt="" /><div><strong>@User.Identity?.Name</strong><small>@(User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value)</small></div></div>
+                        <a href="/perfil" role="menuitem"><span>♙</span><div><strong>Perfil</strong><small>Foto, dados pessoais e aparência</small></div></a>
+                        <form method="post" action="/sair" role="none">@Html.AntiForgeryToken()<button type="submit" class="acao-sair-dropdown" role="menuitem"><span>↪</span><div><strong>Sair</strong><small>Encerrar esta sessão</small></div></button></form>
+                    </div>
+                </div>
             </div>
         </header>
     }

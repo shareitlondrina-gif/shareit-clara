@@ -1,3 +1,7 @@
+using System.Security.Claims;
+using System.Text;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ShareIT.Clara.Dados.Repositorios;
@@ -14,6 +18,7 @@ public sealed class GovernancaController(
     RepositorioGovernanca governanca,
     RepositorioGestaoExecutiva gestao,
     RepositorioAdministracao administracao,
+    RepositorioUsuariosAcesso usuarios,
     IConfiguration configuracao) : Controller
 {
     [HttpGet("relatorios")]
@@ -63,7 +68,56 @@ public sealed class GovernancaController(
     public async Task<IActionResult> Perfil(CancellationToken ct)
     {
         ViewBag.Tema = await governanca.ObterTemaUsuarioAsync(ObterUsuario(), ct);
-        return View();
+        return View(await usuarios.ObterPerfilUsuarioAsync(ObterUsuario(), ct));
+    }
+
+    [HttpPost("perfil/dados")]
+    [ValidateAntiForgeryToken]
+    [RequestSizeLimit(3_000_000)]
+    public async Task<IActionResult> SalvarPerfil(string nome, string? telefone, string? cargo, IFormFile? foto, bool removerFoto = false, CancellationToken ct = default)
+    {
+        try
+        {
+            await usuarios.SalvarPerfilUsuarioAsync(ObterUsuario(), nome, telefone, cargo, ct);
+            if (removerFoto)
+            {
+                await usuarios.RemoverFotoPerfilAsync(ObterUsuario(), ct);
+            }
+            else if (foto is not null && foto.Length > 0)
+            {
+                if (foto.Length > 2 * 1024 * 1024) throw new ArgumentException("A foto deve possuir no máximo 2 MB.");
+                await using var memoria = new MemoryStream();
+                await foto.CopyToAsync(memoria, ct);
+                var bytes = memoria.ToArray();
+                var mime = DetectarMimeImagem(bytes) ?? throw new ArgumentException("Use uma imagem JPG, PNG ou WebP válida.");
+                await usuarios.SalvarFotoPerfilAsync(ObterUsuario(), bytes, mime, ct);
+            }
+
+            var claims = User.Claims.Where(c => c.Type != ClaimTypes.Name).ToList();
+            claims.Add(new Claim(ClaimTypes.Name, nome.Trim()));
+            var identidade = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identidade));
+            TempData["Mensagem"] = "Perfil atualizado.";
+        }
+        catch (Exception ex)
+        {
+            TempData["Erro"] = ex.Message;
+        }
+        return RedirectToAction(nameof(Perfil));
+    }
+
+    [HttpGet("perfil/foto")]
+    public async Task<IActionResult> FotoPerfil(CancellationToken ct)
+    {
+        Response.Headers["Cache-Control"] = "private, no-store, max-age=0";
+        var foto = await usuarios.ObterFotoPerfilAsync(ObterUsuario(), ct);
+        if (foto is not null) return File(foto.Conteudo, foto.MimeType);
+
+        var nome = User.Identity?.Name ?? "Usuário";
+        var iniciais = string.Concat(nome.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(x => char.ToUpperInvariant(x[0])));
+        if (string.IsNullOrWhiteSpace(iniciais)) iniciais = "U";
+        var svg = $"<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"160\" height=\"160\" viewBox=\"0 0 160 160\"><rect width=\"160\" height=\"160\" rx=\"80\" fill=\"#d9ecff\"/><text x=\"80\" y=\"96\" text-anchor=\"middle\" font-family=\"Segoe UI,Arial,sans-serif\" font-size=\"54\" font-weight=\"700\" fill=\"#0b4e90\">{iniciais}</text></svg>";
+        return File(Encoding.UTF8.GetBytes(svg), "image/svg+xml; charset=utf-8");
     }
 
     [HttpPost("perfil/tema")]
@@ -278,6 +332,14 @@ public sealed class GovernancaController(
         if (solicitacao is null) return NotFound();
         ViewBag.Token = token;
         return View("AprovacaoPublica", solicitacao);
+    }
+
+    private static string? DetectarMimeImagem(byte[] bytes)
+    {
+        if (bytes.Length >= 8 && bytes[0] == 0x89 && bytes[1] == 0x50 && bytes[2] == 0x4E && bytes[3] == 0x47 && bytes[4] == 0x0D && bytes[5] == 0x0A && bytes[6] == 0x1A && bytes[7] == 0x0A) return "image/png";
+        if (bytes.Length >= 3 && bytes[0] == 0xFF && bytes[1] == 0xD8 && bytes[2] == 0xFF) return "image/jpeg";
+        if (bytes.Length >= 12 && bytes[0] == 0x52 && bytes[1] == 0x49 && bytes[2] == 0x46 && bytes[3] == 0x46 && bytes[8] == 0x57 && bytes[9] == 0x45 && bytes[10] == 0x42 && bytes[11] == 0x50) return "image/webp";
+        return null;
     }
 
     private bool TemModulo(string codigo) => !User.IsInRole("Master") && User.HasClaim("modulo", codigo);
