@@ -1,0 +1,19 @@
+@* Clara | Programador: Paulo Andrade | Origem: ViewModel/Controller | Destino: interface web | Boas práticas: saída codificada, sem segredos e ações protegidas. *@
+@model IReadOnlyCollection<ContextoTecnicoVisaoResumo>
+@{
+    ViewData["Title"]="Contexto TI (VISÃO)";
+    var dias=(int)(ViewBag.Dias ?? 7);
+    var integracao=(IntegracaoProdutoResumo)ViewBag.IntegracaoVisao;
+}
+<section class="cabecalho-pagina cabecalho-clara">
+  <div><span class="sobrelinha">INTEGRAÇÃO OPCIONAL</span><h1>Contexto TI — Clara VISÃO</h1><p>Correlacione fatos técnicos com variações da operação sem presumir que uma queda de produtividade é comportamental.</p></div>
+  <div class="filtro-periodo"><a class="@(dias==1?"ativo":"")" href="/contexto-ti?dias=1">Hoje</a><a class="@(dias==7?"ativo":"")" href="/contexto-ti?dias=7">7 dias</a><a class="@(dias==30?"ativo":"")" href="/contexto-ti?dias=30">30 dias</a></div>
+</section>
+<section class="painel"><div class="titulo-painel"><div><h2>Integração ativa</h2><p>Este módulo aparece porque o VISÃO está marcado como contratado e integrado para esta empresa.</p></div><span class="selo selo-ok">Conectado</span></div><div class="grade-resumo-integracao"><div><small>Produto</small><strong>Clara VISÃO</strong></div><div><small>Última comunicação</small><strong>@(integracao.UltimoSucessoUtc?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "Ainda não recebida")</strong></div><div><small>Endpoint</small><strong>@(string.IsNullOrWhiteSpace(integracao.UrlBase)?"Configurado pelo provedor":"Configurado")</strong></div></div></section>
+<section class="painel">
+  <div class="titulo-painel"><div><span class="sobrelinha">EVENTOS TÉCNICOS</span><h2>Fatos recebidos do VISÃO</h2><p>Lentidão, disponibilidade, recursos ou outros sinais enviados pela integração. A correlação com pessoas não é automática.</p></div></div>
+  <div class="tabela-responsiva"><table><thead><tr><th>Quando</th><th>Estação</th><th>Categoria</th><th>Severidade</th><th>Resumo</th><th>Detalhe</th></tr></thead><tbody>
+  @foreach(var e in Model){<tr><td>@e.ObservadoEmUtc.ToLocalTime().ToString("dd/MM HH:mm")</td><td>@(e.Hostname ?? "—")</td><td>@e.Categoria</td><td><span class="selo @(e.Severidade is "Alta" or "Critica"?"selo-atencao":"selo-info")">@e.Severidade</span></td><td><strong>@e.Resumo</strong></td><td>@(e.Detalhe ?? "—")</td></tr>}
+  @if(Model.Count==0){<tr><td colspan="6"><div class="estado-vazio"><strong>Integração ativa, sem eventos no período.</strong><span>A Clara continua operando normalmente; o VISÃO é apenas uma fonte complementar quando contratado.</span></div></td></tr>}
+  </tbody></table></div>
+</section>

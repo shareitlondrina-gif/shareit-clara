@@ -1,0 +1,10 @@
+@* Clara | Programador: Paulo Andrade | Origem: ViewModel/Controller | Destino: interface web | Boas práticas: saída codificada, sem segredos e ações protegidas. *@
+@{
+    ViewData["Title"] = "Não foi possível concluir";
+}
+<section class="painel erro-sistema">
+    <h1>Não foi possível concluir esta operação.</h1>
+    <p>A Clara registrou o erro técnico no servidor. Tente novamente em alguns instantes.</p>
+    <p>Se o problema aconteceu durante o login, confira também <code>/api/health</code>.</p>
+    <a class="botao" href="/entrar">Voltar para o acesso</a>
+</section>

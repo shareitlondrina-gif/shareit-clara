@@ -1,5 +1,5 @@
 -- ============================================================================
--- Share IT .Clara v0.6.0 - Empresa Demonstração
+-- Clara v0.6.0 - Empresa Demonstração
 -- Requer migrations até 0009_fechamento_operacional_coexistencia_gestao.sql.
 --
 -- Login de demonstração:
@@ -44,10 +44,10 @@ BEGIN
     ON CONFLICT(id) DO UPDATE SET nome=EXCLUDED.nome,identificador=EXCLUDED.identificador,ativo=true;
 
     INSERT INTO assinaturas_tenant(tenant_id,plano,status,limite_estacoes,retencao_dias,armazenamento_gb,vencimento,observacao,atualizado_em_utc)
-    VALUES(v_tenant,'Demonstração','Trial',15,90,5,current_date+90,'Tenant fictício para apresentações comerciais do Share IT .Clara.',now())
+    VALUES(v_tenant,'Demonstração','Trial',15,90,5,current_date+90,'Tenant fictício para apresentações comerciais do Clara.',now())
     ON CONFLICT(tenant_id) DO UPDATE SET
         plano='Demonstração',status='Trial',limite_estacoes=15,retencao_dias=90,armazenamento_gb=5,
-        vencimento=current_date+90,observacao='Tenant fictício para apresentações comerciais do Share IT .Clara.',atualizado_em_utc=now();
+        vencimento=current_date+90,observacao='Tenant fictício para apresentações comerciais do Clara.',atualizado_em_utc=now();
 
     INSERT INTO empresas(id,tenant_id,nome,documento,ativo)
     VALUES(v_empresa,v_tenant,'Horizonte Contabilidade','12.345.678/0001-99',true)
@@ -475,8 +475,8 @@ BEGIN
     VALUES(v_tenant,NULL,NULL,'Administrativo','HomeOffice','Média de ociosidade maior em dias de home office','Medio','Revisar diretrizes, definir metas claras e rotina de acompanhamento.','Pendente','Regra demonstrativa',now()-interval '1 day 2 hours');
 
 
-    -- v0.6.0-RC: contexto executivo e integração opcional .VISÃO apenas para a empresa de demonstração.
-    INSERT INTO integracoes_produtos_shareit(tenant_id,produto,contratado,integracao_ativa,url_base,ultimo_sucesso_utc,atualizado_em_utc)
+    -- v0.6.0-RC: contexto executivo e integração opcional VISÃO apenas para a empresa de demonstração.
+    INSERT INTO integracoes_produtos_clara(tenant_id,produto,contratado,integracao_ativa,url_base,ultimo_sucesso_utc,atualizado_em_utc)
     VALUES(v_tenant,'Visao',true,true,'https://visao.demo.local',now()-interval '9 minutes',now())
     ON CONFLICT(tenant_id,produto) DO UPDATE SET contratado=true,integracao_ativa=true,url_base=EXCLUDED.url_base,ultimo_sucesso_utc=EXCLUDED.ultimo_sucesso_utc,atualizado_em_utc=now();
 

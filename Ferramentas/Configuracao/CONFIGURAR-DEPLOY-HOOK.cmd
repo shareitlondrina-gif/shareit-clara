@@ -1,7 +1,13 @@
 @echo off
+REM Clara
+REM Programador: Paulo Andrade
+REM Objetivo: launcher operacional da Clara.
+REM Origem: execução administrativa/local.
+REM Destino: script PowerShell ou rotina validada correspondente.
+REM Boas práticas: código de saída obrigatório e interrupção imediata em falha.
 setlocal
 cd /d "%~dp0"
-title Share IT .Clara - Configurar Deploy Hook
+title Clara - Configurar Deploy Hook
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0Configurar-DeployHook.ps1"
 set ERRO=%ERRORLEVEL%
 echo.

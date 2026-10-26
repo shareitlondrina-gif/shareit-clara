@@ -5,20 +5,20 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends zip \
     && rm -rf /var/lib/apt/lists/*
 
-RUN dotnet restore ShareIT.Clara.sln
+RUN dotnet restore Clara.sln
 RUN test -f /src/Ferramentas/Instalacao/INSTALAR-AGENTE.cmd \
     && test -f /src/Ferramentas/Instalacao/Instalar-Agente.ps1 \
     && test -f /src/Ferramentas/Diagnostico/DIAGNOSTICAR-AGENTE.cmd \
     && test -f /src/Ferramentas/Diagnostico/Diagnosticar-Agente.ps1
 
 RUN VERSION=$(cat VERSAO.txt | tr -d '\r\n') \
-    && dotnet publish src/ShareIT.Clara.Agente/ShareIT.Clara.Agente.csproj -c Release -r win-x64 --self-contained true -o /out/pacote/Agente -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:Version=$VERSION \
-    && dotnet publish src/ShareIT.Clara.Sessao/ShareIT.Clara.Sessao.csproj -c Release -r win-x64 --self-contained true -o /out/pacote/Sessao -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:Version=$VERSION \
-    && dotnet publish src/ShareIT.Clara.Atualizador/ShareIT.Clara.Atualizador.csproj -c Release -r win-x64 --self-contained true -o /out/pacote/Atualizador -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:Version=$VERSION \
-    && dotnet publish src/ShareIT.Clara.NavegadorHost/ShareIT.Clara.NavegadorHost.csproj -c Release -r win-x64 --self-contained true -o /out/pacote/NavegadorHost -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:Version=$VERSION \
+    && dotnet publish src/Clara.Agente/Clara.Agente.csproj -c Release -r win-x64 --self-contained true -o /out/pacote/Agente -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:Version=$VERSION \
+    && dotnet publish src/Clara.Sessao/Clara.Sessao.csproj -c Release -r win-x64 --self-contained true -o /out/pacote/Sessao -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:Version=$VERSION \
+    && dotnet publish src/Clara.Atualizador/Clara.Atualizador.csproj -c Release -r win-x64 --self-contained true -o /out/pacote/Atualizador -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:Version=$VERSION \
+    && dotnet publish src/Clara.NavegadorHost/Clara.NavegadorHost.csproj -c Release -r win-x64 --self-contained true -o /out/pacote/NavegadorHost -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:Version=$VERSION \
     && mkdir -p /out/pacote/NavegadorExtensao \
-    && cp -R src/ShareIT.Clara.NavegadorExtensao/. /out/pacote/NavegadorExtensao/ \
-    && dotnet publish src/ShareIT.Clara.Web/ShareIT.Clara.Web.csproj -c Release -o /out/web -p:Version=$VERSION \
+    && cp -R src/Clara.NavegadorExtensao/. /out/pacote/NavegadorExtensao/ \
+    && dotnet publish src/Clara.Web/Clara.Web.csproj -c Release -o /out/web -p:Version=$VERSION \
     && cd /out/pacote \
     && zip -qr /out/Clara-Agent-v${VERSION}.zip . \
     && SHA=$(sha256sum /out/Clara-Agent-v${VERSION}.zip | awk '{print $1}') \
@@ -43,4 +43,4 @@ WORKDIR /app
 COPY --from=build /out/web .
 ENV ASPNETCORE_URLS=http://0.0.0.0:8080
 EXPOSE 8080
-ENTRYPOINT ["dotnet", "ShareIT.Clara.Web.dll"]
+ENTRYPOINT ["dotnet", "Clara.Web.dll"]

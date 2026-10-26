@@ -1,4 +1,4 @@
-# Guia rápido — novidades da Share IT .Clara v0.5.7
+# Guia rápido — novidades da Clara v0.5.7
 
 ## Onde encontrar
 
@@ -13,7 +13,7 @@
 
 ## Regra de leitura
 
-A classificação de aplicativos/sites continua sendo definida pelo cliente. A .Clara cruza a classificação com horário e duração para mostrar produtividade/ociosidade dentro e fora da jornada, sem inferir automaticamente intenção pessoal ou disciplinar.
+A classificação de aplicativos/sites continua sendo definida pelo cliente. A Clara cruza a classificação com horário e duração para mostrar produtividade/ociosidade dentro e fora da jornada, sem inferir automaticamente intenção pessoal ou disciplinar.
 
 ## Jornada x monitoramento
 

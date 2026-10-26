@@ -1,0 +1,182 @@
+@* Clara | Programador: Paulo Andrade | Origem: ViewModel/Controller | Destino: interface web | Boas práticas: saída codificada, sem segredos e ações protegidas. *@
+@model PainelDetalheEstacao
+@{
+    ViewData["Title"] = Model.Estacao.Hostname;
+    var unidades = (IReadOnlyCollection<OpcaoCadastro>)(ViewBag.Unidades ?? Array.Empty<OpcaoCadastro>());
+    var departamentos = (IReadOnlyCollection<OpcaoCadastro>)(ViewBag.Departamentos ?? Array.Empty<OpcaoCadastro>());
+    string Tempo(long segundos) { var t=TimeSpan.FromSeconds(Math.Max(0,segundos)); return t.TotalHours>=1?$"{(int)t.TotalHours}h {t.Minutes:00}min":$"{t.Minutes}min"; }
+    var observado = Math.Max(1L, Model.SegundosProdutivosHoje + Model.SegundosOciososHoje);
+    var pctProd = (int)Math.Round(Model.SegundosProdutivosHoje*100d/observado);
+    var pctOcioso = (int)Math.Round(Model.SegundosOciososHoje*100d/observado);
+    string Classe(string estado) => estado switch { "Ativo"=>"verde","Ocioso"=>"amarelo","Reunião"=>"roxo","Offline"=>"vermelho",_=>"azul" };
+    string NomeCategoria(string codigo) => codigo switch { "OciosidadeAlta"=>"Ociosidade em horário comercial","SitesNaoProdutivos"=>"Acesso a site não produtivo","BaixaContinuidade"=>"Baixa continuidade","PossivelNecessidadeTreinamento"=>"Possível necessidade de treinamento","BaixoUsoSistemaPrincipal"=>"Baixo uso do sistema principal","HomeOffice"=>"Oportunidade em home office",_=>codigo };
+    var appsHoje = Model.TimelineHoje
+        .Where(x => !string.IsNullOrWhiteSpace(x.ProcessoExecutavel))
+        .GroupBy(x => x.ProcessoExecutavel!, StringComparer.OrdinalIgnoreCase)
+        .Select(g => new { Nome = g.Key, Segundos = (long)g.Sum(x => Math.Max(0, (x.FimUtc-x.InicioUtc).TotalSeconds)) })
+        .OrderByDescending(x => x.Segundos).Take(5).ToArray();
+    var totalAppsHoje = Math.Max(1L, appsHoje.Sum(x => x.Segundos));
+    var jornada = ViewBag.Jornada as ConfiguracaoJornadaEstacao;
+    var podeEditarJornada = User.IsInRole("Administrador") && User.HasClaim("modulo", "estacoes");
+    var codigoManutencao = TempData["CodigoManutencao"] as string;
+    var operacaoManutencao = TempData["CodigoManutencaoOperacao"] as string;
+    var expiraManutencao = TempData["CodigoManutencaoExpira"] as string;
+}
+@if(TempData["Mensagem"] is string mensagem){<div class="mensagem-sucesso">@mensagem</div>}
+<section class="cabecalho-estacao">
+    <div><div class="breadcrumb">Clara <span>›</span> Estações <span>›</span> @Model.Estacao.Hostname</div><span class="sobrelinha">ESTAÇÃO</span><div class="titulo-estacao"><h1>@Model.Estacao.Hostname</h1><span class="selo-status @Classe(Model.EstadoAtual)"><i></i>@Model.EstadoAtual</span></div><p>Host: @Model.Estacao.Hostname <i></i> @(Model.Estacao.Fabricante) @(Model.Estacao.Modelo) <i></i> Patrimônio: @(Model.Estacao.Patrimonio ?? "—")</p></div>
+    <div><a class="botao-secundario" href="/estacoes">← Voltar para estações</a></div>
+</section>
+
+<section class="painel-clara resumo-identidade-estacao">
+    <div><span class="icone-info">♙</span><span><small>Responsável</small><strong>@(Model.Estacao.Responsavel ?? "Não informado")</strong></span></div>
+    <div><span class="icone-info">♧</span><span><small>Departamento</small><strong>@(Model.Departamento ?? "Não informado")</strong></span></div>
+    <div><span class="icone-info">▥</span><span><small>Unidade</small><strong>@(Model.Unidade ?? "Não informada")</strong></span></div>
+    <div><span class="icone-info">◇</span><span><small>Patrimônio</small><strong>@(Model.Estacao.Patrimonio ?? "—")</strong></span></div>
+    <div><span class="icone-info">◷</span><span><small>Última comunicação</small><strong>@(Model.Estacao.UltimaComunicacaoUtc?.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss") ?? "—")</strong><em>@Model.StatusAtual</em></span></div>
+</section>
+
+<nav class="abas-estacao"><a class="ativo" href="#resumo">Resumo</a><a href="#timeline">Timeline</a><a href="#oportunidades">Oportunidades</a><a href="#evidencias">Evidências</a></nav>
+
+<section id="resumo" class="grade-detalhe-gerencial">
+    <div class="cards-gerenciais-estacao">
+        <a href="#" class="painel-clara card-gerencial" data-drilldown-url="/indicadores/detalhes?tipo=estado&valor=@Uri.EscapeDataString(Model.EstadoAtual)"><span class="sobrelinha">STATUS ATUAL</span><strong><i class="ponto @Classe(Model.EstadoAtual)"></i>@Model.EstadoAtual</strong><small>@(Model.Estacao.Responsavel is null?"Usuário não atribuído":$"Em uso por {Model.Estacao.Responsavel}")</small></a>
+        <a href="#" class="painel-clara card-gerencial" data-drilldown-url="/indicadores/detalhes?tipo=indice&dias=1"><span class="sobrelinha">TEMPO PRODUTIVO HOJE</span><strong>@Tempo(Model.SegundosProdutivosHoje)</strong><small>@pctProd% do tempo observado</small><i class="barra-metrica"><b style="width:@pctProd%"></b></i></a>
+        <a href="#" class="painel-clara card-gerencial" data-drilldown-url="/indicadores/detalhes?tipo=estado&valor=Ocioso"><span class="sobrelinha">TEMPO OCIOSO HOJE</span><strong>@Tempo(Model.SegundosOciososHoje)</strong><small>@pctOcioso% do tempo observado</small><i class="barra-metrica amarelo"><b style="width:@pctOcioso%"></b></i></a>
+        <a href="#" class="painel-clara card-gerencial" data-drilldown-url="/indicadores/detalhes?tipo=local&valor=@(Model.LocalTrabalho.StartsWith("Escrit",StringComparison.OrdinalIgnoreCase)?"escritorio":Model.LocalTrabalho.StartsWith("Home",StringComparison.OrdinalIgnoreCase)?"home":Model.LocalTrabalho.StartsWith("Externo",StringComparison.OrdinalIgnoreCase)?"externo":"sem")"><span class="sobrelinha">LOCAL PREDOMINANTE</span><strong>@Model.LocalTrabalho</strong><small>Classificação automática por rede/IP</small></a>
+        <a href="#" class="painel-clara card-gerencial" data-drilldown-url="/indicadores/detalhes?tipo=aplicativo&valor=@Uri.EscapeDataString(Model.AplicativoPrincipal ?? "")&dias=1"><span class="sobrelinha">APLICATIVO PRINCIPAL</span><strong class="texto-app">@(Model.AplicativoPrincipal ?? "Aguardando dados")</strong><small>Maior tempo observado hoje</small></a>
+        <a href="#" class="painel-clara card-gerencial" data-drilldown-url="/indicadores/detalhes?tipo=indice&dias=1"><span class="sobrelinha">ÍNDICE DE FOCO</span><strong>@Model.IndiceFoco/100</strong><small>Atividade contínua observada</small><i class="barra-metrica azul"><b style="width:@Model.IndiceFoco%"></b></i></a>
+    </div>
+    <aside id="oportunidades" class="painel-clara pontos-atencao-estacao">
+        <div class="titulo-painel"><h2>Pontos de atenção</h2><a href="/oportunidades">Ver todas →</a></div>
+        @if(Model.Oportunidades.Count==0){<div class="estado-vazio"><span>Nenhum ponto de atenção recente.</span></div>}
+        @foreach(var o in Model.Oportunidades.Take(5)){<a href="#" data-drilldown-url="/indicadores/detalhes?tipo=oportunidade&valor=@o.Categoria&dias=30"><span class="icone-alerta">◎</span><span><strong>@NomeCategoria(o.Categoria)</strong><small>@o.EvidenciaResumida</small></span><b>@(o.Impacto=="Alto"?"!":"•")</b></a>}
+    </aside>
+</section>
+
+<section class="painel-clara resumo-dia-estacao">
+    <div class="titulo-painel"><div><span class="sobrelinha">JORNADA DE HOJE</span><h2>No que trabalhou hoje</h2><p>Resumo dos aplicativos observados na timeline do dia.</p></div><span class="atividade-agora"><i class="ponto @Classe(Model.EstadoAtual)"></i>Agora: @(Model.ProcessoAtual ?? Model.EstadoAtual)</span></div>
+    @if(appsHoje.Length==0)
+    {
+        <div class="estado-vazio">Ainda não há aplicativos suficientes na timeline de hoje.</div>
+    }
+    else
+    {
+        <div class="lista-trabalho-dia">
+        @foreach(var appHoje in appsHoje)
+        {
+            var pct = Math.Max(3, (int)Math.Round(appHoje.Segundos*100d/totalAppsHoje));
+            <a href="#" data-drilldown-url="/indicadores/detalhes?tipo=aplicativo&valor=@Uri.EscapeDataString(appHoje.Nome)&dias=1"><strong>@appHoje.Nome</strong><i><b style="width:@pct%"></b></i><span>@Tempo(appHoje.Segundos)</span></a>
+        }
+        </div>
+    }
+</section>
+
+@if(jornada is not null)
+{
+<section class="painel-clara painel-jornada-estacao">
+    <div class="titulo-painel"><div><span class="sobrelinha">JORNADA E COLETA</span><h2>Referência de trabalho</h2><p>A jornada é referência analítica. O período de monitoramento define quando a telemetria é coletada.</p></div><span class="selo @(jornada.PossuiSobrescrita?"selo-atencao":"selo-info")">@(jornada.PossuiSobrescrita?"Personalizada nesta estação":"Herdada da empresa")</span></div>
+    <div class="resumo-jornada-estacao">
+        <div><small>Jornada aproximada</small><strong>@jornada.JornadaInicio – @jornada.JornadaFim</strong><span>@jornada.CargaHorariaDiariaMinutos min/dia · dias @jornada.DiasJornada</span></div>
+        <div><small>Margem permitida</small><strong>-@jornada.MargemAntesMinutos / +@jornada.MargemDepoisMinutos min</strong><span>Usada para contextualizar atividade antes/depois.</span></div>
+        <div><small>Período monitorado</small><strong>@jornada.MonitoramentoInicio – @jornada.MonitoramentoFim</strong><span>Dias @jornada.DiasMonitorados · @jornada.FusoHorario</span></div>
+        <div><small>Regra</small><strong>Fatos, não julgamento</strong><span>Produtivo/neutro/não produtivo segue a classificação do cliente.</span></div>
+    </div>
+    @if(podeEditarJornada)
+    {
+        <details class="edicao-jornada-inline">
+            <summary>Personalizar jornada desta estação</summary>
+            <form method="post" action="/estacoes/@Model.Estacao.AtivoId/jornada" class="grade-form-jornada">@Html.AntiForgeryToken()
+                <label>Início da jornada<input type="time" name="jornadaInicio" value="@jornada.JornadaInicio" /></label>
+                <label>Fim da jornada<input type="time" name="jornadaFim" value="@jornada.JornadaFim" /></label>
+                <label>Carga diária (min)<input type="number" min="1" max="1440" name="cargaHorariaDiariaMinutos" value="@jornada.CargaHorariaDiariaMinutos" /></label>
+                <label>Margem antes (min)<input type="number" min="0" max="720" name="margemAntesMinutos" value="@jornada.MargemAntesMinutos" /></label>
+                <label>Margem depois (min)<input type="number" min="0" max="720" name="margemDepoisMinutos" value="@jornada.MargemDepoisMinutos" /></label>
+                <label>Dias da jornada<input name="diasJornada" value="@jornada.DiasJornada" /></label>
+                <label>Monitorar a partir de<input type="time" name="monitoramentoInicio" value="@jornada.MonitoramentoInicio" /></label>
+                <label>Monitorar até<input type="time" name="monitoramentoFim" value="@jornada.MonitoramentoFim" /></label>
+                <label>Dias monitorados<input name="diasMonitorados" value="@jornada.DiasMonitorados" /></label>
+                <label class="campo-largo">Fuso horário<input name="fusoHorario" value="@jornada.FusoHorario" /></label>
+                <div class="acoes-form campo-largo"><button type="submit">Salvar para esta estação</button></div>
+            </form>
+        </details>
+        @if(jornada.PossuiSobrescrita)
+        {
+            <form method="post" action="/estacoes/@Model.Estacao.AtivoId/jornada/herdar" class="form-herdar-jornada">@Html.AntiForgeryToken()<button type="submit" class="botao-secundario">Voltar a herdar o padrão da empresa</button></form>
+        }
+    }
+</section>
+}
+
+<section id="timeline" class="grade-timeline-estacao">
+    <article class="painel-clara">
+        <div class="titulo-painel"><h2>◷ &nbsp;Timeline de hoje</h2>@if(Model.AgenteId.HasValue){<a href="/timeline/@Model.AgenteId">Ver timeline completa →</a>}</div>
+        <div class="tabela-responsiva"><table class="tabela-clara tabela-compacta"><thead><tr><th>Horário</th><th>Duração</th><th>Status</th><th>Aplicativo / atividade</th><th>Usuário</th></tr></thead><tbody>
+        @foreach(var l in Model.TimelineHoje.Take(6)){
+            var dur=(long)Math.Max(0,(l.FimUtc-l.InicioUtc).TotalSeconds);
+            <tr><td><strong>@l.InicioUtc.ToLocalTime().ToString("HH:mm:ss")</strong> → @l.FimUtc.ToLocalTime().ToString("HH:mm:ss")</td><td>@Tempo(dur)</td><td><span class="status-linha"><i class="ponto @Classe(l.Estado)"></i>@(l.Estado=="Reuniao"?"Reunião":l.Estado)</span></td><td>@(l.ProcessoExecutavel ?? "—")</td><td>@l.UsuarioWindows</td></tr>
+        }
+        </tbody></table></div>
+    </article>
+    <aside id="evidencias" class="painel-clara alertas-estacao">
+        <div class="titulo-painel"><h2>Principais alertas de hoje</h2><a href="/evidencias">Ver todas →</a></div>
+        @foreach(var e in Model.Evidencias.Take(6)){<a href="#" data-drilldown-url="/indicadores/detalhes?tipo=evidencia&valor=@Uri.EscapeDataString(e.Categoria)&dias=30"><time>@e.ObservadaEmUtc.ToLocalTime().ToString("HH:mm")</time><span><strong>@e.Resumo</strong><small>@e.Detalhe</small></span></a>}
+    </aside>
+</section>
+
+@if(Model.EvidenciasVisuais.Count > 0)
+{
+<section class="painel-clara evidencias-visuais-estacao">
+    <div class="titulo-painel"><div><span class="sobrelinha">EVIDÊNCIA VISUAL</span><h2>Capturas recentes</h2><p>Contexto visual associado à estação quando permitido pela política do cliente.</p></div><a href="/evidencias">Ver todas →</a></div>
+    <div class="grade-evidencias-visuais">
+    @foreach(var v in Model.EvidenciasVisuais.Take(4))
+    {
+        <a class="card-evidencia-visual" href="@v.Url" target="_blank" rel="noopener">
+            <span class="miniatura-evidencia"><img src="@v.Url" alt="@v.Titulo" loading="lazy" />@if(v.Demonstrativa){<b>DEMONSTRAÇÃO</b>}</span>
+            <span class="meta-evidencia-visual"><strong>@v.Titulo</strong><small>@v.CapturadaEmUtc.ToLocalTime().ToString("dd/MM HH:mm")</small><em>@v.Descricao</em></span>
+        </a>
+    }
+    </div>
+</section>
+}
+
+<details class="painel-clara detalhes-colapsados">
+    <summary>Editar cadastro administrativo</summary>
+    <form method="post" action="/estacoes/@Model.Estacao.AtivoId/salvar" class="grade-formulario form-editar-estacao">@Html.AntiForgeryToken()
+        <input type="hidden" name="empresaId" value="@Model.Estacao.EmpresaId" />
+        <label>Responsável<input name="responsavel" value="@Model.Estacao.Responsavel" /></label>
+        <label>Patrimônio<input name="patrimonio" value="@Model.Estacao.Patrimonio" /></label>
+        <label>Unidade<select name="unidadeId"><option value="">Não informada</option>@foreach(var u in unidades.Where(x=>x.EmpresaId==Model.Estacao.EmpresaId)){<option selected="@(u.Id==Model.Estacao.UnidadeId)" value="@u.Id">@u.Nome</option>}</select></label>
+        <label>Departamento<select name="departamentoId"><option value="">Não informado</option>@foreach(var d in departamentos.Where(x=>x.EmpresaId==Model.Estacao.EmpresaId)){<option selected="@(d.Id==Model.Estacao.DepartamentoId)" value="@d.Id">@d.Nome</option>}</select></label>
+        <button type="submit">Salvar cadastro</button>
+    </form>
+</details>
+
+@if(User.IsInRole("Administrador"))
+{
+<details class="painel-clara detalhes-colapsados" open="@(!string.IsNullOrWhiteSpace(codigoManutencao))">
+    <summary>Manutenção protegida</summary>
+    <p class="texto-secundario">Parar, reparar ou desinstalar pelo fluxo oficial exige um código temporário gerado pelo Administrador. Cada código vale para esta máquina, uma única operação e expira em 15 minutos.</p>
+    <form method="post" action="/estacoes/@Model.Estacao.AtivoId/manutencao/codigo" class="grade-formulario">
+        @Html.AntiForgeryToken()
+        <label>Operação<select name="operacao"><option value="Parar">Parar serviço</option><option value="Reparar">Reparar instalação</option><option value="Desinstalar">Desinstalar Clara</option></select></label>
+        <label>Motivo<input name="motivo" maxlength="300" placeholder="Ex.: troca de equipamento" /></label>
+        <button type="submit">Gerar código de manutenção</button>
+    </form>
+    @if(!string.IsNullOrWhiteSpace(codigoManutencao))
+    {
+        <div class="token-gerado"><div><span>@operacaoManutencao</span><code>@codigoManutencao</code><small>Expira em @expiraManutencao · uso único</small></div></div>
+    }
+</details>
+}
+
+<details class="painel-clara detalhes-colapsados">
+    <summary>Ver detalhes técnicos</summary>
+    <dl class="lista-detalhes tecnico-estacao">
+        <div><dt>Hostname</dt><dd>@Model.Estacao.Hostname</dd></div><div><dt>Usuário Windows</dt><dd>@(Model.Estacao.UsuarioWindows ?? "—")</dd></div>
+        <div><dt>Fabricante / modelo</dt><dd>@Model.Estacao.Fabricante @Model.Estacao.Modelo</dd></div><div><dt>Sistema operacional</dt><dd>@Model.Estacao.SistemaOperacional (@Model.Estacao.Arquitetura)</dd></div>
+        <div><dt>Número de série</dt><dd>@(Model.Estacao.NumeroSerie ?? "—")</dd></div><div><dt>IP local / público</dt><dd>@(Model.Estacao.EnderecoIpLocal ?? "—") / @(Model.Estacao.EnderecoIpPublico ?? "—")</dd></div>
+        <div><dt>Memória</dt><dd>@(Model.Estacao.MemoriaTotalBytes.HasValue?$"{Model.Estacao.MemoriaTotalBytes.Value/1024d/1024/1024:0} GB":"—")</dd></div><div><dt>Disco</dt><dd>@(Model.Estacao.DiscoTotalBytes.HasValue?$"{Model.Estacao.DiscoTotalBytes.Value/1024d/1024/1024:0} GB":"—")</dd></div>
+        <div><dt>Versão do agente</dt><dd>@(Model.Estacao.VersaoAgente ?? "—")</dd></div><div><dt>Primeira comunicação</dt><dd>@(Model.Estacao.PrimeiraComunicacaoUtc?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "—")</dd></div>
+    </dl>
+</details>

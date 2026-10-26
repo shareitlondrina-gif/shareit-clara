@@ -1,0 +1,23 @@
+﻿CLARA v0.6.0-RC1-R6
+Programador: Paulo Andrade
+
+FLUXO OFICIAL
+1. Configure C:\ConfigSys\Clara com os dados reais do ambiente.
+2. Execute somente PUBLICAR-CLARA.cmd como fluxo oficial de release.
+3. O comando cria o Build ID e executa automaticamente validação estrutural, restore, build Release e testes.
+4. Se qualquer gate falhar, a publicação online é bloqueada.
+5. Após o gate local, o mesmo comando empacota e publica conforme Git/Render configurados.
+6. O processo termina somente após validar versão, revisão, Build ID, banco lógico Clara e 12 migrations.
+7. A Clara online abre no navegador somente depois de confirmar exatamente o build recém-publicado.
+
+IDENTIDADE
+- Produto: Clara.
+- Solução: Clara.sln.
+- Projetos/assemblies/namespaces: Clara.*.
+- Serviço Windows: Clara.Agente.
+- Instalação: C:\Program Files\Clara.
+- Dados locais: C:\ProgramData\Clara.
+
+MIGRATIONS
+- 0001 a 0011 são históricas e imutáveis.
+- 0012 conclui a normalização dos objetos ativos para a identidade Clara.

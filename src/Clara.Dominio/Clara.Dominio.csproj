@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Clara.Dominio</AssemblyName>
+    <RootNamespace>Clara.Dominio</RootNamespace>
+  </PropertyGroup>
+</Project>

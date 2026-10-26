@@ -1,4 +1,4 @@
-Share IT .Clara v0.5.1 - RELATORIO DE VALIDACAO ESTATICA
+Clara v0.5.1 - RELATORIO DE VALIDACAO ESTATICA
 ================================================================
 
 Resultado: APROVADA NA VALIDACAO ESTATICA

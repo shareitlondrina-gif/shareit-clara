@@ -1,12 +1,12 @@
-# Cláusulas-base para o módulo Share IT .Clara
+# Cláusulas-base para o módula Clara
 
 > Documento técnico-base para incorporação ao contrato oficial após validação jurídica. Não altera automaticamente modelos contratuais já aprovados.
 
 ## 1. Documentos integrantes
 
-O contrato/módulo Share IT .Clara deve registrar que foram disponibilizados ao CONTRATANTE, como parte integrante da contratação:
+O contrato/módula Clara deve registrar que foram disponibilizados ao CONTRATANTE, como parte integrante da contratação:
 
-1. Anexo Técnico — Share IT .Clara;
+1. Anexo Técnico — Clara;
 2. Modelo/Política de Monitoramento, Produtividade e Privacidade no Ambiente de Trabalho aplicável à solução;
 3. orientações de Governança e Privacidade e, quando aplicável, modelos de autorização/RIPD.
 
@@ -28,9 +28,9 @@ A CONTRATADA fornece os mecanismos técnicos e controles de governança, sem sub
 
 ## 3. Natureza dos indicadores
 
-Os indicadores da .Clara representam fatos, sinais e correlações produzidos a partir das configurações do cliente. Eles não constituem, isoladamente, conclusão sobre desempenho individual, infração disciplinar, intenção pessoal, fraude ou obrigação de horas extras.
+Os indicadores da Clara representam fatos, sinais e correlações produzidos a partir das configurações do cliente. Eles não constituem, isoladamente, conclusão sobre desempenho individual, infração disciplinar, intenção pessoal, fraude ou obrigação de horas extras.
 
-A jornada configurada na .Clara é referência analítica e não transforma a solução em sistema de registro eletrônico de ponto, salvo contratação/implementação futura específica e juridicamente adequada.
+A jornada configurada na Clara é referência analítica e não transforma a solução em sistema de registro eletrônico de ponto, salvo contratação/implementação futura específica e juridicamente adequada.
 
 ## 4. Período de monitoramento
 
@@ -46,4 +46,4 @@ A CONTRATADA não define se determinado equipamento é pessoal, corporativo ou c
 
 ## 7. Comunicação e e-mail
 
-Alertas e solicitações poderão ser enviados pelo remetente oficial da plataforma, inicialmente previsto como `monitoramento.clara@shareitbrasil.com.br`, podendo o CONTRATANTE definir Reply-To e destinatários adicionais.
+Alertas e solicitações poderão ser enviados pelo remetente oficial da plataforma, inicialmente previsto como `no-reply@clara.local`, podendo o CONTRATANTE definir Reply-To e destinatários adicionais.

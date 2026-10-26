@@ -1,8 +1,8 @@
-# Alterações — Share IT .Clara v0.5.7
+# Alterações — Clara v0.5.7
 
 ## Objetivo
 
-Transformar a .Clara de uma leitura predominantemente online em uma plataforma com histórico, regras operacionais, alertas e governança documentada, mantendo a premissa de que o sistema apresenta fatos e o cliente realiza a interpretação gerencial.
+Transformar a Clara de uma leitura predominantemente online em uma plataforma com histórico, regras operacionais, alertas e governança documentada, mantendo a premissa de que o sistema apresenta fatos e o cliente realiza a interpretação gerencial.
 
 ## Interface e preferências
 
@@ -36,7 +36,7 @@ Transformar a .Clara de uma leitura predominantemente online em uma plataforma c
 ## E-mail
 
 - Fila persistente de e-mails com retentativas.
-- Remetente padrão `Share IT .Clara <monitoramento.clara@shareitbrasil.com.br>`.
+- Remetente padrão `Clara <no-reply@clara.local>`.
 - Reply-To e destinatários adicionais por tenant.
 - Credenciais SMTP somente via segredo de ambiente.
 - `render.yaml` inclui chaves esperadas de configuração sem valores secretos.
@@ -61,7 +61,7 @@ Transformar a .Clara de uma leitura predominantemente online em uma plataforma c
 
 ## Documentos-base
 
-Incluídos modelos técnicos/contratuais em `docs/Juridico/` para integração ao fluxo jurídico oficial da Share IT e adaptação pelo cliente.
+Incluídos modelos técnicos/contratuais em `docs/Juridico/` para integração ao fluxo jurídico oficial da Clara e adaptação pelo cliente.
 
 ## Banco
 

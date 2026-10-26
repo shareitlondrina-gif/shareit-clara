@@ -1,7 +1,13 @@
 @echo off
+REM Clara
+REM Programador: Paulo Andrade
+REM Objetivo: executar em um único comando o gate completo e a publicação da Clara.
+REM Origem: código-fonte local e configurações autorizadas em ConfigSys/ambiente.
+REM Destino: build validado, pacote Windows, Git/Render e gate online.
+REM Boas práticas: nenhuma publicação ocorre antes de restore/build/test e das validações estruturais.
 setlocal
 cd /d "%~dp0"
-title Share IT .Clara - Publicacao
+title Clara - Validar e Publicar
 
 if not exist "%~dp0logs" mkdir "%~dp0logs" >nul 2>&1
 set "LAUNCHER_LOG=%~dp0logs\Publicador-Launcher.log"
@@ -9,39 +15,38 @@ set "LAUNCHER_LOG=%~dp0logs\Publicador-Launcher.log"
 >>"%LAUNCHER_LOG%" echo [%date% %time%] Iniciando PUBLICAR-CLARA.cmd em "%~dp0"
 
 echo ====================================================
-echo  SHARE IT .CLARA - PUBLICADOR
+echo  CLARA - VALIDAR + PUBLICAR
 echo ====================================================
-echo [INFO] Pasta: %~dp0
-echo [INFO] Todos os logs serao salvos em logs\
-echo [INFO] Ultimo log: logs\PUBLICACAO-ULTIMA.log
-echo [INFO] Diagnostico: logs\DIAGNOSTICO-PUBLICACAO-ULTIMO.txt
-echo ====================================================
-echo.
-
-echo [ETAPA 0] Executando validacao obrigatoria antes da publicacao...
-call "%~dp0Ferramentas\Validacao\VALIDAR-ANTES-DE-PUBLICAR.cmd"
-if errorlevel 1 (
-  echo.
-  echo [ERRO] Publicacao bloqueada porque a validacao pre-publicacao falhou.
-  >>"%LAUNCHER_LOG%" echo [%date% %time%] ERRO: gate pre-publicacao falhou.
-  pause
-  exit /b 1
-)
-echo [OK] Gate pre-publicacao aprovado.
+echo [INFO] Um unico comando executara validacao, testes e publicacao.
+echo [INFO] Nenhuma alteracao online ocorre antes do gate local ficar 100%% OK.
 echo.
 
 where powershell.exe >nul 2>&1
 if errorlevel 1 (
   echo [ERRO] Windows PowerShell nao encontrado.
   >>"%LAUNCHER_LOG%" echo [%date% %time%] ERRO: Windows PowerShell nao encontrado.
-  echo.
   pause
   exit /b 1
 )
 
+echo [GATE 1] Validacao estrutural + restore + build Release + testes...
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0Ferramentas\Validacao\Validar-Clara.ps1"
+if errorlevel 1 (
+  echo.
+  echo [ERRO] PUBLICACAO BLOQUEADA. O gate local falhou.
+  >>"%LAUNCHER_LOG%" echo [%date% %time%] ERRO: gate local falhou.
+  echo Log: %~dp0logs\VALIDACAO-PRE-PUBLICACAO-ULTIMA.txt
+  pause
+  exit /b 1
+)
+set "CLARA_GATE_VALIDADO=1"
+echo [OK] Gate local aprovado. Publicacao liberada.
+echo.
+
+echo [GATE 2] Empacotamento, Git/Render e validacao online...
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0Ferramentas\Automacao\Publicar-Clara.ps1" %*
 set ERRO=%ERRORLEVEL%
->>"%LAUNCHER_LOG%" echo [%date% %time%] PowerShell terminou com codigo %ERRO%.
+>>"%LAUNCHER_LOG%" echo [%date% %time%] Publicador terminou com codigo %ERRO%.
 
 echo.
 if not "%ERRO%"=="0" (
@@ -49,18 +54,14 @@ if not "%ERRO%"=="0" (
   echo [ERRO] Publicacao interrompida. Codigo %ERRO%.
   echo Log principal: %~dp0logs\PUBLICACAO-ULTIMA.log
   echo Diagnostico:   %~dp0logs\DIAGNOSTICO-PUBLICACAO-ULTIMO.txt
-  echo Logs completos: %~dp0logs
   echo ====================================================
-  echo.
   pause
   exit /b %ERRO%
 )
 
 echo ====================================================
-echo [OK] Processo do Share IT .Clara concluido.
+echo [OK] CLARA VALIDADA E PUBLICADA.
 echo Log principal: %~dp0logs\PUBLICACAO-ULTIMA.log
-echo A janela permanecera aberta para voce conferir o resumo.
 echo ====================================================
-echo.
 pause
 exit /b 0

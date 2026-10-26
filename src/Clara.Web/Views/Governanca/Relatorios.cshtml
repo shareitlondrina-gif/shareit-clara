@@ -1,0 +1,84 @@
+@* Clara | Programador: Paulo Andrade | Origem: ViewModel/Controller | Destino: interface web | Boas práticas: saída codificada, sem segredos e ações protegidas. *@
+@model PainelRelatoriosHistorico
+@{
+    ViewData["Title"] = "Relatórios e histórico";
+    var dias = (int)(ViewBag.Dias ?? Model.Dias);
+    DateOnly? dataInicio = ViewBag.DataInicio as DateOnly?;
+    DateOnly? dataFim = ViewBag.DataFim as DateOnly?;
+    var periodoPersonalizado = dataInicio.HasValue || dataFim.HasValue;
+    var agendados=(IReadOnlyCollection<RelatorioAgendadoResumo>)(ViewBag.RelatoriosAgendados ?? Array.Empty<RelatorioAgendadoResumo>());
+    var filtros=(IReadOnlyCollection<FiltroSalvoRelatorioResumo>)(ViewBag.FiltrosSalvos ?? Array.Empty<FiltroSalvoRelatorioResumo>());
+    string Tempo(long s){ var t=TimeSpan.FromSeconds(Math.Max(0,s)); return t.TotalHours>=1?$"{(int)t.TotalHours}h {t.Minutes:00}m":$"{t.Minutes}m"; }
+ }
+@if(TempData["Mensagem"] is string msg){<div class="mensagem-sucesso">@msg</div>}
+@if(TempData["Erro"] is string erro){<div class="mensagem-erro">@erro</div>}
+<section class="cabecalho-pagina cabecalho-clara">
+  <div><span class="sobrelinha">INTELIGÊNCIA</span><h1>Relatórios e histórico</h1><p>Compare produtividade, ociosidade e atividade fora da jornada no período escolhido.</p></div>
+  <div class="filtro-periodo"><a class="@(!periodoPersonalizado&&dias==1?"ativo":"")" href="/relatorios?dias=1">Hoje</a><a class="@(!periodoPersonalizado&&dias==7?"ativo":"")" href="/relatorios?dias=7">7 dias</a><a class="@(!periodoPersonalizado&&dias==30?"ativo":"")" href="/relatorios?dias=30">30 dias</a><a class="@(!periodoPersonalizado&&dias==90?"ativo":"")" href="/relatorios?dias=90">90 dias</a></div>
+</section>
+<section class="painel filtro-personalizado-relatorio">
+  <form method="get" action="/relatorios" class="grade-formulario-3">
+    <label>De<input type="date" name="inicio" value="@(dataInicio?.ToString("yyyy-MM-dd"))" /></label>
+    <label>Até<input type="date" name="fim" value="@(dataFim?.ToString("yyyy-MM-dd"))" /></label>
+    <div class="acoes-formulario"><button type="submit">Aplicar período</button>@if(periodoPersonalizado){<a class="botao-secundario" href="/relatorios?dias=7">Limpar</a>}</div>
+  </form>
+  @if(periodoPersonalizado){<small>Período personalizado: @(dataInicio?.ToString("dd/MM/yyyy") ?? "—") a @(dataFim?.ToString("dd/MM/yyyy") ?? "—") · máximo de 366 dias.</small>}
+</section>
+<section class="cards cards-relatorios">
+  <article><span>Produtivo na jornada</span><strong>@Tempo(Model.SegundosProdutivosJornada)</strong><small>apps classificados como produtivos</small></article>
+  <article class="card-atencao"><span>Ociosidade na jornada</span><strong>@Tempo(Model.SegundosOciososJornada)</strong><small>períodos sem atividade</small></article>
+  <article class="card-atencao"><span>Não produtivo na jornada</span><strong>@Tempo(Model.SegundosNaoProdutivosJornada)</strong><small>conforme classificação do administrador</small></article>
+  <article><span>Produtivo fora da jornada</span><strong>@Tempo(Model.SegundosProdutivosForaJornada)</strong><small>fora da jornada e das margens permitidas</small></article>
+</section>
+<section class="painel painel-insight-relatorio"><strong>Insight principal</strong><p>@Model.InsightPrincipal</p></section>
+
+<section class="painel biblioteca-relatorios">
+  <div class="titulo-painel"><div><span class="sobrelinha">BIBLIOTECA</span><h2>Relatórios e históricos disponíveis</h2><p>A central reúne o histórico de jornada e atalhos para as análises já existentes na plataforma.</p></div></div>
+  <div class="grade-biblioteca-relatorios">
+    <a href="/relatorios?dias=@dias"><strong>Jornada / atividade</strong><small>Produtividade, ociosidade, não produtividade e atividade fora da jornada.</small></a>
+    <a href="/aplicativos?dias=@Math.Min(dias,30)"><strong>Aplicativos</strong><small>Tempo por aplicativo, classificação e cobertura por estação.</small></a>
+    <a href="/navegacao-web?dias=@Math.Min(dias,30)"><strong>Sites e navegação</strong><small>Domínios observados e classificação configurada pela empresa.</small></a>
+    <a href="/evidencias?dias=@Math.Min(dias,30)"><strong>Evidências</strong><small>Linha do tempo de fatos, filtros e exportação CSV.</small></a>
+    <a href="/oportunidades?dias=@(dias<=7?7:dias<=30?30:90)"><strong>Oportunidades</strong><small>Histórico de oportunidades, impacto, recomendação e status.</small></a>
+    <a href="/locais"><strong>Home x Escritório</strong><small>Comparativo por local e insight principal dos últimos 30 dias.</small></a>
+  </div>
+</section>
+
+<section class="painel">
+  <div class="titulo-painel"><div><span class="sobrelinha">HISTÓRICO</span><h2>Por estação / responsável</h2></div><small>A Clara mostra os fatos. A avaliação cabe ao gestor.</small></div>
+  <div class="tabela-responsiva"><table class="tabela-relatorios"><thead><tr><th>Pessoa / estação</th><th>Equipe</th><th>Jornada</th><th>Produtivo na jornada</th><th>Ocioso</th><th>Não produtivo</th><th>Produtivo fora</th><th>Leitura</th></tr></thead><tbody>
+  @foreach(var l in Model.Linhas){
+    var atencao = l.SegundosProdutivosForaJornada>=1800 && (l.SegundosOciososJornada+l.SegundosNaoProdutivosJornada)>=3600;
+    <tr>
+      <td><a class="link-principal" href="/estacoes/@l.AtivoId">@(l.Pessoa ?? l.Hostname)</a><span class="subtexto-tabela">@l.Hostname · carga dia @(l.CargaHorariaDiariaMinutos/60)h @(l.CargaHorariaDiariaMinutos%60)m</span></td>
+      <td>@(l.Equipe ?? "—")</td><td>@l.JornadaReferencia</td><td>@Tempo(l.SegundosProdutivosJornada)</td><td>@Tempo(l.SegundosOciososJornada)</td><td>@Tempo(l.SegundosNaoProdutivosJornada)</td><td>@Tempo(l.SegundosProdutivosForaJornada)</td>
+      <td>@if(atencao){<span class="selo selo-atencao">Revisar contexto</span>}else{<span class="selo selo-info">Informativo</span>}</td>
+    </tr>
+  }
+  @if(Model.Linhas.Count==0){<tr><td colspan="8"><div class="estado-vazio"><strong>Sem histórico no período.</strong><span>Os relatórios serão preenchidos conforme a telemetria for recebida.</span></div></td></tr>}
+  </tbody></table></div>
+</section>
+
+<section class="grade-relatorios-gestao">
+  <article class="painel">
+    <div class="titulo-painel"><div><span class="sobrelinha">FILTROS</span><h2>Salvar esta visão</h2><p>Guarde o período atual para voltar rapidamente à mesma leitura.</p></div></div>
+    <form method="post" action="/relatorios/filtros/salvar" class="formulario-vertical">@Html.AntiForgeryToken()<input type="hidden" name="dias" value="@dias"/>@if(dataInicio.HasValue){<input type="hidden" name="inicio" value="@dataInicio.Value.ToString("yyyy-MM-dd")"/>}@if(dataFim.HasValue){<input type="hidden" name="fim" value="@dataFim.Value.ToString("yyyy-MM-dd")"/>}<label>Nome<input name="nome" required placeholder="Ex.: Revisão semanal"/></label><label class="linha-toggle"><span><strong>Compartilhar com o tenant</strong><small>Outros usuários com acesso a Relatórios também poderão usar.</small></span><input type="checkbox" name="compartilhado" value="true"/></label><button type="submit">Salvar filtro</button></form>
+    @if(filtros.Count>0){<div class="chips-filtros-salvos">@foreach(var f in filtros.Take(10)){<a href="@ExtrairUrl(f.ParametrosJson)">@f.Nome</a>}</div>}
+  </article>
+  <article class="painel">
+    <div class="titulo-painel"><div><span class="sobrelinha">ENTREGA AUTOMÁTICA</span><h2>Agendar relatório por e-mail</h2><p>O destinatário não precisa ter login na Clara.</p></div></div>
+    <form method="post" action="/relatorios/agendar" class="formulario-vertical">@Html.AntiForgeryToken()<input type="hidden" name="dias" value="@dias"/><label>Nome<input name="nome" value="Resumo executivo" required/></label><label>Periodicidade<select name="periodicidade"><option value="Diario">Diário</option><option value="Semanal" selected>Semanal</option><option value="Mensal">Mensal</option></select></label><div class="grade-formulario-3"><label>Horário<input type="time" name="horaLocal" value="08:00"/></label><label>Dia da semana (1=Seg)<input type="number" min="1" max="7" name="diaSemana" value="1"/></label><label>Dia do mês<input type="number" min="1" max="28" name="diaMes"/></label></div><label>Fuso horário<input name="fusoHorario" value="America/Sao_Paulo"/></label><label>Destinatários<input name="destinatarios" type="text" required placeholder="diretoria@empresa.com; gestor@empresa.com"/></label><button type="submit">Agendar envio</button></form>
+  </article>
+</section>
+@if(agendados.Count>0){
+<section class="painel"><div class="titulo-painel"><div><span class="sobrelinha">AGENDAMENTOS</span><h2>Relatórios automáticos</h2></div></div><div class="tabela-responsiva"><table><thead><tr><th>Nome</th><th>Periodicidade</th><th>Horário</th><th>Destinatários</th><th>Próxima execução</th><th>Status</th><th></th></tr></thead><tbody>@foreach(var a in agendados){<tr><td><strong>@a.Nome</strong></td><td>@a.Periodicidade</td><td>@a.HoraLocal · @a.FusoHorario</td><td>@a.Destinatarios</td><td>@(a.ProximaExecucaoUtc?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "—")</td><td><span class="selo @(a.Ativo?"selo-ok":"selo-neutro")">@(a.Ativo?(a.UltimoStatus??"Ativo"):"Pausado")</span></td><td><form method="post" action="/relatorios/agendados/@a.Id/alternar">@Html.AntiForgeryToken()<input type="hidden" name="ativo" value="@(!a.Ativo)"/><input type="hidden" name="dias" value="@dias"/><button class="botao-secundario" type="submit">@(a.Ativo?"Pausar":"Ativar")</button></form></td></tr>}</tbody></table></div></section>
+}
+@functions{
+  int ExtrairDias(string json){try{using var d=System.Text.Json.JsonDocument.Parse(json);return d.RootElement.TryGetProperty("dias",out var v)&&v.TryGetInt32(out var n)?n:7;}catch{return 7;}}
+  string ExtrairUrl(string json){
+    try{using var d=System.Text.Json.JsonDocument.Parse(json);var raiz=d.RootElement;var dias=raiz.TryGetProperty("dias",out var dv)&&dv.TryGetInt32(out var n)?n:7;
+      var inicio=raiz.TryGetProperty("inicio",out var iv)?iv.GetString():null;var fim=raiz.TryGetProperty("fim",out var fv)?fv.GetString():null;
+      return !string.IsNullOrWhiteSpace(inicio)&&!string.IsNullOrWhiteSpace(fim)?$"/relatorios?inicio={Uri.EscapeDataString(inicio)}&fim={Uri.EscapeDataString(fim)}":$"/relatorios?dias={dias}";
+    }catch{return "/relatorios?dias=7";}
+  }
+}

@@ -1,10 +1,10 @@
-Share IT .Clara v0.5.8-RC - RELATÓRIO DE VALIDAÇÃO ESTÁTICA
+Clara v0.5.8-RC - RELATÓRIO DE VALIDAÇÃO ESTÁTICA
 
 Total de verificações: 127
 Aprovadas: 127
 Falhas: 0
 
-- OK: Raiz da release existe — /mnt/data/final058/ShareIT.Clara-v0.5.8-RC
+- OK: Raiz da release existe — /mnt/data/final058/Clara-v0.5.8-RC
 - OK: VERSAO.txt = 0.5.8 — 0.5.8
 - OK: BUILD.txt = 0.5.8-RC — 0.5.8-RC
 - OK: Directory.Build.props versão 0.5.8
@@ -32,7 +32,7 @@ Falhas: 0
 - OK: Migration 0008 imutável vs v0.5.7 — 70e0730b26b672d8e93f2d6874be66dd85f4cf2ddc2b40e3d2a7064d775acce6
 - OK: 0009 inclui relatorios_agendados
 - OK: 0009 inclui filtros_salvos_relatorio
-- OK: 0009 inclui integracoes_produtos_shareit
+- OK: 0009 inclui integracoes_produtos_clara
 - OK: 0009 inclui contexto_tecnico_visao
 - OK: 0009 inclui exclusoes_monitoramento
 - OK: 0009 inclui custos_software
@@ -49,13 +49,13 @@ Falhas: 0
 - OK: Todos JSON válidos
 - OK: Todos XML/csproj/props válidos
 - OK: Sanidade de delimitadores C#
-- OK: Arquivo presente: src/ShareIT.Clara.Dados/Repositorios/RepositorioGestaoExecutiva.cs
-- OK: Arquivo presente: src/ShareIT.Clara.Web/Servicos/ServicoRetencao.cs
-- OK: Arquivo presente: src/ShareIT.Clara.Web/Servicos/ServicoRelatoriosAgendados.cs
-- OK: Arquivo presente: src/ShareIT.Clara.Agente/Servicos/ServicoVigilanciaSessao.cs
-- OK: Arquivo presente: src/ShareIT.Clara.Web/Controllers/ApiIntegracoesController.cs
-- OK: Arquivo presente: src/ShareIT.Clara.Web/Views/Painel/PulsoOperacao.cshtml
-- OK: Arquivo presente: src/ShareIT.Clara.Web/Views/Painel/ContextoTi.cshtml
+- OK: Arquivo presente: src/Clara.Dados/Repositorios/RepositorioGestaoExecutiva.cs
+- OK: Arquivo presente: src/Clara.Web/Servicos/ServicoRetencao.cs
+- OK: Arquivo presente: src/Clara.Web/Servicos/ServicoRelatoriosAgendados.cs
+- OK: Arquivo presente: src/Clara.Agente/Servicos/ServicoVigilanciaSessao.cs
+- OK: Arquivo presente: src/Clara.Web/Controllers/ApiIntegracoesController.cs
+- OK: Arquivo presente: src/Clara.Web/Views/Painel/PulsoOperacao.cshtml
+- OK: Arquivo presente: src/Clara.Web/Views/Painel/ContextoTi.cshtml
 - OK: Arquivo presente: docs/ALTERACOES-v0.5.8-RC.md
 - OK: Arquivo presente: docs/CHECKLIST-HOMOLOGACAO-v0.5.8-RC.md
 - OK: Arquivo presente: docs/COEXISTENCIA-CLARA-VISAO-v0.5.8-RC.md
@@ -103,7 +103,7 @@ Falhas: 0
 - OK: Config local recebe aplicativos excluídos
 - OK: Config local recebe domínios excluídos
 - OK: Política do servidor envia fuso/exclusões — montada em RepositorioInteligencia e desserializada pelo ClienteApiClara
-- OK: Atualizador contém Global\ShareIT.ProductUpdate
+- OK: Atualizador contém Global\Clara.ProductUpdate
 - OK: Atualizador contém saude-agente.json
 - OK: Atualizador contém Rollback
 - OK: Atualizador contém RUNNING
@@ -114,7 +114,7 @@ Falhas: 0
 - OK: Docker usa caminho absoluto /src para diagnóstico
 - OK: Docker publica agente win-x64
 - OK: Publicador conta migrations dinamicamente
-- OK: Publicador valida shareit_clara
+- OK: Publicador valida clara
 - OK: Publicador valida Build ID
 - OK: Extensão navegador = 0.5.8 — 0.5.8
 - OK: Extensão não pede history permission — ['tabs', 'nativeMessaging', 'alarms']
@@ -124,7 +124,7 @@ Falhas: 0
 - OK: Pacote fonte sem bin/obj/.git
 - OK: docs/ALTERACOES-v0.5.8-RC.md menciona Pulso
 - OK: docs/ALTERACOES-v0.5.8-RC.md menciona retenção
-- OK: docs/ALTERACOES-v0.5.8-RC.md menciona .VISÃO
+- OK: docs/ALTERACOES-v0.5.8-RC.md menciona VISÃO
 - OK: docs/ALTERACOES-v0.5.8-RC.md menciona relatórios
 - OK: docs/COEXISTENCIA-CLARA-VISAO-v0.5.8-RC.md menciona independentes
 - OK: docs/COEXISTENCIA-CLARA-VISAO-v0.5.8-RC.md menciona opcional
@@ -133,7 +133,7 @@ Falhas: 0
 - OK: Documentação não afirma assinatura de pacote ativa
 
 LIMITAÇÃO DO AMBIENTE
-O container desta sessão não possui .NET SDK 10, compilador C# nem PowerShell. Portanto esta é uma validação estática/estrutural, não uma compilação. O gate final da RC deve ser executado no Windows com PUBLICAR-CLARA.cmd, incluindo build, testes, Docker/Render, banco shareit_clara e confirmação de 9 migrations.
+O container desta sessão não possui .NET SDK 10, compilador C# nem PowerShell. Portanto esta é uma validação estática/estrutural, não uma compilação. O gate final da RC deve ser executado no Windows com PUBLICAR-CLARA.cmd, incluindo build, testes, Docker/Render, banco clara e confirmação de 9 migrations.
 
 ASSINATURA DE PACOTE
-A v0.5.8-RC mantém validação SHA-256, backup, health pós-atualização e rollback. Assinatura criptográfica de pacotes com chave privada Share IT NÃO está habilitada nesta RC porque não há infraestrutura/chave de produção provisionada.
+A v0.5.8-RC mantém validação SHA-256, backup, health pós-atualização e rollback. Assinatura criptográfica de pacotes com chave privada Clara NÃO está habilitada nesta RC porque não há infraestrutura/chave de produção provisionada.

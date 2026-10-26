@@ -1,4 +1,4 @@
-# Guia rápido — Share IT .Clara v0.5.8-RC
+# Guia rápido — Clara v0.5.8-RC
 
 ## Para o gestor
 
@@ -18,10 +18,10 @@
 - SMTP/relatórios agendados;
 - fuso horário aplicado à política do agente.
 
-## .Clara + .VISÃO
+## Clara + VISÃO
 
-A integração é opcional. `Contexto TI (.VISÃO)` só aparece quando o Master registrar que o serviço/produto está contratado e ativar a integração técnica. A Clara permanece independente.
+A integração é opcional. `Contexto TI (VISÃO)` só aparece quando o Master registrar que o serviço/produto está contratado e ativar a integração técnica. A Clara permanece independente.
 
 ## Agente
 
-A RC reforça atualização/autorrecuperação com watchdog de sessão, validação do pacote, health local, rollback e limpeza de artefatos. O atualizador da Clara também evita iniciar sua troca durante sinal recente de manutenção do .VISÃO.
+A RC reforça atualização/autorrecuperação com watchdog de sessão, validação do pacote, health local, rollback e limpeza de artefatos. O atualizador da Clara também evita iniciar sua troca durante sinal recente de manutenção do VISÃO.

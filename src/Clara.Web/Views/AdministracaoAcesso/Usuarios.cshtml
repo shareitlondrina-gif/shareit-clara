@@ -1,0 +1,56 @@
+@* Clara | Programador: Paulo Andrade | Origem: ViewModel/Controller | Destino: interface web | Boas práticas: saída codificada, sem segredos e ações protegidas. *@
+@model IReadOnlyCollection<Clara.Dominio.Contratos.UsuarioAcessoResumo>
+@{
+    ViewData["Title"] = "Usuários";
+}
+<div class="cabecalho-pagina">
+    <div><span class="sobretitulo">ADMINISTRAÇÃO</span><h1>Usuários</h1><p>Crie contas individuais para as pessoas que terão acesso à plataforma.</p></div>
+</div>
+@if (TempData["Mensagem"] is string mensagem) { <div class="mensagem-sucesso">@mensagem</div> }
+@if (TempData["Erro"] is string erro) { <div class="erro">@erro</div> }
+<section class="cartao-clara">
+    <h2>Novo usuário</h2>
+    <p class="texto-secundario">Escolha <strong>Padrão</strong> para leitura normal ou <strong>Supervisor</strong> para visão gerencial e recebimento de alertas destinados a supervisores.</p>
+    <form method="post" action="/administracao/usuarios/criar" class="grade-formulario">
+        @Html.AntiForgeryToken()
+        <label>Nome<input name="nome" required maxlength="200" /></label>
+        <label>E-mail<input name="email" type="email" required maxlength="320" /></label>
+        <label>Senha inicial<input name="senha" type="password" required minlength="8" autocomplete="new-password" /></label>
+        <label>Perfil
+            <select name="perfilCodigo">
+                <option value="PADRAO">Padrão</option>
+                <option value="SUPERVISOR">Supervisor</option>
+            </select>
+        </label>
+        <div class="campo-acao"><button type="submit">Criar usuário</button></div>
+    </form>
+</section>
+<section class="cartao-clara">
+    <h2>Contas da empresa</h2>
+    <div class="tabela-responsiva"><table class="tabela-clara"><thead><tr><th>Nome</th><th>E-mail</th><th>Tipo</th><th>Perfil</th><th>Status</th></tr></thead><tbody>
+    @foreach (var item in Model)
+    {
+        <tr>
+            <td><strong>@item.Nome</strong></td><td>@item.Email</td><td>@item.PerfilSistema</td>
+            <td>
+                @if (item.PerfilSistema == "Administrador")
+                {
+                    <strong>@(item.PerfilAcesso ?? "Administrador")</strong>
+                }
+                else
+                {
+                    <form method="post" action="/administracao/usuarios/@item.Id/perfil" class="form-inline">
+                        @Html.AntiForgeryToken()
+                        <select name="perfilCodigo" aria-label="Perfil de @item.Nome">
+                            <option value="PADRAO" selected="@(item.PerfilAcesso == "Padrão" ? "selected" : null)">Padrão</option>
+                            <option value="SUPERVISOR" selected="@(item.PerfilAcesso == "Supervisor" ? "selected" : null)">Supervisor</option>
+                        </select>
+                        <button type="submit" class="botao-secundario">Salvar</button>
+                    </form>
+                }
+            </td>
+            <td><span class="status-pill @(item.Ativo ? "status-ok" : "status-off")">@(item.Ativo ? "Ativo" : "Inativo")</span></td>
+        </tr>
+    }
+    </tbody></table></div>
+</section>

@@ -1,4 +1,4 @@
-# Share IT .Clara v0.3.1 - Alterações
+# Clara v0.3.1 - Alterações
 
 ## Correção de deploy e diagnóstico no Render
 
@@ -10,7 +10,7 @@ Alterações:
 - `/api/health/live` responde sem depender de banco, migrations ou bootstrap;
 - `render.yaml` usa `/api/health/live` como health check da plataforma;
 - migrations e bootstrap continuam automáticos, mas uma falha não encerra imediatamente a Web/API;
-- `/api/health` permanece como readiness completo e só retorna sucesso quando banco `shareit_clara` e migrations estão válidos;
+- `/api/health` permanece como readiness completo e só retorna sucesso quando banco `clara` e migrations estão válidos;
 - erros de inicialização são gravados nos logs do serviço sem expor detalhes de conexão no endpoint público;
 - `PUBLICAR-CLARA.cmd` diferencia liveness e readiness;
 - o publicador usa timeouts menores e respeita uma janela total de validação;

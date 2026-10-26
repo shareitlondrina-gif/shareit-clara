@@ -1,7 +1,7 @@
-# Alterações — Share IT .Clara v0.5.8-RC
+# Alterações — Clara v0.5.8-RC
 
 ## Objetivo
-Fechar os principais gaps identificados na revisão final da .Clara antes da baseline comercial 1.0, sem tornar o produto dependente do .VISÃO.
+Fechar os principais gaps identificados na revisão final da Clara antes da baseline comercial 1.0, sem tornar o produto dependente do VISÃO.
 
 ## Gestão executiva
 - Novo **Pulso da Operação**.
@@ -11,13 +11,13 @@ Fechar os principais gaps identificados na revisão final da .Clara antes da bas
 - Adoção de IA por ferramenta/domínio e duração, sem leitura de conteúdo.
 - Referências operacionais configuráveis.
 
-## .Clara + .VISÃO
+## Clara + VISÃO
 - Integração opcional por tenant.
 - Flags separadas: produto/serviço contratado e integração técnica ativa.
 - Token dedicado armazenado somente como SHA-256.
 - Endpoint de entrada de contexto técnico com rate limiting.
-- Menu e bloco de contexto TI invisíveis quando .VISÃO não estiver contratado/ativo.
-- A .Clara permanece totalmente funcional sozinha.
+- Menu e bloco de contexto TI invisíveis quando VISÃO não estiver contratado/ativo.
+- A Clara permanece totalmente funcional sozinha.
 
 ## Histórico e relatórios
 - Período personalizado de até 366 dias.
@@ -56,8 +56,8 @@ A Clara apresenta fatos; não conclui falta, fraude, hora extra autorizada ou in
 - Confirmação de serviço RUNNING antes de considerar sucesso.
 - Rollback quando a versão nova não confirma saúde.
 - Limpeza de backups e artefatos antigos.
-- Mutex `Global\ShareIT.ProductUpdate` preparado para coordenação entre produtos Share IT.
-- Detecção conservadora de diretório de atualização recente do .VISÃO para postergar atualização da Clara.
+- Mutex `Global\Clara.ProductUpdate` preparado para coordenação entre produtos Clara.
+- Detecção conservadora de diretório de atualização recente do VISÃO para postergar atualização da Clara.
 
 ## E-mail / saúde
 - `/api/health/live` informa se o host SMTP está configurado, sem revelar credenciais.

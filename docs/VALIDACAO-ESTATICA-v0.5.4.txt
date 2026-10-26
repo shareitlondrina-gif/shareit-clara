@@ -1,4 +1,4 @@
-Share IT .Clara v0.5.5 - RELATORIO DE VALIDACAO ESTATICA
+Clara v0.5.5 - RELATORIO DE VALIDACAO ESTATICA
 ==========================================================
 
 Base: v0.5.3

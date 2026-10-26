@@ -1,0 +1,142 @@
+@* Clara | Programador: Paulo Andrade | Origem: ViewModel/Controller | Destino: interface web | Boas práticas: saída codificada, sem segredos e ações protegidas. *@
+@model ConfiguracoesMonitoramento
+@{
+    ViewData["Title"] = "Configurações";
+    var retencao = ViewBag.Retencao as ConfiguracaoRetencaoResumo ?? new ConfiguracaoRetencaoResumo(180, Model.RetencaoEvidenciasDias, 180, 90, 365);
+    var exclusoes = ViewBag.Exclusoes as IReadOnlyCollection<ExclusaoMonitoramentoResumo> ?? Array.Empty<ExclusaoMonitoramentoResumo>();
+    var departamentos = ViewBag.Departamentos as IReadOnlyCollection<OpcaoCadastro> ?? Array.Empty<OpcaoCadastro>();
+    var custos = ViewBag.CustosSoftware as IReadOnlyCollection<CustoSoftwareResumo> ?? Array.Empty<CustoSoftwareResumo>();
+    var referencias = ViewBag.ReferenciasOperacionais as IReadOnlyCollection<ReferenciaOperacionalResumo> ?? Array.Empty<ReferenciaOperacionalResumo>();
+    var adocaoIa = ViewBag.AdocaoIa as ResumoAdocaoIa ?? new ResumoAdocaoIa(0,0,0,Array.Empty<string>());
+}
+@if(TempData["Mensagem"] is string msg){<div class="mensagem-sucesso">@msg</div>}
+@if(TempData["Erro"] is string err){<div class="erro">@err</div>}
+<section class="cabecalho-pagina cabecalho-clara cabecalho-config"><div><span class="sobrelinha">ADMINISTRAÇÃO</span><h1>Configurações</h1><p>Parametrize as políticas de monitoramento e leitura contextual da sua organização.</p></div><div class="aviso-config"><span>i</span><div><strong>As configurações são aplicadas para todas as estações monitoradas.</strong><small>Alterações podem levar alguns minutos para entrarem em vigor.</small></div></div></section>
+
+<form method="post" action="/administracao/configuracoes/salvar" class="form-configuracoes">@Html.AntiForgeryToken()
+    <section class="grade-configuracoes">
+        <article class="painel-clara card-config"><header><span class="icone-config">◎</span><div><h2>Monitoramento web</h2><p>Defina como o acesso à web deve ser monitorado e classificado.</p></div></header>
+            <label class="linha-toggle"><span><strong>Permitir classificação web</strong><small>Classifica sites por categoria (produtivo, não produtivo, neutro).</small></span><input type="checkbox" name="permitirClassificacaoWeb" value="true" checked="@Model.PermitirClassificacaoWeb" /></label>
+            <label class="linha-toggle"><span><strong>Monitorar URLs/domínios</strong><small>Registra e analisa somente domínio/URL quando o conector web autorizado estiver ativo.</small></span><input type="checkbox" name="monitorarUrlsDominios" value="true" checked="@Model.MonitorarUrlsDominios" /></label>
+            <label class="linha-toggle"><span><strong>Categorias produtivas e não produtivas</strong><small>Utiliza as categorias configuradas pelo tenant.</small></span><input type="checkbox" name="usarCategoriasWeb" value="true" checked="@Model.UsarCategoriasWeb" /></label>
+            <a class="botao-linha" href="/navegacao-web">⚙ &nbsp;Gerenciar sites e categorias <b>›</b></a>
+        </article>
+
+        <article class="painel-clara card-config"><header><span class="icone-config">▥</span><div><h2>Produtividade e ociosidade</h2><p>Configure os critérios para análise de produtividade.</p></div></header>
+            <label class="linha-campo"><span><strong>Tempo mínimo de ociosidade</strong><small>Tempo sem atividade para considerar ocioso.</small></span><span class="campo-unidade"><input type="number" min="1" max="240" name="tempoMinimoOciosidadeMinutos" value="@Model.TempoMinimoOciosidadeMinutos" /><em>minutos</em></span></label>
+            <label class="linha-campo"><span><strong>Regras de baixa continuidade</strong><small>Considera uso muito fragmentado de apps.</small></span><span class="campo-unidade"><input type="number" min="1" max="240" name="baixaContinuidadeMinutos" value="@Model.BaixaContinuidadeMinutos" /><em>minutos</em></span></label>
+            <label class="linha-campo"><span><strong>Limiar de alternância de aplicativos</strong><small>Número de trocas para indicar dispersão.</small></span><span class="campo-unidade"><input type="number" min="1" max="500" name="limiarAlternanciaAplicativos" value="@Model.LimiarAlternanciaAplicativos" /><em>trocas</em></span></label>
+            <div class="nota-config">i &nbsp;Esses parâmetros impactam os indicadores de ociosidade e foco.</div>
+        </article>
+
+        <article class="painel-clara card-config"><header><span class="icone-config">⌂</span><div><h2>Home x Escritório</h2><p>Defina como identificar o local de trabalho das estações.</p></div></header>
+            <label class="linha-campo vertical"><span><strong>Redes confiáveis (escritório)</strong><small>Informe as redes internas ou CIDR.</small></span><input name="redesConfiaveisCidr" value="@Model.RedesConfiaveisCidr" placeholder="10.10.0.0/16, 192.168.0.0/24" /></label>
+            <label class="linha-toggle"><span><strong>Considerar conexão VPN como escritório</strong><small>Estações conectadas via VPN são tratadas como escritório.</small></span><input type="checkbox" name="considerarVpnEscritorio" value="true" checked="@Model.ConsiderarVpnEscritorio" /></label>
+            <label class="linha-toggle"><span><strong>Classificação por IP público</strong><small>Quando fora das redes conhecidas, classifica conforme regras de local.</small></span><input type="checkbox" name="classificarIpPublico" value="true" checked="@Model.ClassificarIpPublico" /></label>
+            <a class="botao-linha" href="/locais">⚙ &nbsp;Testar / gerenciar redes <b>›</b></a>
+        </article>
+
+        <article class="painel-clara card-config card-config-jornada"><header><span class="icone-config">◷</span><div><h2>Jornada e período de monitoramento</h2><p>Separe a referência de trabalho da janela real em que a Clara coleta telemetria.</p></div></header>
+            <div class="nota-config"><strong>Jornada de referência</strong><br/>Usada somente para relatórios e alertas. Não é ponto eletrônico e não bloqueia o uso do equipamento.</div>
+            <div class="grade-campos-jornada">
+                <label><span><strong>Início aproximado</strong><small>Horário de referência.</small></span><input type="time" name="jornadaInicio" value="@Model.JornadaInicio" /></label>
+                <label><span><strong>Fim aproximado</strong><small>Horário de referência.</small></span><input type="time" name="jornadaFim" value="@Model.JornadaFim" /></label>
+                <label><span><strong>Carga diária esperada</strong><small>Em minutos. Ex.: 480 = 8h.</small></span><input type="number" min="1" max="1440" name="cargaHorariaDiariaMinutos" value="@Model.CargaHorariaDiariaMinutos" /></label>
+                <label><span><strong>Margem antes</strong><small>Tolerância para iniciar antes.</small></span><span class="campo-unidade"><input type="number" min="0" max="720" name="margemAntesMinutos" value="@Model.MargemAntesMinutos" /><em>min</em></span></label>
+                <label><span><strong>Margem depois</strong><small>Tolerância para finalizar depois.</small></span><span class="campo-unidade"><input type="number" min="0" max="720" name="margemDepoisMinutos" value="@Model.MargemDepoisMinutos" /><em>min</em></span></label>
+                <label><span><strong>Dias da jornada</strong><small>ISO: 1=segunda, 7=domingo.</small></span><input name="diasJornada" value="@Model.DiasJornada" /></label>
+                <label class="campo-largo"><span><strong>Fuso horário</strong><small>Usado para calcular jornada e alertas.</small></span><input name="fusoHorario" value="@Model.FusoHorario" placeholder="America/Sao_Paulo" /></label>
+            </div>
+            <hr class="separador-config"/>
+            <div class="nota-config destaque-monitoramento"><strong>Período efetivo de monitoramento</strong><br/>Fora desta janela o processo de sessão não coleta a telemetria de atividade configurada.</div>
+            <div class="grade-campos-jornada tres-colunas">
+                <label><span><strong>Monitorar a partir de</strong></span><input type="time" name="horarioInicio" value="@Model.HorarioInicio" /></label>
+                <label><span><strong>Monitorar até</strong></span><input type="time" name="horarioFim" value="@Model.HorarioFim" /></label>
+                <label><span><strong>Dias monitorados</strong><small>ISO: 1=segunda, 7=domingo.</small></span><input name="diasMonitorados" value="@Model.DiasMonitorados" /></label>
+            </div>
+            <p class="texto-regra-clara">A Clara registra fatos e contextos. A classificação produtivo/neutro/não produtivo continua sendo definida pela empresa nas regras de aplicativos e sites.</p>
+        </article>
+
+        <article class="painel-clara card-config"><header><span class="icone-config">◇</span><div><h2>Privacidade e coleta</h2><p>Defina o nível de coleta e as políticas de privacidade.</p></div></header>
+            <label class="linha-toggle desabilitado"><span><strong>Captura de screenshots</strong><small>Estrutura de evidência visual pronta; a captura real permanece desabilitada até a política de privacidade, RBAC, auditoria e armazenamento serem homologados.</small></span><input type="checkbox" disabled /></label>
+            <label class="linha-campo"><span><strong>Intervalo entre capturas</strong><small>Parâmetro reservado para ativação futura com governança.</small></span><select name="intervaloCapturaMinutos"><option selected="@(Model.IntervaloCapturaMinutos==5)" value="5">5 minutos</option><option selected="@(Model.IntervaloCapturaMinutos==10)" value="10">10 minutos</option><option selected="@(Model.IntervaloCapturaMinutos==15)" value="15">15 minutos</option></select></label>
+            <label class="linha-campo"><span><strong>Retenção de evidências</strong><small>Período de armazenamento de evidências e logs.</small></span><select name="retencaoEvidenciasDias"><option selected="@(Model.RetencaoEvidenciasDias==30)" value="30">30 dias</option><option selected="@(Model.RetencaoEvidenciasDias==90)" value="90">90 dias</option><option selected="@(Model.RetencaoEvidenciasDias==180)" value="180">180 dias</option><option selected="@(Model.RetencaoEvidenciasDias==365)" value="365">365 dias</option></select></label>
+            <label class="linha-toggle"><span><strong>Anonimização parcial</strong><small>Aplica redução de exposição em dados contextuais quando possível.</small></span><input type="checkbox" name="anonimizacaoParcial" value="true" checked="@Model.AnonimizacaoParcial" /></label>
+        </article>
+
+        <article class="painel-clara card-config"><header><span class="icone-config">▣</span><div><h2>Heartbeat e agente</h2><p>Configure a comunicação das estações e alertas de disponibilidade.</p></div></header>
+            <label class="linha-campo"><span><strong>Intervalo de comunicação (heartbeat)</strong><small>Frequência de envio de status da estação.</small></span><select name="intervaloHeartbeatSegundos"><option selected="@(Model.IntervaloHeartbeatSegundos==60)" value="60">1 minuto</option><option selected="@(Model.IntervaloHeartbeatSegundos==300)" value="300">5 minutos</option><option selected="@(Model.IntervaloHeartbeatSegundos==600)" value="600">10 minutos</option></select></label>
+            <label class="linha-toggle"><span><strong>Alerta de estação offline</strong><small>Dispara alerta quando a estação fica sem comunicação.</small></span><input type="checkbox" name="alertaEstacaoOffline" value="true" checked="@Model.AlertaEstacaoOffline" /></label>
+            <label class="linha-campo"><span><strong>Tempo para considerar offline</strong><small>Sem heartbeat por quanto tempo.</small></span><select name="tempoOfflineMinutos"><option selected="@(Model.TempoOfflineMinutos==5)" value="5">5 minutos</option><option selected="@(Model.TempoOfflineMinutos==15)" value="15">15 minutos</option><option selected="@(Model.TempoOfflineMinutos==30)" value="30">30 minutos</option><option selected="@(Model.TempoOfflineMinutos==60)" value="60">60 minutos</option></select></label>
+            <label class="linha-toggle"><span><strong>Notificar por e-mail</strong><small>Envia alerta para os administradores configurados.</small></span><input type="checkbox" name="notificarPorEmail" value="true" checked="@Model.NotificarPorEmail" /></label>
+            <label class="linha-campo vertical"><span><strong>Destinatários dos alertas</strong><small>E-mails separados por vírgula.</small></span><input name="destinatariosAlertas" value="@Model.DestinatariosAlertas" placeholder="ti@empresa.com, gestor@empresa.com" /></label>
+        </article>
+
+        <aside class="painel-clara ajuda-config"><span class="icone-ajuda">⚙</span><h2>Personalize o sistema para a sua realidade</h2><p>Ajuste as configurações conforme a política da sua empresa. Nossa equipe pode ajudar na definição dos melhores parâmetros.</p><hr/><strong>Precisa de ajuda?</strong><p>Acesse a central de ajuda ou fale com o nosso time de suporte.</p><a class="botao-secundario" href="mailto:suporte@clara.local">Central de ajuda ↗</a></aside>
+    </section>
+    <footer class="barra-salvar-config"><button form="form-restaurar-config" class="botao-secundario" type="submit">↶ &nbsp;Restaurar padrão</button><span><a class="botao-secundario" href="/">Cancelar</a><button type="submit">▣ &nbsp;Salvar configurações</button></span></footer>
+</form>
+<form id="form-restaurar-config" method="post" action="/administracao/configuracoes/restaurar" hidden>@Html.AntiForgeryToken()</form>
+
+<section class="grade-configuracoes grade-configuracoes-fechamento">
+    <article class="painel-clara card-config card-config-largo">
+        <header><span class="icone-config">⌛</span><div><h2>Retenção e expurgo automático</h2><p>Defina por quanto tempo cada classe de informação permanece disponível. A rotina automática registra sua execução.</p></div></header>
+        <form method="post" action="/administracao/configuracoes/retencao" class="grade-formulario grade-retencao">
+            @Html.AntiForgeryToken()
+            <label>Telemetria operacional (dias)<input name="telemetriaDias" type="number" min="7" max="3650" value="@retencao.TelemetriaDias" /></label>
+            <label>Evidências (dias)<input name="evidenciasDias" type="number" min="7" max="3650" value="@retencao.EvidenciasDias" /></label>
+            <label>Notificações (dias)<input name="notificacoesDias" type="number" min="7" max="3650" value="@retencao.NotificacoesDias" /></label>
+            <label>Fila/histórico de e-mail (dias)<input name="emailsDias" type="number" min="7" max="3650" value="@retencao.EmailsDias" /></label>
+            <label>Auditoria (dias)<input name="auditoriaDias" type="number" min="30" max="3650" value="@retencao.AuditoriaDias" /></label>
+            <div class="campo-acao"><button type="submit">Salvar retenção</button></div>
+        </form>
+        <p class="texto-regra-clara">Documentos jurídicos, autorizações e registros de governança não são eliminados automaticamente por esta rotina; seguem a política documental aplicável.</p>
+    </article>
+
+    <article class="painel-clara card-config card-config-largo">
+        <header><span class="icone-config">◈</span><div><h2>Exclusões de privacidade</h2><p>Aplicativos ou domínios sensíveis podem ficar explicitamente fora da coleta contextual. A regra pode valer para toda a empresa ou para um departamento.</p></div></header>
+        <form method="post" action="/administracao/configuracoes/exclusoes/criar" class="grade-formulario">
+            @Html.AntiForgeryToken()
+            <label>Tipo<select name="tipo"><option value="Aplicativo">Aplicativo/processo</option><option value="Dominio">Domínio</option></select></label>
+            <label>Aplicativo ou domínio<input name="valor" required maxlength="500" placeholder="ex.: banco.exe ou portalmedico.com.br" /></label>
+            <label>Departamento<select name="departamentoId"><option value="">Toda a empresa</option>@foreach(var d in departamentos){<option value="@d.Id">@d.Nome</option>}</select></label>
+            <label class="campo-largo">Motivo<input name="motivo" maxlength="300" placeholder="Ex.: minimização de dados / sistema sensível" /></label>
+            <div class="campo-acao"><button type="submit">Adicionar exclusão</button></div>
+        </form>
+        @if(exclusoes.Count > 0){
+        <div class="tabela-responsiva"><table class="tabela-clara"><thead><tr><th>Tipo</th><th>Valor</th><th>Escopo</th><th>Motivo</th><th>Status</th></tr></thead><tbody>
+        @foreach(var x in exclusoes){<tr><td>@x.Tipo</td><td><strong>@x.Valor</strong></td><td>@(x.Departamento ?? "Toda a empresa")</td><td>@(x.Motivo ?? "—")</td><td><form method="post" action="/administracao/configuracoes/exclusoes/@x.Id/alternar">@Html.AntiForgeryToken()<input type="hidden" name="ativo" value="@(!x.Ativo)"/><button class="botao-secundario" type="submit">@(x.Ativo ? "Ativa · pausar" : "Pausada · ativar")</button></form></td></tr>}
+        </tbody></table></div>}
+    </article>
+
+    <article class="painel-clara card-config card-config-largo">
+        <header><span class="icone-config">$</span><div><h2>Utilização e custo de software</h2><p>O cliente informa quantidade e preço. A Clara compara com uso observado nos últimos 30 dias e sinaliza possível subutilização sem cancelar licenças automaticamente.</p></div></header>
+        <form method="post" action="/administracao/configuracoes/custos-software/salvar" class="grade-formulario">
+            @Html.AntiForgeryToken()
+            <label>Processo/produto<input name="processoOuProduto" required maxlength="300" placeholder="ERPDEMO.EXE" /></label>
+            <label>Licenças contratadas<input name="quantidadeLicencas" type="number" min="1" value="1" /></label>
+            <label>Custo mensal unitário (R$)<input name="custoMensalUnitario" type="number" min="0" step="0.01" value="0" /></label>
+            <label class="campo-largo">Observação<input name="observacao" maxlength="500" /></label>
+            <div class="campo-acao"><button type="submit">Salvar software</button></div>
+        </form>
+        @if(custos.Count>0){<div class="tabela-responsiva"><table class="tabela-clara"><thead><tr><th>Software</th><th>Licenças</th><th>Usuários observados</th><th>Custo mensal</th><th>Possível subutilização*</th><th>Status</th></tr></thead><tbody>
+        @foreach(var c in custos){<tr><td><strong>@c.ProcessoOuProduto</strong><small>@c.Observacao</small></td><td>@c.QuantidadeLicencas</td><td>@c.UsuariosObservados30Dias</td><td>@c.CustoMensalTotal.ToString("C")</td><td>@c.CustoPotencialSubutilizado.ToString("C")</td><td><form method="post" action="/administracao/configuracoes/custos-software/@c.Id/alternar">@Html.AntiForgeryToken()<input type="hidden" name="ativo" value="@(!c.Ativo)"/><button class="botao-secundario" type="submit">@(c.Ativo?"Ativo":"Pausado")</button></form></td></tr>}
+        </tbody></table><small>*Estimativa baseada em usuários distintos observados; exige validação administrativa/licenciamento.</small></div>}
+    </article>
+
+    <article class="painel-clara card-config card-config-largo">
+        <header><span class="icone-config">◎</span><div><h2>Referências da operação</h2><p>Defina parâmetros gerenciais por empresa/departamento. São referências de análise, não metas disciplinares automáticas.</p></div></header>
+        <form method="post" action="/administracao/configuracoes/referencias/salvar" class="grade-formulario">
+            @Html.AntiForgeryToken()
+            <label>Nome<input name="nome" required maxlength="180" placeholder="Ex.: Ociosidade esperada Fiscal" /></label>
+            <label>Métrica<select name="metrica"><option value="FocoPercentual">Foco (%)</option><option value="OciosidadePercentual">Ociosidade (%)</option><option value="ProdutivoMinutos">Produtivo (min)</option><option value="UsoSistemaPrincipalMinutos">Sistema principal (min)</option><option value="CargaUtilizacaoPercentual">Carga de utilização (%)</option></select></label>
+            <label>Valor<input name="valorReferencia" type="number" min="0" step="0.01" required /></label>
+            <label>Unidade<input name="unidade" value="%" maxlength="40" /></label>
+            <label>Departamento<select name="departamentoId"><option value="">Empresa</option>@foreach(var d in departamentos){<option value="@d.Id">@d.Nome</option>}</select></label>
+            <div class="campo-acao"><button type="submit">Adicionar referência</button></div>
+        </form>
+        @if(referencias.Count>0){<div class="chips-filtros">@foreach(var r in referencias.Where(x=>x.Ativo)){<span class="chip-filtro"><strong>@r.Nome</strong> · @r.ValorReferencia @r.Unidade · @(r.Departamento??"Empresa")</span>}</div>}
+        <div class="nota-config"><strong>Adoção de IA observada nos últimos 30 dias:</strong> @adocaoIa.PessoasComUso pessoa(s), @adocaoIa.EstacoesComUso estação(ões) · @(adocaoIa.Ferramentas.Count>0?string.Join(", ",adocaoIa.Ferramentas):"nenhuma ferramenta reconhecida no período"). A Clara não lê prompts ou conteúdo.</div>
+    </article>
+</section>
+

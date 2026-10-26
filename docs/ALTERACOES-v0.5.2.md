@@ -1,4 +1,4 @@
-# Alterações — Share IT .Clara v0.5.2
+# Alterações — Clara v0.5.2
 
 ## Objetivo
 
@@ -17,7 +17,7 @@ A v0.5.2 é uma versão de correção e robustez do processo de publicação. El
 
 - HTTP 503 durante a janela de deploy é tratado como estado transitório de reinício/inicialização;
 - o publicador continua aguardando até o tempo máximo configurado;
-- a publicação só termina como validada quando o Web/API informa a versão e o Build ID desta execução e o health completo confirma `shareit_clara` e a quantidade esperada de migrations;
+- a publicação só termina como validada quando o Web/API informa a versão e o Build ID desta execução e o health completo confirma `clara` e a quantidade esperada de migrations;
 - Deploy Hook continua opcional como fallback.
 
 ## Organização de logs

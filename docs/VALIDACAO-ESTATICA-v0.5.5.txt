@@ -1,4 +1,4 @@
-Share IT .Clara v0.5.5 - RELATORIO DE VALIDACAO ESTATICA
+Clara v0.5.5 - RELATORIO DE VALIDACAO ESTATICA
 
 - OK: VERSAO.txt: 0.5.5
 - OK: Directory.Build.props contains: 0.5.5

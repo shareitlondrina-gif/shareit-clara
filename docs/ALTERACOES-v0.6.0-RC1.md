@@ -1,4 +1,4 @@
-# Alterações — Share IT .Clara v0.6.0-RC1
+# Alterações — Clara v0.6.0-RC1
 
 ## Fundação de dados
 - Migration 0010 sem alteração das migrations históricas 0001–0009.

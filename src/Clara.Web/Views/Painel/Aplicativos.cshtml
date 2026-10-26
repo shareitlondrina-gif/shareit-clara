@@ -1,0 +1,67 @@
+@* Clara | Programador: Paulo Andrade | Origem: ViewModel/Controller | Destino: interface web | Boas práticas: saída codificada, sem segredos e ações protegidas. *@
+@model PainelAplicativos
+@{
+    ViewData["Title"] = "Aplicativos";
+    var categorias = (IReadOnlyCollection<CategoriaAtividadeBasica>)(ViewBag.Categorias ?? Array.Empty<CategoriaAtividadeBasica>());
+    var dias = (int)(ViewBag.Dias ?? 7);
+    var totalSegundos = Math.Max(1L, Model.Aplicativos.Sum(x => x.Segundos));
+    var totalEstacoes = Model.Aplicativos.Count == 0 ? 0 : Model.Aplicativos.Max(x => x.Estacoes);
+    string Tempo(long segundos) { var t=TimeSpan.FromSeconds(segundos); return t.TotalHours >= 1 ? $"{(int)t.TotalHours}h {t.Minutes:00}m" : $"{t.Minutes}m"; }
+    string Classe(string valor) => valor.Equals("Produtivo", StringComparison.OrdinalIgnoreCase) ? "positivo" : valor.Equals("Atencao", StringComparison.OrdinalIgnoreCase) ? "alerta" : "neutro";
+}
+<section class="cabecalho-pagina cabecalho-clara">
+    <div><span class="sobrelinha">CONTEXTO DIGITAL</span><h1>Aplicativos</h1><p>Tempo em primeiro plano e classificação contextual. A Clara não lê conteúdo digitado nem conteúdo da tela.</p></div>
+    <div class="cabecalho-status">
+        <a class="botao-secundario" href="/navegacao-web?dias=@dias">Contexto web →</a>
+        <div class="filtro-periodo"><a class="@(dias==1?"ativo":"")" href="/aplicativos?dias=1">Hoje</a><a class="@(dias==7?"ativo":"")" href="/aplicativos?dias=7">7 dias</a><a class="@(dias==30?"ativo":"")" href="/aplicativos?dias=30">30 dias</a></div>
+    </div>
+</section>
+
+@if (Model.Aplicativos.Count > 0)
+{
+    var produtivos = Model.Aplicativos.Where(x => x.Classificacao == "Produtivo").Sum(x => x.Segundos);
+    var atencao = Model.Aplicativos.Where(x => x.Classificacao == "Atencao").Sum(x => x.Segundos);
+    <section class="cards-indicadores quatro-colunas cards-aplicativos-resumo">
+        <a class="card-indicador" href="#" data-drilldown-url="/indicadores/detalhes?tipo=indice&valor=aplicativos&dias=@dias"><span class="icone-card azul">▦</span><span>Aplicativos observados</span><strong>@Model.Aplicativos.Count</strong><small>processos no período</small><b>Ver composição →</b></a>
+        <a class="card-indicador" href="#" data-drilldown-url="/indicadores/detalhes?tipo=indice&valor=cobertura&dias=@dias"><span class="icone-card verde">◎</span><span>Cobertura máxima</span><strong>@totalEstacoes</strong><small>estações em um mesmo app</small><b>Ver estações →</b></a>
+        <a class="card-indicador" href="#" data-drilldown-url="/indicadores/detalhes?tipo=indice&valor=produtivo&dias=@dias"><span class="icone-card verde">↗</span><span>Tempo produtivo</span><strong>@Math.Round(produtivos * 100d / totalSegundos)%</strong><small>do tempo dos apps listados</small><b>Ver origem →</b></a>
+        <a class="card-indicador" href="#" data-drilldown-url="/indicadores/detalhes?tipo=indice&valor=atencao&dias=@dias"><span class="icone-card amarelo">!</span><span>Tempo de atenção</span><strong>@Math.Round(atencao * 100d / totalSegundos)%</strong><small>em apps classificados como atenção</small><b>Ver origem →</b></a>
+    </section>
+}
+
+<section class="painel-clara painel-aplicativos">
+    <div class="titulo-painel"><div><span class="sobrelinha">USO OBSERVADO</span><h2>Aplicativos mais utilizados</h2><p>Clique no aplicativo ou na barra para abrir as estações e o tempo que formaram o indicador.</p></div></div>
+@if (Model.Aplicativos.Count == 0)
+{
+    <div class="estado-vazio"><strong>Ainda não há aplicativos suficientes para analisar.</strong><span>Os processos em primeiro plano aparecerão conforme as estações enviarem atividade.</span></div>
+}
+else
+{
+    <div class="lista-apps-detalhada">
+    @foreach (var app in Model.Aplicativos)
+    {
+        var percentual = Math.Max(2d, app.Segundos * 100d / totalSegundos);
+        var percentualTexto = percentual.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+        <article class="linha-app-detalhada">
+            <button type="button" class="app-drilldown" data-drilldown-url="/indicadores/detalhes?tipo=aplicativo&valor=@Uri.EscapeDataString(app.ProcessoExecutavel)&dias=@dias">
+                <span class="icone-processo">▣</span>
+                <span class="nome-app"><strong>@app.ProcessoExecutavel</strong><small>@(app.Categoria ?? "Não classificado") · @app.Estacoes estação(ões)</small></span>
+                <span class="barra-app"><i style="width:@percentualTexto%"></i></span>
+                <b>@Tempo(app.Segundos)</b>
+                <span class="selo-classificacao @Classe(app.Classificacao)">@(app.Classificacao == "Atencao" ? "Atenção" : app.Classificacao)</span>
+            </button>
+            <form method="post" action="/aplicativos/classificar" class="form-classificar-app">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="processo" value="@app.ProcessoExecutavel" />
+                <input type="hidden" name="dias" value="@dias" />
+                <select name="classificacao" aria-label="Classificação de @app.ProcessoExecutavel"><option selected="@(app.Classificacao == "Produtivo")">Produtivo</option><option selected="@(app.Classificacao == "Neutro")">Neutro</option><option value="Atencao" selected="@(app.Classificacao == "Atencao")">Atenção</option></select>
+                <select name="categoriaId" aria-label="Categoria de @app.ProcessoExecutavel"><option value="">Sem categoria</option>@foreach (var c in categorias) { <option value="@c.Id" selected="@(app.Categoria == c.Nome)">@c.Nome</option> }</select>
+                <button type="submit">Salvar</button>
+            </form>
+        </article>
+    }
+    </div>
+}
+</section>
+
+<section class="nota-evidencias"><span>i</span><div><strong>Leitura contextual, não conteúdo</strong><p>O painel usa o nome do processo em primeiro plano e duração agregada. Não captura teclas, senhas, textos digitados ou conteúdo do documento.</p></div></section>

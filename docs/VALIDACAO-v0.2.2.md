@@ -1,8 +1,8 @@
-# Validação — Share IT .Clara v0.3.0
+# Validação — Clara v0.3.0
 
 ## Baseline de origem
 
-A v0.3.0 evolui a baseline online v0.1.2. Não utiliza código do Monitor legado, módulos do .VISÃO, Service Desk, projetos, CMDB ou suporte remoto.
+A v0.3.0 evolui a baseline online v0.1.2. Não utiliza código do Monitor legado, módulos do VISÃO, Service Desk, projetos, CMDB ou suporte remoto.
 
 ## Validações estruturais executadas na geração
 
@@ -16,8 +16,8 @@ A v0.3.0 evolui a baseline online v0.1.2. Não utiliza código do Monitor legado
 - `favicon.ico`, PNGs 32/64/192/512 e manifest presentes;
 - `.gitignore` e `.dockerignore` excluem artefatos, ZIPs e arquivos locais de segredos;
 - nenhuma credencial local/arquivo de segredo conhecido está incluído no pacote-fonte;
-- destino oficial de banco permanece `shareit_clara`;
-- health check continua validando explicitamente `current_database() = shareit_clara`;
+- destino oficial de banco permanece `clara`;
+- health check continua validando explicitamente `current_database() = clara`;
 - publicador valida versão online e quantidade esperada de migrations;
 - publicador sincroniza com a branch remota antes do commit/push e não usa `--force`.
 - fluxo Git seguro foi simulado com repositório remoto contendo histórico prévio: novo commit ficou acima da baseline remota e o push foi aceito sem sobrescrever histórico.
@@ -45,7 +45,7 @@ A migration `0003` adiciona onboarding automático, inventário, aplicativos/sit
 
 ## Escopo funcional incluído
 
-- nova identidade visual Share IT .Clara;
+- nova identidade visual Clara;
 - fundo creme/off-white e navegação lateral;
 - onboarding automático de estação;
 - coleta de hostname, usuário Windows, serial, UUID, fabricante, modelo, Windows, arquitetura, memória, disco e IP;
@@ -74,13 +74,13 @@ PUBLICAR-CLARA.cmd
 O publicador interrompe o fluxo se `restore`, `build`, `test` ou qualquer `publish` falhar. Após o Git push, aguarda o Render e só considera a publicação saudável quando `/api/health` confirma simultaneamente:
 
 - versão `0.3.0`;
-- banco `shareit_clara`;
+- banco `clara`;
 - banco `ok`;
 - **3 migrations aplicadas**.
 
 ## Critérios de homologação v0.3.0
 
-1. `https://shareit-clara.onrender.com/api/health` deve responder `aplicacao=ok`, `banco=ok`, `nomeBanco=shareit_clara` e `migracoes=3`;
+1. `/api/health` deve responder `aplicacao=ok`, `banco=ok`, `nomeBanco=clara` e `migracoes=3`;
 2. `/api/versao` deve responder `0.3.0`;
 3. login deve carregar a nova identidade visual;
 4. tela Agora deve abrir sem agentes e com a nova hierarquia visual;

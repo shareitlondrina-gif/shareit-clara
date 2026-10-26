@@ -1,4 +1,4 @@
-# Checklist de homologação — Share IT .Clara v0.5.9-RC1
+# Checklist de homologação — Clara v0.5.9-RC1
 
 ## Gate local
 - [ ] `VALIDAR-ANTES-DE-PUBLICAR.cmd` concluiu sem erro.
@@ -10,7 +10,7 @@
 ## Gate online
 - [ ] `/api/versao` retorna 0.5.9.
 - [ ] Build ID corresponde à execução atual.
-- [ ] `/api/health` retorna `shareit_clara`.
+- [ ] `/api/health` retorna `clara`.
 - [ ] `/api/health` retorna 9 migrations.
 - [ ] GitHub e Render apontam para o mesmo commit.
 
@@ -37,7 +37,7 @@
 - [ ] retenção.
 
 ## Coexistência
-- [ ] se houver .VISÃO, diagnóstico executado.
+- [ ] se houver VISÃO, diagnóstico executado.
 - [ ] ambos os agentes operam sem conflito de serviço/pasta.
 - [ ] atualização de um produto não interrompe o outro.
-- [ ] cliente sem .VISÃO não visualiza Contexto TI.
+- [ ] cliente sem VISÃO não visualiza Contexto TI.

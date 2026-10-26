@@ -2,6 +2,10 @@
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <Version>0.6.0</Version>
+    <Authors>Paulo Andrade</Authors>
+    <Company>Clara</Company>
+    <Product>Clara</Product>
+    <Description>Clara - plataforma de produtividade e contexto operacional.</Description>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>

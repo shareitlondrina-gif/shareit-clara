@@ -1,4 +1,4 @@
-# Share IT .Clara v0.3.0 — Alterações
+# Clara v0.3.0 — Alterações
 
 ## Correções da v0.3.0
 
@@ -12,7 +12,7 @@
 
 ## Produto e identidade
 
-- nova identidade visual aplicada, baseada na família Share IT;
+- nova identidade visual aplicada, baseada na família Clara;
 - logo horizontal e ícone/favicons oficiais;
 - fundo creme/off-white e navegação lateral;
 - tela Agora reorganizada para leitura rápida.
@@ -65,5 +65,5 @@ As migrations `0001` e `0002` permanecem preservadas.
 
 - Docker runtime instala `libgssapi-krb5-2` para eliminar a dependência ausente observada no Render;
 - forwarded headers configurados para execução atrás do proxy do Render;
-- health continua validando explicitamente `shareit_clara`;
+- health continua validando explicitamente `clara`;
 - atualização automática do agente permanece integrada ao fluxo de publicação.

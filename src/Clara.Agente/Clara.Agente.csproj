@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <AssemblyName>Clara.Agente</AssemblyName>
+    <RootNamespace>Clara.Agente</RootNamespace>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" />
+    <ProjectReference Include="..\Clara.Dominio\Clara.Dominio.csproj" />
+    <ProjectReference Include="..\Clara.Comum\Clara.Comum.csproj" />
+  </ItemGroup>
+</Project>

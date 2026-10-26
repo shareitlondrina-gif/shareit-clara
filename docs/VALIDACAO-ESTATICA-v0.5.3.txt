@@ -1,4 +1,4 @@
-Share IT .Clara v0.5.3 - RELATORIO DE VALIDACAO ESTATICA
+Clara v0.5.3 - RELATORIO DE VALIDACAO ESTATICA
 ==========================================================
 
 Base: v0.5.2
@@ -41,4 +41,4 @@ Gate esperado no Windows:
 3. Auto Deploy e aguardado inicialmente.
 4. Se a versao nao mudar em ~90 s e houver hook, o fallback e acionado uma unica vez.
 5. /api/health/live deve responder versao 0.5.3 + Build ID desta execucao.
-6. /api/health deve confirmar banco shareit_clara + 6 migrations.
+6. /api/health deve confirmar banco clara + 6 migrations.

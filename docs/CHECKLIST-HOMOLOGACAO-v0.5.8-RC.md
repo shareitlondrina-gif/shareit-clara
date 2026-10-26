@@ -1,4 +1,4 @@
-# Checklist de homologação — Share IT .Clara v0.5.8-RC
+# Checklist de homologação — Clara v0.5.8-RC
 
 ## Publicação
 - [ ] `PUBLICAR-CLARA.cmd` conclui sem erro.
@@ -6,7 +6,7 @@
 - [ ] Render publica o mesmo commit.
 - [ ] `/api/versao` = 0.5.8 + Build ID correto.
 - [ ] `/api/health/live` = aplicação OK.
-- [ ] `/api/health` = banco `shareit_clara`, 9 migrations.
+- [ ] `/api/health` = banco `clara`, 9 migrations.
 
 ## Funcional
 - [ ] Agora, Estações, Aplicativos, Navegação, Home x Escritório.
@@ -39,12 +39,12 @@
 - [ ] Falha de saúde dispara rollback.
 - [ ] Backups antigos são reduzidos à quantidade prevista.
 
-## Coexistência .VISÃO
-- [ ] Clara funciona com .VISÃO ausente.
-- [ ] Cliente sem .VISÃO não vê Contexto TI.
-- [ ] Cliente com .VISÃO contratado + integração ativa vê Contexto TI.
+## Coexistência VISÃO
+- [ ] Clara funciona com VISÃO ausente.
+- [ ] Cliente sem VISÃO não vê Contexto TI.
+- [ ] Cliente com VISÃO contratado + integração ativa vê Contexto TI.
 - [ ] Contexto recebido aparece somente no tenant correto.
-- [ ] Atualização Clara é postergada quando manutenção recente do .VISÃO é detectada.
+- [ ] Atualizaçãa Clara é postergada quando manutenção recente do VISÃO é detectada.
 - [ ] Teste conjunto por um dia útil sem conflito relevante.
 
 ## Gate

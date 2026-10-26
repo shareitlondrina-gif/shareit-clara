@@ -1,4 +1,4 @@
-Share IT .Clara v0.5.2 - RELATORIO DE VALIDACAO ESTATICA
+Clara v0.5.2 - RELATORIO DE VALIDACAO ESTATICA
 ====================================================================
 
 Resultado: APROVADA NA VALIDACAO ESTATICA
@@ -47,7 +47,7 @@ CHECAGENS
 - OK: Migration 0004 imutável (6b8066ce8389)
 - OK: Migration 0005 imutável (1c39de83c946)
 - OK: Migration 0006 imutável (3837c8056af2)
-- OK: C# alterados nesta correcao: src/ShareIT.Clara.Web/Program.cs, src/ShareIT.Clara.Web/Controllers/PainelController.cs, src/ShareIT.Clara.Agente/Comunicacao/ClienteApiClara.cs (alteracoes de versao; logica funcional C# preservada)
+- OK: C# alterados nesta correcao: src/Clara.Web/Program.cs, src/Clara.Web/Controllers/PainelController.cs, src/Clara.Agente/Comunicacao/ClienteApiClara.cs (alteracoes de versao; logica funcional C# preservada)
 
 LIMITES DA VALIDACAO NESTE AMBIENTE
 - dotnet restore/build/test nao executados por ausencia do .NET SDK 10.

@@ -1,4 +1,4 @@
-# Validação — Share IT .Clara v0.4.0
+# Validação — Clara v0.4.0
 
 ## Estado do pacote
 
@@ -21,9 +21,9 @@ O resultado deve confirmar:
 3. `dotnet build -c Release` sem erro;
 4. testes sem erro;
 5. publish de Web, Agente, Sessão e Atualizador;
-6. aplicação da migration `0005` no banco lógico `shareit_clara`;
+6. aplicação da migration `0005` no banco lógico `clara`;
 7. `/api/health/live` com aplicação `ok`;
-8. `/api/health` com banco `shareit_clara`, banco `ok` e **5 migrations**;
+8. `/api/health` com banco `clara`, banco `ok` e **5 migrations**;
 9. `/api/versao` retornando `0.4.0`;
 10. login Master;
 11. criação/atualização da empresa demonstração;

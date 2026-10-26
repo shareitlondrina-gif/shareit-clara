@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: shareit-clara
+    name: clara
     runtime: docker
     plan: free
     region: virginia
@@ -11,7 +11,7 @@ services:
       - key: CLARA_POSTGRES
         sync: false
       - key: CLARA_BANCO_NOME
-        value: "shareit_clara"
+        value: "clara"
       - key: CLARA_CRIAR_BANCO
         value: "true"
       - key: CLARA_ADMIN_SENHA
@@ -19,13 +19,13 @@ services:
       - key: CLARA_ADMIN_EMAIL
         sync: false
       - key: CLARA_URL_PUBLICA
-        value: "https://shareit-clara.onrender.com"
+        sync: false
       - key: CLARA_EXECUTAR_MIGRACOES
         value: "true"
       - key: CLARA_TENANT_NOME
-        value: "Share IT"
+        value: "Clara"
       - key: CLARA_TENANT_IDENTIFICADOR
-        value: "shareit"
+        value: "clara"
       # Transporte de e-mail da plataforma. Host/usuário/senha são definidos como segredos no Render.
       - key: CLARA_EMAIL_SMTP_HOST
         sync: false
@@ -38,6 +38,6 @@ services:
       - key: CLARA_EMAIL_SMTP_PASSWORD
         sync: false
       - key: CLARA_EMAIL_FROM
-        value: "monitoramento.clara@shareitbrasil.com.br"
+        value: "no-reply@clara.local"
       - key: CLARA_EMAIL_FROM_NAME
-        value: "Share IT .Clara"
+        value: "Clara"

@@ -1,4 +1,4 @@
-# Validação — Share IT .Clara v0.5.8-RC
+# Validação — Clara v0.5.8-RC
 
 ## Escopo
 
@@ -11,11 +11,11 @@ Candidata de fechamento técnico/comercial antes da baseline v1.0.
 - migrations 0001 a 0008 preservadas byte a byte em relação à v0.5.7;
 - nova migration 0009 isolada;
 - JSON/XML válidos;
-- componentes de Pulso, retenção, relatórios agendados, integração opcional .VISÃO e watchdog presentes;
+- componentes de Pulso, retenção, relatórios agendados, integração opcional VISÃO e watchdog presentes;
 - regras de logs mantidas na pasta `logs`;
 - nenhum arquivo real de segredo incluído;
 - Dockerfile mantém a correção de caminhos absolutos `/src/Ferramentas/...`;
-- integração .VISÃO condicionada a produto contratado + integração ativa.
+- integração VISÃO condicionada a produto contratado + integração ativa.
 
 O relatório detalhado está em `docs/VALIDACAO-ESTATICA-v0.5.8-RC.txt`.
 
@@ -28,11 +28,11 @@ Este ambiente de geração não possui .NET SDK 10/PowerShell. A RC só pode ser
 3. push/commit GitHub;
 4. deploy Render;
 5. `/api/versao` = `0.5.8` + Build ID correto;
-6. `/api/health` = banco `shareit_clara` + 9 migrations;
+6. `/api/health` = banco `clara` + 9 migrations;
 7. atualização/rollback do agente;
 8. SMTP e relatório agendado;
 9. retenção e timezone;
-10. coexistência física com .VISÃO quando aplicável.
+10. coexistência física com VISÃO quando aplicável.
 
 ## Assinatura de pacote
 

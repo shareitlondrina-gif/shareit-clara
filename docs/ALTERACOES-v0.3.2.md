@@ -1,4 +1,4 @@
-# Share IT .Clara v0.3.2 - Alterações
+# Clara v0.3.2 - Alterações
 
 Correção intermediária de autenticação após o cenário em que a tela `/entrar` carregava, mas o envio da senha retornava HTTP 500.
 

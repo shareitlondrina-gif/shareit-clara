@@ -1,4 +1,4 @@
-# Share IT .Clara v0.3.0 - Alterações
+# Clara v0.3.0 - Alterações
 
 ## Multiempresa e acesso
 

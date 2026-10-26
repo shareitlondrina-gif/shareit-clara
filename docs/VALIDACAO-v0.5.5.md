@@ -1,4 +1,4 @@
-# Validação — Share IT .Clara v0.5.5
+# Validação — Clara v0.5.5
 
 ## Escopo da validação
 

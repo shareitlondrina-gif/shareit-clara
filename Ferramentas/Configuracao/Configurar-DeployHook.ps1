@@ -1,3 +1,10 @@
+# Clara
+# Programador: Paulo Andrade
+# Objetivo: automação operacional controlada da Clara.
+# Origem: parâmetros/configuração local e ambiente autorizado.
+# Destino: processo local, publicação ou manutenção correspondente.
+# Boas práticas: falhar cedo, não registrar segredos e validar pré-condições antes de alterar o ambiente.
+
 [CmdletBinding()]
 param()
 
@@ -27,7 +34,7 @@ if (-not (Test-Path $Arquivo)) {
     Copy-Item $Modelo $Arquivo
 }
 
-Write-Host 'SHARE IT .CLARA - CONFIGURAR DEPLOY HOOK DO RENDER' -ForegroundColor Cyan
+Write-Host 'CLARA - CONFIGURAR DEPLOY HOOK DO RENDER' -ForegroundColor Cyan
 Write-Host 'A URL sera armazenada somente em C:\ConfigSys\Clara\SegredosClara.local.xml.'
 Write-Host 'Ela nao sera exibida de volta na tela.'
 Write-Host ''

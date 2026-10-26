@@ -1,0 +1,23 @@
+CLARA v0.6.0-RC1-R6 — VALIDACAO ESTATICA
+
+Resultado: 14/14 verificacoes aprovadas.
+
+[OK] RELEASE.txt = 0.6.0-RC1-R6
+[OK] 12 migrations
+[OK] migrations 0001-0012 preservadas byte a byte contra a R5
+[OK] BUILD.txt criado pelo gate antes do dotnet build
+[OK] publicador reutiliza o mesmo BUILD.txt validado
+[OK] publicador nao gera segundo Build ID
+[OK] Clara.Web incorpora BUILD.txt no artefato
+[OK] XML dos projetos valido
+[OK] JSONs principais validos
+[OK] identidade ativa somente Clara
+[OK] cabecalho Programador: Paulo Andrade em 85/85 arquivos C#
+[OK] unico comando raiz: PUBLICAR-CLARA.cmd
+[OK] logo horizontal antigo ausente
+[OK] layout identifica 0.6.0-RC1-R6
+
+LIMITACAO DO AMBIENTE DE GERACAO
+- .NET SDK 10/PowerShell nao estao disponiveis neste ambiente.
+- O gate real sera executado no Windows pelo proprio PUBLICAR-CLARA.cmd.
+- O erro MSB3030 da R5 foi corrigido movendo a criacao de logs/BUILD.txt para antes da compilacao.

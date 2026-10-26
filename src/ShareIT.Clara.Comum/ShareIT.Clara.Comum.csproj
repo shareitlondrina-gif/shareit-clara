@@ -1,6 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <AssemblyName>ShareIT.Clara.Comum</AssemblyName>
-    <RootNamespace>ShareIT.Clara.Comum</RootNamespace>
-  </PropertyGroup>
-</Project>

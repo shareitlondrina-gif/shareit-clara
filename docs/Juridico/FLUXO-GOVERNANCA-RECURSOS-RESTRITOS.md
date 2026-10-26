@@ -1,4 +1,4 @@
-# Fluxo de Governança — recursos restritos da .Clara
+# Fluxo de Governança — recursos restritos da Clara
 
 ## Nível 1 — telemetria comportamental
 

@@ -1,0 +1,35 @@
+CLARA v0.6.0-RC1-R4 — VALIDACAO ESTATICA
+
+Resumo: 29/29 verificacoes aprovadas.
+
+[OK] 12 migrations
+[OK] migration preservada 0001_base_operacional.sql
+[OK] migration preservada 0002_indices_dashboard.sql
+[OK] migration preservada 0003_contexto_inventario_integracoes.sql
+[OK] migration preservada 0004_multiempresa_perfis_acesso.sql
+[OK] migration preservada 0005_inteligencia_configuracoes_demonstracao.sql
+[OK] migration preservada 0006_distribuicao_navegacao_saas.sql
+[OK] migration preservada 0007_evidencias_visuais_demonstracao.sql
+[OK] migration preservada 0008_governanca_jornada_alertas_relatorios_tema.sql
+[OK] migration preservada 0009_fechamento_operacional_coexistencia_gestao.sql
+[OK] migration preservada 0010_dispositivos_armazenamento_manutencao.sql
+[OK] migration preservada 0011_perfil_usuario_identidade_visual.sql
+[OK] migration 0012 existe
+[OK] identidade ativa somente Clara
+[OK] nenhum caminho com identidade anterior
+[OK] solucao Clara.sln
+[OK] somente PUBLICAR-CLARA.cmd na raiz
+[OK] PUBLICAR chama Validar-Clara.ps1
+[OK] PUBLICAR libera gate por variavel
+[OK] publicador interno bloqueia bypass
+[OK] cabecalho Paulo Andrade em todos C# — 85/85
+[OK] cabecalho Paulo Andrade em todos PS1 — 7/7
+[OK] cabecalho Paulo Andrade em todos CMD — 6/6
+[OK] XML/JSON validos
+[OK] projetos Clara
+[OK] instalacao Program Files Clara
+[OK] dados ProgramData Clara
+[OK] servico Clara.Agente
+[OK] wordmark antigo removido
+
+Observacao: restore/build/test definitivos devem ser executados no Windows. Nesta revisao isso ocorre automaticamente ao executar PUBLICAR-CLARA.cmd; nao existe launcher separado de validacao na raiz.

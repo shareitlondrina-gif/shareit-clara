@@ -1,4 +1,4 @@
-# Validação — Share IT .Clara v0.5.0
+# Validação — Clara v0.5.0
 
 ## Estado da candidata
 
@@ -31,7 +31,7 @@ Confirmar no log:
 13. migration `0006` aplicada;
 14. `/api/versao` = `0.5.0`;
 15. `/api/health/live` com aplicação ok;
-16. `/api/health` com `shareit_clara`, banco ok e **6 migrations**.
+16. `/api/health` com `clara`, banco ok e **6 migrations**.
 
 ## Regressão visual/funcional
 
@@ -67,10 +67,10 @@ Todos os cards/gráficos com detalhamento devem abrir a janela flutuante e lista
 Em uma estação de teste:
 
 1. instalar `Clara-Instalador-v0.5.0.zip` como administrador;
-2. confirmar serviço `ShareIT.Clara.Agente` iniciado;
-3. confirmar tarefa `Share IT .Clara - Sessao`;
-4. confirmar `C:\Program Files\Share IT\Clara\NavegadorHost\ShareIT.Clara.NavegadorHost.exe`;
-5. confirmar manifesto nativo em `C:\ProgramData\ShareIT\Clara\navegador`;
+2. confirmar serviço `Clara.Agente` iniciado;
+3. confirmar tarefa `Clara - Sessao`;
+4. confirmar `C:\Program Files\Clara\NavegadorHost\Clara.NavegadorHost.exe`;
+5. confirmar manifesto nativo em `C:\ProgramData\Clara\navegador`;
 6. confirmar chaves NativeMessagingHosts do Chrome e Edge em HKLM;
 7. carregar/distribuir a extensão de homologação com o ID esperado `diidcakejmmckhhbggepbblogonddjml`;
 8. habilitar `Monitorar URLs/domínios` no tenant;

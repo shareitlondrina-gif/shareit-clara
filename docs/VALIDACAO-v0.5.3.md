@@ -1,4 +1,4 @@
-# Validação — Share IT .Clara v0.5.3
+# Validação — Clara v0.5.3
 
 ## Preparação única
 
@@ -21,7 +21,7 @@ Execute somente `PUBLICAR-CLARA.cmd` e confirme:
 3. publicador informa que o Deploy Hook persistente está disponível, sem mostrar a URL;
 4. se o Auto Deploy não assumir em aproximadamente 90 segundos, aparece uma única ação de fallback do Deploy Hook;
 5. `/api/health/live` responde `versao=0.5.3` e o Build ID da execução;
-6. `/api/health` responde banco `shareit_clara`, status `ok` e 6 migrations;
+6. `/api/health` responde banco `clara`, status `ok` e 6 migrations;
 7. `/api/versao` devolve a mesma versão/Build ID;
 8. a publicação encerra com Render `ONLINE E VALIDADO`.
 

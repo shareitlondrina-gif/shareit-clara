@@ -1,8 +1,8 @@
-# Revisão funcional — Share IT .Clara v0.5.5
+# Revisão funcional — Clara v0.5.5
 
 ## Objetivo desta revisão
 
-Consolidar a leitura funcional da .Clara com foco no que o cliente final mais quer enxergar:
+Consolidar a leitura funcional da Clara com foco no que o cliente final mais quer enxergar:
 
 1. **quem está trabalhando agora**;
 2. **em que está trabalhando**;
@@ -22,7 +22,7 @@ As integrações com **Microsoft 365 / Outlook / Teams**, **Google Workspace / G
 - **Correlação de atividade**: diferenciar ocioso real de baixa interação local causada por reunião/call;
 - **Métricas complementares**: agregar dados de reunião, participação e uso sem armazenar conteúdo sensível.
 
-> **Importante:** a .Clara não depende das integrações para funcionar. O motor principal já pode gerar valor usando dados do agente local, heartbeat, aplicativos, navegação, timeline, status e localização (home x escritório). As integrações entram como **camada de contexto**.
+> **Importante:** a Clara não depende das integrações para funcionar. O motor principal já pode gerar valor usando dados do agente local, heartbeat, aplicativos, navegação, timeline, status e localização (home x escritório). As integrações entram como **camada de contexto**.
 
 ---
 
@@ -102,7 +102,7 @@ As integrações com **Microsoft 365 / Outlook / Teams**, **Google Workspace / G
 - Recomenda-se fortalecer ainda mais os painéis/abas de **Evidências** e **Oportunidades** dentro do detalhe da estação;
 - Onde houver prints capturados, eles devem ser acessíveis a partir daqui.
 
-**Conclusão:** é uma das telas mais importantes da .Clara.
+**Conclusão:** é uma das telas mais importantes da Clara.
 
 ---
 
@@ -267,7 +267,7 @@ Exemplos:
 
 ## Conclusão da revisão
 
-A .Clara está com a **arquitetura de telas correta** e cobre os pilares certos do produto. O principal ajuste agora não é “inventar novas telas”, mas **reforçar o valor prático**:
+A Clara está com a **arquitetura de telas correta** e cobre os pilares certos do produto. O principal ajuste agora não é “inventar novas telas”, mas **reforçar o valor prático**:
 
 - mostrar **quem está trabalhando**;
 - mostrar **no que está trabalhando**;

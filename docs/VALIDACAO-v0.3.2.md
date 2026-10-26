@@ -1,8 +1,8 @@
-# Validação estrutural - Share IT .Clara v0.3.2
+# Validação estrutural - Clara v0.3.2
 
 1. Executar apenas `PUBLICAR-CLARA.cmd`.
 2. Confirmar `/api/health/live` com versão `0.3.2` e aplicação `ok`.
-3. Confirmar `/api/health` com `banco=ok`, `nomeBanco=shareit_clara` e `migracoes=4`.
+3. Confirmar `/api/health` com `banco=ok`, `nomeBanco=clara` e `migracoes=4`.
 4. Abrir `/entrar` e autenticar com `CLARA_ADMIN_EMAIL` + `CLARA_ADMIN_SENHA` configurados no Render.
 5. O Master deve ser redirecionado para `/master/empresas`.
 6. Se o banco estiver falho/inicializando, o POST de login deve permanecer na tela de acesso com mensagem controlada, sem HTTP 500 genérico.

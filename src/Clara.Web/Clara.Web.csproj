@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <AssemblyName>Clara.Web</AssemblyName>
+    <RootNamespace>Clara.Web</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="QRCoder" />
+    <ProjectReference Include="..\Clara.Dominio\Clara.Dominio.csproj" />
+    <ProjectReference Include="..\Clara.Comum\Clara.Comum.csproj" />
+    <ProjectReference Include="..\Clara.Dados\Clara.Dados.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="../../database/demo/CRIAR-EMPRESA-DEMONSTRACAO.sql" Link="database/demo/CRIAR-EMPRESA-DEMONSTRACAO.sql" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../logs/BUILD.txt" Link="BUILD.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="Always" />
+    <Content Include="../../RELEASE.txt" Link="RELEASE.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="Always" />
+  </ItemGroup>
+</Project>

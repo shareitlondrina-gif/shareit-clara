@@ -1,11 +1,11 @@
-Share IT .Clara v0.5.6 - RELATORIO DE VALIDACAO ESTATICA
+Clara v0.5.6 - RELATORIO DE VALIDACAO ESTATICA
 
 - OK: VERSAO.txt = 0.5.6
 - OK: Directory.Build.props = 0.5.6
 - OK: logs/BUILD.txt = 0.5.6-package
-- OK: src/ShareIT.Clara.Web/Program.cs fallback 0.5.6
-- OK: src/ShareIT.Clara.Web/Controllers/PainelController.cs fallback 0.5.6
-- OK: src/ShareIT.Clara.Agente/Comunicacao/ClienteApiClara.cs fallback 0.5.6
+- OK: src/Clara.Web/Program.cs fallback 0.5.6
+- OK: src/Clara.Web/Controllers/PainelController.cs fallback 0.5.6
+- OK: src/Clara.Agente/Comunicacao/ClienteApiClara.cs fallback 0.5.6
 - OK: 7 migrations (['0001_base_operacional.sql', '0002_indices_dashboard.sql', '0003_contexto_inventario_integracoes.sql', '0004_multiempresa_perfis_acesso.sql', '0005_inteligencia_configuracoes_demonstracao.sql', '0006_distribuicao_navegacao_saas.sql', '0007_evidencias_visuais_demonstracao.sql'])
 - OK: migration 0001 immutable (ed572fe355fb)
 - OK: migration 0002 immutable (92c622cff008)
@@ -42,10 +42,10 @@ Share IT .Clara v0.5.6 - RELATORIO DE VALIDACAO ESTATICA
 - OK: ConfiguracaoPublicacao.exemplo.xml valid XML
 - OK: SegredosClara.local.exemplo.xml valid XML
 - OK: Docker uses absolute installer paths
-- OK: src/ShareIT.Clara.Web/Servicos/ServicoRelogioDemonstracao.cs brace balance ({=8 }=8)
-- OK: src/ShareIT.Clara.Dados/Repositorios/RepositorioInteligencia.cs brace balance ({=79 }=79)
-- OK: src/ShareIT.Clara.Dominio/Contratos/InteligenciaGerencial.cs brace balance ({=0 }=0)
-- OK: src/ShareIT.Clara.Web/Controllers/PainelController.cs brace balance ({=56 }=56)
+- OK: src/Clara.Web/Servicos/ServicoRelogioDemonstracao.cs brace balance ({=8 }=8)
+- OK: src/Clara.Dados/Repositorios/RepositorioInteligencia.cs brace balance ({=79 }=79)
+- OK: src/Clara.Dominio/Contratos/InteligenciaGerencial.cs brace balance ({=0 }=0)
+- OK: src/Clara.Web/Controllers/PainelController.cs brace balance ({=56 }=56)
 
 Resultado: APROVADO NA VALIDACAO ESTATICA.
 Observacao: o ambiente de geracao nao possui .NET SDK 10; build/teste definitivo deve ser executado pelo PUBLICAR-CLARA.cmd no Windows/Render.

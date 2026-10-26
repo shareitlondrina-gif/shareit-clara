@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ConfiguracaoPublicacao>
-  <RepositorioGitHub>https://github.com/shareitlondrina-gif/shareit-clara.git</RepositorioGitHub>
+  <RepositorioGitHub></RepositorioGitHub>
   <Branch>main</Branch>
   <PublicacaoAutomatica>true</PublicacaoAutomatica>
   <ExecutarGitPush>true</ExecutarGitPush>
@@ -8,8 +8,8 @@
   <UsarDeployHookComoFallback>true</UsarDeployHookComoFallback>
   <SolicitarDeployHookSeAusente>true</SolicitarDeployHookSeAusente>
   <SegundosAntesDeployHookFallback>90</SegundosAntesDeployHookFallback>
-  <UrlSistema>https://shareit-clara.onrender.com</UrlSistema>
-  <UrlHealth>https://shareit-clara.onrender.com/api/health</UrlHealth>
+  <UrlSistema></UrlSistema>
+  <UrlHealth></UrlHealth>
   <AbrirNavegadorAposPublicacao>true</AbrirNavegadorAposPublicacao>
   <TempoMaximoDeployMinutos>12</TempoMaximoDeployMinutos>
   <ObrigarAtualizacaoAgente>false</ObrigarAtualizacaoAgente>

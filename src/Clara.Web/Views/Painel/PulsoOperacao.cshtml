@@ -1,0 +1,74 @@
+@* Clara | Programador: Paulo Andrade | Origem: ViewModel/Controller | Destino: interface web | Boas práticas: saída codificada, sem segredos e ações protegidas. *@
+@model PainelPulsoOperacao
+@{
+    ViewData["Title"]="Pulso da Operação";
+    var dias=(int)(ViewBag.Dias ?? 7);
+    var custos=ViewBag.CustosSoftware as IReadOnlyCollection<CustoSoftwareResumo> ?? Array.Empty<CustoSoftwareResumo>();
+    var ia=ViewBag.AdocaoIa as ResumoAdocaoIa ?? new ResumoAdocaoIa(0,0,0,Array.Empty<string>());
+    var capacidade=ViewBag.Capacidade as ResumoCapacidadeOperacional ?? new ResumoCapacidadeOperacional(0,0,0,Array.Empty<ItemCapacidadeOperacional>());
+    var repetitivos=ViewBag.PadroesRepetitivos as ResumoPadroesRepetitivos ?? new ResumoPadroesRepetitivos(0,Array.Empty<PadraoRepetitivoOperacional>());
+    string Classe(string s)=>s=="Boa"?"selo-ok":s=="Prioridade"?"selo-critico":s=="Observar"?"selo-atencao":"selo-info";
+}
+<section class="cabecalho-pagina cabecalho-clara">
+  <div><span class="sobrelinha">GESTÃO EXECUTIVA</span><h1>Pulso da Operação</h1><p>Uma leitura rápida de como a operação está se comportando. A Clara apresenta fatos e tendências; o gestor interpreta o contexto.</p></div>
+  <div class="filtro-periodo"><a class="@(dias==1?"ativo":"")" href="/pulso-operacao?dias=1">Hoje</a><a class="@(dias==7?"ativo":"")" href="/pulso-operacao?dias=7">7 dias</a><a class="@(dias==30?"ativo":"")" href="/pulso-operacao?dias=30">30 dias</a><a class="@(dias==90?"ativo":"")" href="/pulso-operacao?dias=90">90 dias</a></div>
+</section>
+
+<section class="painel pulso-destaque">
+  <div class="pulso-indice"><span>Pulso da Operação</span><strong>@Model.Indice<span>/100</span></strong><small>Confiança dos dados: @Model.Confianca</small></div>
+  <div class="pulso-explicacao"><strong>Como ler</strong><p>Índice composto por produtividade observada, disponibilidade das estações, ociosidade, não produtividade e prioridades abertas. Não é nota individual de colaborador.</p></div>
+</section>
+
+<section class="grade-pulso-indicadores">
+@foreach(var i in Model.Indicadores){
+  <article class="painel mini-pulso"><div><span>@i.Titulo</span><strong>@i.Valor</strong><small>@i.Tendencia</small></div><span class="selo @Classe(i.Situacao)">@i.Situacao</span><p>@i.Explicacao</p></article>
+}
+</section>
+
+<section class="grade-pulso-colunas">
+  <article class="painel"><div class="titulo-painel"><div><span class="sobrelinha">POSITIVOS</span><h2>O que está saudável</h2></div></div>@if(Model.PontosPositivos.Count==0){<div class="estado-vazio"><span>Ainda não há sinal positivo suficiente para destacar.</span></div>}else{<ul class="lista-executiva positiva">@foreach(var x in Model.PontosPositivos){<li>@x</li>}</ul>}</article>
+  <article class="painel"><div class="titulo-painel"><div><span class="sobrelinha">OBSERVAR</span><h2>Pontos para acompanhar</h2></div></div>@if(Model.PontosObservacao.Count==0){<div class="estado-vazio"><span>Nenhum ponto relevante de observação no período.</span></div>}else{<ul class="lista-executiva observacao">@foreach(var x in Model.PontosObservacao){<li>@x</li>}</ul>}</article>
+  <article class="painel"><div class="titulo-painel"><div><span class="sobrelinha">PRIORIDADES</span><h2>Onde agir primeiro</h2></div></div>@if(Model.Prioridades.Count==0){<div class="estado-vazio"><span>Nenhuma prioridade alta aberta.</span></div>}else{<ul class="lista-executiva prioridade">@foreach(var x in Model.Prioridades){<li>@x</li>}</ul>}</article>
+</section>
+
+<section class="painel">
+  <div class="titulo-painel"><div><span class="sobrelinha">PRÓXIMAS AÇÕES</span><h2>Ações sugeridas para a gestão</h2><p>Sugestões de investigação e organização; nunca decisões disciplinares automáticas.</p></div></div>
+  <ol class="lista-acoes-pulso">@foreach(var x in Model.AcoesSugeridas){<li>@x</li>}</ol>
+</section>
+
+
+
+<section class="grade-pulso-colunas grade-pulso-gestao">
+  <article class="painel">
+    <div class="titulo-painel"><div><span class="sobrelinha">CAPACIDADE</span><h2>Equilíbrio da carga observada</h2><p>Compara atividade engajada média com a carga diária de referência. É contexto gerencial, não controle de ponto.</p></div></div>
+    <div class="cards-capacidade"><span><strong>@capacidade.Subutilizados</strong><small>subutilizado(s)</small></span><span><strong>@capacidade.Equilibrados</strong><small>equilibrado(s)</small></span><span><strong>@capacidade.Sobrecarregados</strong><small>sobrecarregado(s)</small></span></div>
+    @if(capacidade.Itens.Count>0){<ul class="lista-executiva observacao">@foreach(var x in capacidade.Itens.Where(x=>x.Situacao!="Equilibrado").Take(5)){<li><strong>@(x.Pessoa ?? x.Hostname)</strong> · @x.Situacao · @x.PercentualCarga% da carga de referência observada no período.</li>}</ul>}
+  </article>
+  <article class="painel">
+    <div class="titulo-painel"><div><span class="sobrelinha">AUTOMAÇÃO</span><h2>Padrões repetitivos digitais</h2><p>A Clara sinaliza repetição observável; o gestor decide se o processo realmente é automatizável.</p></div></div>
+    @if(repetitivos.Itens.Count==0){<div class="estado-vazio"><span>Nenhum padrão repetitivo forte foi identificado no período.</span></div>}else{<ul class="lista-executiva observacao">@foreach(var x in repetitivos.Itens.Take(5)){<li><strong>@(x.Pessoa ?? "Usuário") — @x.Processo</strong>: @x.MediaSegmentosPorDia segmentos/dia. @x.Leitura</li>}</ul>}
+  </article>
+</section>
+
+<section class="grade-pulso-colunas grade-pulso-gestao">
+  <article class="painel">
+    <div class="titulo-painel"><div><span class="sobrelinha">TECNOLOGIA</span><h2>Utilização de licenças</h2><p>Estimativa baseada em uso observado, nunca cancelamento automático.</p></div></div>
+    @if(custos.Count==0){<div class="estado-vazio"><span>Cadastre custos/licenças em Configurações para habilitar esta leitura.</span></div>}
+    else{<ul class="lista-executiva observacao">@foreach(var c in custos.Where(x=>x.Ativo).OrderByDescending(x=>x.CustoPotencialSubutilizado).Take(5)){<li><strong>@c.ProcessoOuProduto</strong>: @c.UsuariosObservados30Dias usuário(s) observado(s) / @c.QuantidadeLicencas licença(s) · possível revisão de até @c.CustoPotencialSubutilizado.ToString("C")/mês.</li>}</ul>}
+  </article>
+  <article class="painel">
+    <div class="titulo-painel"><div><span class="sobrelinha">ADOÇÃO DIGITAL</span><h2>Uso de ferramentas de IA</h2><p>Somente presença da ferramenta/domínio e duração; prompts e conteúdo não são lidos.</p></div></div>
+    <div class="pulso-ia-resumo"><strong>@ia.PessoasComUso</strong><span>pessoa(s) com uso observado</span><small>@ia.EstacoesComUso estação(ões) · @(ia.Ferramentas.Count>0?string.Join(", ",ia.Ferramentas):"sem uso reconhecido")</small></div>
+  </article>
+  <article class="painel">
+    <div class="titulo-painel"><div><span class="sobrelinha">RESUMO AUTOMÁTICO</span><h2>Ontem em 60 segundos</h2><p>Use Relatórios para agendar o resumo executivo diário, semanal ou mensal por e-mail.</p></div><a class="botao-secundario" href="/relatorios">Configurar envio</a></div>
+    <p class="nota-privacidade">O destinatário pode receber o resumo sem precisar acessar a plataforma, conforme os e-mails autorizados pelo cliente.</p>
+  </article>
+</section>
+
+@if(Model.ContextoTiDisponivel){
+<section class="painel painel-contexto-ti-pulso">
+  <div class="titulo-painel"><div><span class="sobrelinha">CONTEXTO TÉCNICO OPCIONAL</span><h2>Clara VISÃO contratado e conectado</h2><p>@Model.ResumoContextoTi</p></div><a class="botao-secundario" href="/contexto-ti?dias=@dias">Abrir Contexto TI</a></div>
+  <p class="nota-privacidade">A Clara utiliza esse contexto apenas quando o cliente também contratou e ativou a integração com o VISÃO. Clientes sem o serviço de TI continuam usando a Clara normalmente, sem este bloco.</p>
+</section>
+}

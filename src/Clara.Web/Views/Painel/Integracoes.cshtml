@@ -1,0 +1,22 @@
+@* Clara | Programador: Paulo Andrade | Origem: ViewModel/Controller | Destino: interface web | Boas práticas: saída codificada, sem segredos e ações protegidas. *@
+@model PainelIntegracoes
+@{
+    ViewData["Title"] = "Integrações";
+}
+<section class="cabecalho-pagina">
+    <div><span class="sobrelinha">CONTEXTO CORPORATIVO</span><h1>Integrações</h1><p>Agenda, reuniões e métricas de uso de e-mail serão correlacionadas com a atividade local sem armazenar o corpo das mensagens.</p></div>
+</section>
+<section class="grade-integracoes">
+@foreach (var item in Model.Integracoes)
+{
+    <article class="painel card-integracao">
+        <div class="icone-integracao">@(item.Provedor == "Microsoft" ? "M" : item.Provedor == "Google" ? "G" : "Z")</div>
+        <div><span class="sobrelinha">@item.Provedor</span><h2>@item.NomeExibicao</h2>
+            <p>@(item.Provedor == "Microsoft" ? "Outlook Calendar, Teams, reuniões e métricas de e-mail." : item.Provedor == "Google" ? "Calendar, Meet e métricas de uso do Gmail." : "Reuniões, presença e duração quando a licença permitir.")</p>
+        </div>
+        <span class="selo selo-info">@item.Status</span>
+        <small>Para ativar a sincronização é necessário cadastrar as credenciais/consentimento administrativo do tenant. Segredos não serão gravados nesta tabela.</small>
+    </article>
+}
+</section>
+<section class="nota-evidencias"><span>i</span><div><strong>Estrutura preparada na v0.4.0</strong><p>Agenda, participação em reunião e métricas agregadas de e-mail já têm base estrutural no produto. Os conectores reais de Microsoft, Google e Zoom continuam pendentes de credenciais de aplicativo, consentimento administrativo e homologação de cada provedor.</p></div></section>

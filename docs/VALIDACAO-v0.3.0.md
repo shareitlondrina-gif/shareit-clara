@@ -1,9 +1,9 @@
-# Validação estrutural - Share IT .Clara v0.3.0
+# Validação estrutural - Clara v0.3.0
 
 Pontos esperados para homologação no Windows/Render:
 
 1. `PUBLICAR-CLARA.cmd` compila e testa a solução;
-2. health online retorna versão `0.3.0`, banco `shareit_clara` e 4 migrations;
+2. health online retorna versão `0.3.0`, banco `clara` e 4 migrations;
 3. logout/login do usuário inicial passa a exibir perfil Master;
 4. `/master/empresas` permite criar um novo tenant e administrador;
 5. login do administrador criado acessa apenas seu tenant;

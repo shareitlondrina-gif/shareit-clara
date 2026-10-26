@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>Clara.NavegadorHost</AssemblyName>
+    <RootNamespace>Clara.NavegadorHost</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Clara.Dominio\Clara.Dominio.csproj" />
+  </ItemGroup>
+</Project>

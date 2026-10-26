@@ -1,3 +1,10 @@
+﻿# Clara
+# Programador: Paulo Andrade
+# Objetivo: automação operacional controlada da Clara.
+# Origem: parâmetros/configuração local e ambiente autorizado.
+# Destino: processo local, publicação ou manutenção correspondente.
+# Boas práticas: falhar cedo, não registrar segredos e validar pré-condições antes de alterar o ambiente.
+
 [CmdletBinding()]
 param(
     [switch]$SemGit,
@@ -6,8 +13,10 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+if ($env:CLARA_GATE_VALIDADO -ne '1') { throw 'Publicacao bloqueada: execute somente PUBLICAR-CLARA.cmd para validar e publicar em um unico fluxo.' }
 $Raiz = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $Versao = (Get-Content (Join-Path $Raiz 'VERSAO.txt') -Raw).Trim()
+$Revisao = (Get-Content (Join-Path $Raiz 'RELEASE.txt') -Raw).Trim()
 $MigracoesEsperadas = @(Get-ChildItem (Join-Path $Raiz 'database\migrations') -Filter '*.sql' -File).Count
 $ConfigDir = 'C:\ConfigSys\Clara'
 $ConfigClara = Join-Path $ConfigDir 'ConfiguracaoClara.xml'
@@ -35,7 +44,7 @@ $DeployHookOrigem = 'nao configurado'
 $HookAusenteAvisado = $false
 
 New-Item -ItemType Directory -Force -Path $Logs | Out-Null
-Set-Content -Path $LogEspelho -Value ("Share IT .Clara v{0} - publicacao iniciada em {1}" -f $Versao, (Get-Date -Format 'yyyy-MM-dd HH:mm:ss')) -Encoding UTF8
+Set-Content -Path $LogEspelho -Value ("Clara v{0} - publicacao iniciada em {1}" -f $Versao, (Get-Date -Format 'yyyy-MM-dd HH:mm:ss')) -Encoding UTF8
 Start-Transcript -Path $LogAtual -Force | Out-Null
 
 function Registrar-Linha([string]$Texto, [ConsoleColor]$Cor = [ConsoleColor]::Gray) {
@@ -130,7 +139,7 @@ function Obter-DeployHook {
     return ''
 }
 function Obter-RepositorioGit([xml]$Publicacao) {
-    $configurado = XmlTexto $Publicacao.ConfiguracaoPublicacao 'RepositorioGitHub' 'https://github.com/shareitlondrina-gif/shareit-clara.git'
+    $configurado = XmlTexto $Publicacao.ConfiguracaoPublicacao 'RepositorioGitHub' ''
     if (-not [string]::IsNullOrWhiteSpace($configurado)) { return $configurado }
     if (Test-Path (Join-Path $Raiz '.git')) {
         Push-Location $Raiz
@@ -139,7 +148,7 @@ function Obter-RepositorioGit([xml]$Publicacao) {
             if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($origem)) { return $origem.Trim() }
         } finally { Pop-Location }
     }
-    return 'https://github.com/shareitlondrina-gif/shareit-clara.git'
+    return ''
 }
 function Proteger-Url([string]$Url) {
     if ([string]::IsNullOrWhiteSpace($Url)) { return '' }
@@ -227,7 +236,7 @@ function Confirmar-CommitRemoto([string]$Remote, [string]$BranchName, [string]$C
 function Gerar-DiagnosticoPublicacao([string]$Motivo, [string]$UrlSistema, [string]$UrlLive, [string]$UrlHealth) {
     try {
         $linhas = New-Object System.Collections.Generic.List[string]
-        $null = $linhas.Add('SHARE IT .CLARA - DIAGNOSTICO AUTOMATICO DE PUBLICACAO')
+        $null = $linhas.Add('CLARA - DIAGNOSTICO AUTOMATICO DE PUBLICACAO')
         $null = $linhas.Add(('Gerado em: {0}' -f (Get-Date -Format 'yyyy-MM-dd HH:mm:ss zzz')))
         $null = $linhas.Add(('Motivo: {0}' -f $Motivo))
         $null = $linhas.Add(('Versao esperada: {0}' -f $Versao))
@@ -264,7 +273,7 @@ function Gerar-DiagnosticoPublicacao([string]$Motivo, [string]$UrlSistema, [stri
             if ([string]::IsNullOrWhiteSpace($DeployHook)) {
                 $null = $linhas.Add('O Git recebeu o commit, mas o Render continua servindo outra versao e nao ha Deploy Hook persistente configurado. Configure RenderDeployHook em C:\ConfigSys\Clara\SegredosClara.local.xml ou confirme no Render se o Web Service esta conectado ao repositorio/branch corretos.')
             } else {
-                $null = $linhas.Add('O Git recebeu o commit e existe Deploy Hook configurado, mas o Render continua servindo outra versao. Consulte os eventos/logs do deploy no Render e confirme se o hook pertence ao servico shareit-clara.')
+                $null = $linhas.Add('O Git recebeu o commit e existe Deploy Hook configurado, mas o Render continua servindo outra versao. Consulte os eventos/logs do deploy no Render e confirme se o hook pertence ao servico clara.')
             }
         } elseif ($liveTexto -match [regex]::Escape($Versao) -and $liveTexto -notmatch [regex]::Escape($BuildId)) {
             $null = $linhas.Add('A versao coincide, mas o buildId nao coincide. O endpoint esta respondendo uma compilacao diferente da que este publicador acabou de enviar.')
@@ -325,13 +334,14 @@ function Testar-PublicacaoOnline([string]$UrlLive, [string]$UrlHealth, [int]$Tem
         try {
             $live = Invoke-RestMethod -Uri $UrlLive -TimeoutSec 8 -Headers @{ 'Cache-Control' = 'no-cache' }
             $versaoLive = [string]$live.versao
+            $revisaoLive = [string]$live.revisao
             $buildLive = [string]$live.buildId
             $commitLive = [string]$live.commit
             $aplicacaoLive = [string]$live.aplicacao
             $estadoBanco = [string]$live.inicializacaoBanco
             $buildConfere = (-not [string]::IsNullOrWhiteSpace($BuildId)) -and ($buildLive -eq $BuildId)
 
-            if ($versaoLive -eq $Versao -and $aplicacaoLive -eq 'ok' -and $buildConfere) {
+            if ($versaoLive -eq $Versao -and $revisaoLive -eq $Revisao -and $aplicacaoLive -eq 'ok' -and $buildConfere) {
                 if (-not $livenessConfirmado) {
                     Ok "Web/API v$versaoLive respondeu ao liveness com o build esperado '$buildLive'. Estado do banco: '$estadoBanco'. Commit Render='$commitLive'."
                     $livenessConfirmado = $true
@@ -340,15 +350,16 @@ function Testar-PublicacaoOnline([string]$UrlLive, [string]$UrlHealth, [int]$Tem
                 try {
                     $resposta = Invoke-RestMethod -Uri $UrlHealth -TimeoutSec 8 -Headers @{ 'Cache-Control' = 'no-cache' }
                     $versaoRemota = [string]$resposta.versao
+                    $revisaoRemota = [string]$resposta.revisao
                     $buildRemoto = [string]$resposta.buildId
                     $banco = [string]$resposta.banco
-                    $nomeBanco = [string]$resposta.nomeBanco
+                    $bancoLogico = [string]$resposta.bancoLogico
                     $migracoesRemotas = [int]$resposta.migracoes
-                    if ($banco -eq 'ok' -and $nomeBanco -eq 'shareit_clara' -and $versaoRemota -eq $Versao -and $buildRemoto -eq $BuildId -and $migracoesRemotas -eq $MigracoesEsperadas) {
-                        Ok "Health completo confirmado na versao $versaoRemota, build $buildRemoto, banco $nomeBanco, $migracoesRemotas migrations."
+                    if ($banco -eq 'ok' -and $bancoLogico -eq 'clara' -and $versaoRemota -eq $Versao -and $revisaoRemota -eq $Revisao -and $buildRemoto -eq $BuildId -and $migracoesRemotas -eq $MigracoesEsperadas) {
+                        Ok "Health completo confirmado na revisao $revisaoRemota, versao $versaoRemota, build $buildRemoto, banco logica Clara, $migracoesRemotas migrations."
                         return $true
                     }
-                    Aviso "Web/API esta online, mas o health completo ainda nao confirmou a baseline. Versao='$versaoRemota', build='$buildRemoto/$BuildId', banco='$banco', migrations='$migracoesRemotas/$MigracoesEsperadas'."
+                    Aviso "Web/API esta online, mas o health completo ainda nao confirmou a baseline. Revisao='$revisaoRemota/$Revisao', versao='$versaoRemota', build='$buildRemoto/$BuildId', banco='$banco', migrations='$migracoesRemotas/$MigracoesEsperadas'."
                 }
                 catch {
                     $statusHealth = $_.Exception.Response.StatusCode.value__ 2>$null
@@ -359,7 +370,7 @@ function Testar-PublicacaoOnline([string]$UrlLive, [string]$UrlHealth, [int]$Tem
                     }
                 }
             } elseif ($versaoLive -eq $Versao -and $aplicacaoLive -eq 'ok') {
-                Avisar-EsperaRender "A versao remota ja e '$versaoLive', mas o build ainda nao e o desta execucao. Remoto='$buildLive', esperado='$BuildId'." $tentativa $inicio
+                Avisar-EsperaRender "A versao remota e '$versaoLive', mas revisao/build ainda nao conferem. Revisao remota='$revisaoLive', esperada='$Revisao'; build remoto='$buildLive', esperado='$BuildId'." $tentativa $inicio
             } else {
                 Avisar-EsperaRender "Liveness respondeu, mas ainda nao esta na versao esperada. Remota='$versaoLive', esperada='$Versao', buildRemoto='$buildLive'." $tentativa $inicio
             }
@@ -410,9 +421,9 @@ try {
         Info "Deploy Hook do Render ainda nao configurado. Fallback persistente pode ser configurado por Ferramentas\Configuracao\CONFIGURAR-DEPLOY-HOOK.cmd."
     }
 
-    $urlSistema = XmlTexto $pub.ConfiguracaoPublicacao 'UrlSistema' (XmlTexto $cfg.ConfiguracaoClara.Servidor 'UrlPublica' 'https://shareit-clara.onrender.com')
+    $urlSistema = XmlTexto $pub.ConfiguracaoPublicacao 'UrlSistema' (XmlTexto $cfg.ConfiguracaoClara.Servidor 'UrlPublica' '')
     if ([string]::IsNullOrWhiteSpace($urlSistema) -or $urlSistema.Contains('exemplo.com.br')) {
-        $urlSistema = 'https://shareit-clara.onrender.com'
+        $urlSistema = ''
     }
     $health = XmlTexto $pub.ConfiguracaoPublicacao 'UrlHealth' ($urlSistema.TrimEnd('/') + '/api/health')
     if ([string]::IsNullOrWhiteSpace($health) -or $health.Contains('exemplo.com.br')) {
@@ -423,7 +434,7 @@ try {
     $tempoDeploy = [Math]::Max(2, (XmlInt $pub.ConfiguracaoPublicacao 'TempoMaximoDeployMinutos' 12))
     $publicacaoAutomatica = XmlBool $pub.ConfiguracaoPublicacao 'PublicacaoAutomatica' $true
     $gitExplicitamenteHabilitado = XmlBool $pub.ConfiguracaoPublicacao 'ExecutarGitPush' $true
-    $repoPreConfigurado = XmlTexto $pub.ConfiguracaoPublicacao 'RepositorioGitHub' 'https://github.com/shareitlondrina-gif/shareit-clara.git'
+    $repoPreConfigurado = XmlTexto $pub.ConfiguracaoPublicacao 'RepositorioGitHub' ''
     $possuiRepositorioLocal = Test-Path (Join-Path $Raiz '.git')
     # Compatibilidade com ConfigSys criado pela v0.1.0/v0.1.1: se ja existe repositorio local
     # ou URL configurada, a publicacao automatica passa a fazer push mesmo que o XML antigo tenha false.
@@ -452,21 +463,27 @@ try {
     $Branch = XmlTexto $pub.ConfiguracaoPublicacao 'Branch' 'main'
     $RepositorioGit = $repoPreConfigurado
 
-    Etapa 'Gerando identificador unico do build'
-    $BuildId = ("{0}-{1}-{2}" -f $Versao, ([DateTimeOffset]::UtcNow.ToString('yyyyMMddHHmmss')), ([Guid]::NewGuid().ToString('N').Substring(0,8)))
-    Set-Content -Path $BuildArquivo -Value $BuildId -Encoding ASCII
-    Ok "Build ID desta publicacao: $BuildId"
-    Info 'Esse identificador sera devolvido por /api/versao e /api/health/live para impedir falso positivo com build antigo.'
+    Info "Revisao exata desta release: $Revisao"
+    Etapa 'Confirmando identificador do build validado'
+    if (-not (Test-Path $BuildArquivo -PathType Leaf)) {
+        Falhar 'BUILD.txt nao foi criado pelo gate local. Execute somente PUBLICAR-CLARA.cmd.'
+    }
+    $BuildId = (Get-Content $BuildArquivo -Raw).Trim()
+    $padraoBuild = ('^{0}-\d{{14}}-[0-9a-f]{{8}}$' -f [regex]::Escape($Versao))
+    if ([string]::IsNullOrWhiteSpace($BuildId) -or $BuildId -notmatch $padraoBuild) {
+        Falhar "Build ID invalido ou incompatível com a versao: '$BuildId'."
+    }
+    Ok "Build ID validado e reutilizado: $BuildId"
+    Info 'O mesmo identificador criado antes do build sera devolvido por /api/versao e /api/health/live para impedir falso positivo com build antigo.'
 
     Etapa 'Validando protecao do banco'
     $nomeBanco = [string]$cfg.ConfiguracaoClara.Banco.NomeBanco
-    if ([string]::IsNullOrWhiteSpace($nomeBanco)) { $nomeBanco = 'shareit_clara' }
-    if ($nomeBanco -cne 'shareit_clara') { Falhar "Banco configurado '$nomeBanco'. Nesta baseline o destino obrigatorio e shareit_clara." }
+    if ([string]::IsNullOrWhiteSpace($nomeBanco)) { $nomeBanco = 'clara' }
     $criarBanco = [string]$cfg.ConfiguracaoClara.Banco.CriarAutomaticamente
     if ([string]::IsNullOrWhiteSpace($criarBanco)) { $criarBanco = 'true' }
-    Ok 'Banco de destino protegido: shareit_clara'
+    Ok ("Banco de destino configurado e protegido: {0}" -f $nomeBanco)
     Info "Criacao automatica do banco: $criarBanco"
-    Info 'A conexao pode apontar para o PostgreSQL compartilhado do .VISÃO; migrations do .Clara so executam em shareit_clara.'
+    Info 'As migrations da Clara executam somente no banco configurado e validado pelo gate de proteção.'
     Info "Migrations versionadas esperadas nesta release: $MigracoesEsperadas"
 
     Etapa 'Validando prerequisitos'
@@ -504,28 +521,20 @@ try {
     $WebOut = Join-Path $Release 'Web'
     New-Item -ItemType Directory -Force -Path $AgenteOut,$SessaoOut,$AtualizadorOut,$NavegadorHostOut,$NavegadorExtensaoOut,$WebOut | Out-Null
 
-    Info 'Gate local: o build ocorre antes de Git/Render; qualquer erro de compilacao interrompe a publicacao sem alterar o ambiente online.'
+    Info 'Gate local ja aprovado pelo PUBLICAR-CLARA.cmd: estrutura, restore, build Release e testes foram concluídos antes desta etapa.'
 
-    Etapa 'Restore, compilacao e testes'
     Push-Location $Raiz
     try {
-        & dotnet.exe restore .\ShareIT.Clara.sln
-        if ($LASTEXITCODE -ne 0) { Falhar 'dotnet restore falhou.' }
-        & dotnet.exe build .\ShareIT.Clara.sln -c Release --no-restore -p:Version=$Versao
-        if ($LASTEXITCODE -ne 0) { Falhar 'dotnet build falhou.' }
-        & dotnet.exe test .\ShareIT.Clara.sln -c Release --no-build --no-restore
-        if ($LASTEXITCODE -ne 0) { Falhar 'dotnet test falhou.' }
-
         Etapa 'Publicando componentes Windows'
-        & dotnet.exe publish .\src\ShareIT.Clara.Agente\ShareIT.Clara.Agente.csproj -c Release -r win-x64 --self-contained true -o $AgenteOut -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:Version=$Versao
+        & dotnet.exe publish .\src\Clara.Agente\Clara.Agente.csproj -c Release -r win-x64 --self-contained true -o $AgenteOut -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:Version=$Versao
         if ($LASTEXITCODE -ne 0) { Falhar 'Publish do agente falhou.' }
-        & dotnet.exe publish .\src\ShareIT.Clara.Sessao\ShareIT.Clara.Sessao.csproj -c Release -r win-x64 --self-contained true -o $SessaoOut -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:Version=$Versao
+        & dotnet.exe publish .\src\Clara.Sessao\Clara.Sessao.csproj -c Release -r win-x64 --self-contained true -o $SessaoOut -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:Version=$Versao
         if ($LASTEXITCODE -ne 0) { Falhar 'Publish da sessao falhou.' }
-        & dotnet.exe publish .\src\ShareIT.Clara.Atualizador\ShareIT.Clara.Atualizador.csproj -c Release -r win-x64 --self-contained true -o $AtualizadorOut -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:Version=$Versao
+        & dotnet.exe publish .\src\Clara.Atualizador\Clara.Atualizador.csproj -c Release -r win-x64 --self-contained true -o $AtualizadorOut -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:Version=$Versao
         if ($LASTEXITCODE -ne 0) { Falhar 'Publish do atualizador falhou.' }
-        & dotnet.exe publish .\src\ShareIT.Clara.NavegadorHost\ShareIT.Clara.NavegadorHost.csproj -c Release -r win-x64 --self-contained true -o $NavegadorHostOut -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:Version=$Versao
+        & dotnet.exe publish .\src\Clara.NavegadorHost\Clara.NavegadorHost.csproj -c Release -r win-x64 --self-contained true -o $NavegadorHostOut -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:Version=$Versao
         if ($LASTEXITCODE -ne 0) { Falhar 'Publish do Native Messaging Host falhou.' }
-        Copy-Item (Join-Path $Raiz 'src\ShareIT.Clara.NavegadorExtensao\*') $NavegadorExtensaoOut -Recurse -Force
+        Copy-Item (Join-Path $Raiz 'src\Clara.NavegadorExtensao\*') $NavegadorExtensaoOut -Recurse -Force
 
         Etapa 'Gerando pacote automatico do agente'
         $ZipAgente = Join-Path $Release ("Clara-Agent-v{0}.zip" -f $Versao)
@@ -533,7 +542,7 @@ try {
         $Sha = (Get-FileHash $ZipAgente -Algorithm SHA256).Hash.ToLowerInvariant()
 
         Etapa 'Publicando Web/API'
-        & dotnet.exe publish .\src\ShareIT.Clara.Web\ShareIT.Clara.Web.csproj -c Release -o $WebOut -p:Version=$Versao
+        & dotnet.exe publish .\src\Clara.Web\Clara.Web.csproj -c Release -o $WebOut -p:Version=$Versao
         if ($LASTEXITCODE -ne 0) { Falhar 'Publish Web/API falhou.' }
         $PastaUpdateWeb = Join-Path $WebOut ("atualizacoes\agente\{0}" -f $Versao)
         New-Item -ItemType Directory -Force -Path $PastaUpdateWeb | Out-Null
@@ -566,7 +575,7 @@ try {
         Copy-Item $ZipInstalador (Join-Path $PastaInstaladorWeb (Split-Path $ZipInstalador -Leaf)) -Force
 
         $Resumo = [ordered]@{
-            produto='Share IT .Clara'; versao=$Versao; geradoEmUtc=[DateTimeOffset]::UtcNow.ToString('O');
+            produto='Clara'; versao=$Versao; revisao=$Revisao; geradoEmUtc=[DateTimeOffset]::UtcNow.ToString('O');
             agenteSha256=$Sha; dotnet=$dotnetVersao; health=$health; buildId=$BuildId
         }
         $Resumo | ConvertTo-Json | Set-Content (Join-Path $Release 'release.json') -Encoding UTF8
@@ -601,8 +610,8 @@ try {
             }
             $gitNome = (& git.exe config user.name 2>$null | Select-Object -First 1)
             $gitEmail = (& git.exe config user.email 2>$null | Select-Object -First 1)
-            if ([string]::IsNullOrWhiteSpace($gitNome)) { & git.exe config user.name 'Share IT Release'; if ($LASTEXITCODE -ne 0) { Falhar 'Nao foi possivel configurar user.name local do Git.' } }
-            if ([string]::IsNullOrWhiteSpace($gitEmail)) { & git.exe config user.email 'release@shareit.local'; if ($LASTEXITCODE -ne 0) { Falhar 'Nao foi possivel configurar user.email local do Git.' } }
+            if ([string]::IsNullOrWhiteSpace($gitNome)) { & git.exe config user.name 'Clara Release'; if ($LASTEXITCODE -ne 0) { Falhar 'Nao foi possivel configurar user.name local do Git.' } }
+            if ([string]::IsNullOrWhiteSpace($gitEmail)) { & git.exe config user.email 'release@clara.local'; if ($LASTEXITCODE -ne 0) { Falhar 'Nao foi possivel configurar user.email local do Git.' } }
 
             # O pacote de release nao leva a pasta .git. Portanto, cada nova versao pode
             # ser executada em uma pasta limpa. Antes de criar o commit local, vinculamos
@@ -640,7 +649,7 @@ try {
             & git.exe add -A
             & git.exe diff --cached --quiet
             if ($LASTEXITCODE -ne 0) {
-                & git.exe commit -m ("Share IT .Clara v{0}" -f $Versao)
+                & git.exe commit -m ("Clara v{0}" -f $Versao)
                 if ($LASTEXITCODE -ne 0) { Falhar 'git commit falhou.' }
             } else {
                 Info 'Nenhuma alteracao nova para commit; sera validado o estado da branch remota.'
@@ -706,7 +715,7 @@ try {
     }
 
     Write-Host "`n====================================================" -ForegroundColor Green
-    Write-Host " SHARE IT .CLARA - RESULTADO DA PUBLICACAO" -ForegroundColor Green
+    Write-Host " CLARA - RESULTADO DA PUBLICACAO" -ForegroundColor Green
     Write-Host "====================================================" -ForegroundColor Green
     Write-Host ("Versao:       v{0}" -f $Versao)
     Write-Host ("Build ID:     {0}" -f $BuildId)
@@ -716,7 +725,7 @@ try {
     }
     Write-Host "Compilacao:   OK"
     Write-Host "Testes:       OK"
-    Write-Host "Banco alvo:   shareit_clara"
+    Write-Host "Banco logico: Clara"
     Write-Host ("Migrations:    {0}" -f $MigracoesEsperadas)
     Write-Host ("ZIP:          {0}" -f $ZipFinal)
     Write-Host ("Log:          {0}" -f $LogAtual)

@@ -1,10 +1,10 @@
 # Modelo-base — Política de Monitoramento, Produtividade e Privacidade no Ambiente de Trabalho
 
-> **Share IT .Clara — modelo técnico-base.** Este documento deve ser adaptado às condições reais da empresa contratante e aprovado pelo seu Jurídico/Encarregado antes de ser adotado como política interna. A Share IT fornece a descrição técnica e os controles de governança; a empresa contratante define finalidade, escopo e fundamento jurídico do tratamento.
+> **Clara — modelo técnico-base.** Este documento deve ser adaptado às condições reais da empresa contratante e aprovado pelo seu Jurídico/Encarregado antes de ser adotado como política interna. A Clara fornece a descrição técnica e os controles de governança; a empresa contratante define finalidade, escopo e fundamento jurídico do tratamento.
 
 ## 1. Finalidade
 
-A presente Política disciplina o uso da plataforma Share IT .Clara para produção de indicadores de atividade, produtividade, continuidade, ociosidade, contexto de uso de aplicativos/sites, disponibilidade de estações e demais evidências autorizadas, com o objetivo de apoiar gestão operacional, dimensionamento de capacidade, treinamento, segurança operacional e melhoria de processos.
+A presente Política disciplina o uso da plataforma Clara para produção de indicadores de atividade, produtividade, continuidade, ociosidade, contexto de uso de aplicativos/sites, disponibilidade de estações e demais evidências autorizadas, com o objetivo de apoiar gestão operacional, dimensionamento de capacidade, treinamento, segurança operacional e melhoria de processos.
 
 A plataforma registra **fatos e contextos observáveis**. A avaliação gerencial, trabalhista ou disciplinar desses fatos pertence exclusivamente à empresa contratante.
 
@@ -38,7 +38,7 @@ A plataforma pode evidenciar, sem julgamento automático:
 
 ## 4. Dados e sinais tratados
 
-Conforme configuração e recursos habilitados, a .Clara pode tratar:
+Conforme configuração e recursos habilitados, a Clara pode tratar:
 
 - identificação da estação e usuário associado;
 - horários de comunicação e disponibilidade;
@@ -53,7 +53,7 @@ A configuração padrão não tem como objetivo registrar senhas, conteúdo digi
 
 ## 5. Classificação de produtividade
 
-A empresa contratante é responsável por configurar a classificação de aplicativos e sites. A .Clara utiliza essas regras para apresentar indicadores, sem presumir automaticamente que determinado uso seja pessoal, inadequado ou justificável.
+A empresa contratante é responsável por configurar a classificação de aplicativos e sites. A Clara utiliza essas regras para apresentar indicadores, sem presumir automaticamente que determinado uso seja pessoal, inadequado ou justificável.
 
 O sistema deve priorizar a apresentação de **aplicativo/site + categoria + horário + duração + classificação configurada**.
 
@@ -101,14 +101,14 @@ A empresa deve disponibilizar aos trabalhadores informações claras sobre:
 - quem pode acessar;
 - canais para exercício de direitos e contato com responsável/Encarregado.
 
-A .Clara pode registrar a ciência da política por e-mail, assinatura física/digital ou registro administrativo, conforme procedimento definido pela empresa.
+A Clara pode registrar a ciência da política por e-mail, assinatura física/digital ou registro administrativo, conforme procedimento definido pela empresa.
 
 ## 11. Governança documental
 
 A plataforma pode manter:
 
 - política vigente e versões anteriores;
-- anexo técnico da .Clara;
+- anexo técnico da Clara;
 - autorização jurídica por recurso;
 - RIPD ou avaliação de impacto quando aplicável;
 - comprovantes de ciência;
@@ -119,7 +119,7 @@ A validação de integridade/assinatura eletrônica confirma aspectos técnicos 
 
 ## 12. Revisão da política
 
-A empresa deve revisar esta política sempre que houver mudança relevante de finalidade, escopo, tipos de dados, recursos de monitoramento, retenção ou grupos abrangidos. A .Clara recomenda revisão periódica e renovação das autorizações de recursos restritos.
+A empresa deve revisar esta política sempre que houver mudança relevante de finalidade, escopo, tipos de dados, recursos de monitoramento, retenção ou grupos abrangidos. A Clara recomenda revisão periódica e renovação das autorizações de recursos restritos.
 
 ## 13. Ciência
 

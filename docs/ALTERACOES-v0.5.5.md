@@ -1,8 +1,8 @@
-# Alterações — Share IT .Clara v0.5.5
+# Alterações — Clara v0.5.5
 
 ## Motivo
 
-Consolidar a revisão funcional pedida para a .Clara, registrar formalmente o papel das Integrações, revisar a aderência dos indicadores às telas aprovadas e entregar um **manual ilustrado de usabilidade** dentro do pacote.
+Consolidar a revisão funcional pedida para a Clara, registrar formalmente o papel das Integrações, revisar a aderência dos indicadores às telas aprovadas e entregar um **manual ilustrado de usabilidade** dentro do pacote.
 
 ## Entregas desta versão
 
@@ -14,7 +14,7 @@ Consolidar a revisão funcional pedida para a .Clara, registrar formalmente o pa
 
 ## Diretriz funcional consolidada
 
-A .Clara deve priorizar a leitura prática de negócio:
+A Clara deve priorizar a leitura prática de negócio:
 
 1. quem está trabalhando;
 2. no que está trabalhando;

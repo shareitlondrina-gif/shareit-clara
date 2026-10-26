@@ -1,0 +1,75 @@
+@* Clara | Programador: Paulo Andrade | Origem: ViewModel/Controller | Destino: interface web | Boas práticas: saída codificada, sem segredos e ações protegidas. *@
+@model PainelEstacoes
+@{
+    ViewData["Title"] = "Estações";
+    var filtro = (ViewBag.Filtro as string ?? "todas").Trim().ToLowerInvariant();
+    var busca = (ViewBag.Busca as string ?? "").Trim();
+    var todos = Model.Estacoes;
+    var online = todos.Count(x => x.Status == "Online");
+    var ativos = todos.Count(x => x.EstadoAtual == "Ativo");
+    var reuniao = todos.Count(x => x.EstadoAtual == "Reunião");
+    var ociosos = todos.Count(x => x.EstadoAtual == "Ocioso");
+    var offline = todos.Count(x => x.EstadoAtual == "Offline");
+    var pendentes = todos.Count(x => !x.CadastroCompleto);
+    IEnumerable<EstacaoResumo> itens = todos;
+    itens = filtro switch {
+        "online" => itens.Where(x => x.Status == "Online"),
+        "ativo" or "ativos" => itens.Where(x => x.EstadoAtual == "Ativo"),
+        "reuniao" or "reunião" => itens.Where(x => x.EstadoAtual == "Reunião"),
+        "ocioso" or "ociosos" => itens.Where(x => x.EstadoAtual == "Ocioso"),
+        "offline" => itens.Where(x => x.EstadoAtual == "Offline"),
+        "pendente" or "pendentes" => itens.Where(x => !x.CadastroCompleto),
+        _ => itens
+    };
+    if(!string.IsNullOrWhiteSpace(busca)) itens = itens.Where(x =>
+        x.Hostname.Contains(busca,StringComparison.OrdinalIgnoreCase) ||
+        (x.Responsavel?.Contains(busca,StringComparison.OrdinalIgnoreCase) ?? false) ||
+        (x.Patrimonio?.Contains(busca,StringComparison.OrdinalIgnoreCase) ?? false) ||
+        (x.ProcessoAtual?.Contains(busca,StringComparison.OrdinalIgnoreCase) ?? false));
+    var lista = itens.ToArray();
+    string Classe(string estado) => estado switch { "Ativo" => "verde", "Ocioso" => "amarelo", "Reunião" => "roxo", "Offline" => "vermelho", "Pendente" => "cinza", _ => "azul" };
+}
+<section class="cabecalho-pagina cabecalho-clara">
+    <div><span class="sobrelinha">INVENTÁRIO AUTOMÁTICO</span><h1>Estações</h1><p>Estações monitoradas em tempo real pelo agente. Acompanhe o status e a atividade de cada máquina.</p></div>
+    <div class="cabecalho-status"><small>Última atualização: @DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss")</small><span class="selo-tempo-real"><i></i>Atualização por heartbeat</span></div>
+</section>
+
+<nav class="filtros-pilula" aria-label="Filtros de estações">
+    <a class="@(filtro=="todas"||filtro==""?"ativo":"")" href="/estacoes">Todas <b>@todos.Count</b></a>
+    <a class="@(filtro=="online"?"ativo":"")" href="/estacoes?filtro=online"><i class="ponto verde"></i>Online <b>@online</b></a>
+    <a class="@(filtro is "ativo" or "ativos"?"ativo":"")" href="/estacoes?filtro=ativo"><i class="ponto azul"></i>Ativas <b>@ativos</b></a>
+    <a class="@(filtro is "reuniao" or "reunião"?"ativo":"")" href="/estacoes?filtro=reuniao"><i class="ponto roxo"></i>Reunião <b>@reuniao</b></a>
+    <a class="@(filtro is "ocioso" or "ociosos"?"ativo":"")" href="/estacoes?filtro=ocioso"><i class="ponto amarelo"></i>Ociosas <b>@ociosos</b></a>
+    <a class="@(filtro=="offline"?"ativo":"")" href="/estacoes?filtro=offline"><i class="ponto vermelho"></i>Offline <b>@offline</b></a>
+    <a class="@(filtro is "pendente" or "pendentes"?"ativo":"")" href="/estacoes?filtro=pendente"><i class="ponto cinza"></i>Pendentes <b>@pendentes</b></a>
+</nav>
+
+<section class="cards-indicadores sete-colunas cards-estacoes">
+    <a href="#" data-drilldown-url="/indicadores/detalhes?tipo=estado&valor=Online" class="card-indicador card-resumo-estacao"><span class="icone-card azul">▣</span><span>Todas</span><strong>@todos.Count</strong><small>estações</small></a>
+    <a href="#" data-drilldown-url="/indicadores/detalhes?tipo=estado&valor=Online" class="card-indicador card-resumo-estacao"><span class="icone-card verde">▣</span><span>Online</span><strong>@online</strong><small>@(todos.Count>0?Math.Round(online*100d/todos.Count):0)% do total</small></a>
+    <a href="#" data-drilldown-url="/indicadores/detalhes?tipo=estado&valor=Ativo" class="card-indicador card-resumo-estacao"><span class="icone-card azul">♙</span><span>Ativas</span><strong>@ativos</strong><small>@(todos.Count>0?Math.Round(ativos*100d/todos.Count):0)% do total</small></a>
+    <a href="#" data-drilldown-url="/indicadores/detalhes?tipo=estado&valor=Reunião" class="card-indicador card-resumo-estacao"><span class="icone-card roxo">▣</span><span>Reunião</span><strong>@reuniao</strong><small>@(todos.Count>0?Math.Round(reuniao*100d/todos.Count):0)% do total</small></a>
+    <a href="#" data-drilldown-url="/indicadores/detalhes?tipo=estado&valor=Ocioso" class="card-indicador card-resumo-estacao"><span class="icone-card amarelo">◷</span><span>Ociosas</span><strong>@ociosos</strong><small>@(todos.Count>0?Math.Round(ociosos*100d/todos.Count):0)% do total</small></a>
+    <a href="#" data-drilldown-url="/indicadores/detalhes?tipo=estado&valor=Offline" class="card-indicador card-resumo-estacao"><span class="icone-card vermelho">▣</span><span>Offline</span><strong>@offline</strong><small>@(todos.Count>0?Math.Round(offline*100d/todos.Count):0)% do total</small></a>
+    <a href="#" data-drilldown-url="/indicadores/detalhes?tipo=estado&valor=Cadastro%20pendente" class="card-indicador card-resumo-estacao"><span class="icone-card cinza">?</span><span>Pendentes</span><strong>@pendentes</strong><small>@(todos.Count>0?Math.Round(pendentes*100d/todos.Count):0)% do total</small></a>
+</section>
+
+<section class="painel-clara painel-tabela-estacoes">
+    @if(!string.IsNullOrWhiteSpace(busca)) { <div class="faixa-filtro"><span>Busca: <strong>@busca</strong> · @lista.Length resultado(s)</span><a href="/estacoes">Limpar</a></div> }
+    <div class="tabela-responsiva"><table class="tabela-clara tabela-estacoes"><thead><tr><th>Estação ↑</th><th>Pessoa</th><th>Estado</th><th>Atividade atual</th><th>Local</th><th>Patrimônio</th><th>Última comunicação ↓</th><th>Versão</th><th>Ações</th></tr></thead><tbody>
+    @foreach(var e in lista){
+        <tr>
+            <td><a class="link-forte" href="/estacoes/@e.AtivoId">▣ &nbsp;@e.Hostname</a></td>
+            <td>@(e.Responsavel ?? "—")</td>
+            <td><span class="status-linha"><i class="ponto @Classe(e.EstadoAtual)"></i>@e.EstadoAtual</span></td>
+            <td>@(e.ProcessoAtual ?? "—")</td>
+            <td>@e.LocalTrabalho</td>
+            <td>@(e.Patrimonio ?? "—")</td>
+            <td>@(e.UltimaComunicacaoUtc?.ToLocalTime().ToString("dd/MM HH:mm:ss") ?? "—")</td>
+            <td>@(e.Versao ?? "—")</td>
+            <td><a class="link-forte" href="/estacoes/@e.AtivoId">Abrir →</a></td>
+        </tr>
+    }
+    </tbody></table></div>
+    <footer class="rodape-tabela"><span>Mostrando @lista.Length de @todos.Count estações</span><span><button disabled>‹</button><b>1</b><button disabled>›</button><em>50 por página⌄</em></span></footer>
+</section>

@@ -1,4 +1,4 @@
-# Validação - Share IT .Clara v0.5.6
+# Validação - Clara v0.5.6
 
 ## Gate esperado no Windows / Render
 
@@ -6,7 +6,7 @@
 2. Dockerfile continua usando caminhos absolutos `/src/Ferramentas/...`;
 3. GitHub confirma o SHA remoto;
 4. Render publica a versão `0.5.6` e o Build ID da execução;
-5. `/api/health` confirma banco `shareit_clara`;
+5. `/api/health` confirma banco `clara`;
 6. `/api/health` confirma **7 migrations**;
 7. login `demonstracao@clara.local` continua válido;
 8. primeira navegação do tenant Demonstração repara automaticamente a carga caso esteja incompleta/desatualizada.

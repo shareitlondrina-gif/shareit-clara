@@ -1,0 +1,28 @@
+@* Clara | Programador: Paulo Andrade | Origem: ViewModel/Controller | Destino: interface web | Boas práticas: saída codificada, sem segredos e ações protegidas. *@
+@model TimelineAgente
+@{
+    ViewData["Title"] = "Timeline";
+    string Classe(string estado) => "estado-" + estado.ToLowerInvariant();
+}
+<section class="cabecalho-pagina">
+    <div><span class="sobrelinha">ÚLTIMAS 24 HORAS</span><h1>Timeline — @Model.Hostname</h1><p>@(Model.Responsavel ?? "Responsável ainda não informado")</p></div>
+    <a class="botao-link" href="/">← Agora</a>
+</section>
+<section class="painel timeline">
+@if (Model.Periodos.Count == 0)
+{
+    <div class="estado-vazio"><strong>Nenhum período recebido.</strong><span>Assim que o agente enviar telemetria, a sequência aparecerá aqui.</span></div>
+}
+else
+{
+    @foreach (var p in Model.Periodos)
+    {
+        <article class="linha-timeline">
+            <div class="hora">@p.InicioUtc.ToLocalTime().ToString("HH:mm:ss")<span>→ @p.FimUtc.ToLocalTime().ToString("HH:mm:ss")</span></div>
+            <span class="estado @Classe(p.Estado)"><i></i>@p.Estado</span>
+            <span>@(p.ProcessoExecutavel ?? "-")</span>
+            <small>@p.UsuarioWindows</small>
+        </article>
+    }
+}
+</section>

@@ -1,4 +1,4 @@
-# Alterações — Share IT .Clara v0.5.8-RC2
+# Alterações — Clara v0.5.8-RC2
 
 ## Correção de compilação
 

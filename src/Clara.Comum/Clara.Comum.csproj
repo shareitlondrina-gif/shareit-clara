@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Clara.Comum</AssemblyName>
+    <RootNamespace>Clara.Comum</RootNamespace>
+  </PropertyGroup>
+</Project>

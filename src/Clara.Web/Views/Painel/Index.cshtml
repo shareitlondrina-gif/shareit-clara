@@ -1,0 +1,107 @@
+@* Clara | Programador: Paulo Andrade | Origem: ViewModel/Controller | Destino: interface web | Boas práticas: saída codificada, sem segredos e ações protegidas. *@
+@model DashboardAgora
+@{
+    ViewData["Title"] = "Agora";
+    var empresas = (IReadOnlyCollection<EmpresaBasica>)(ViewBag.Empresas ?? Array.Empty<EmpresaBasica>());
+    var locais = (IReadOnlyCollection<ResumoLocalTrabalho>)(ViewBag.Locais ?? Array.Empty<ResumoLocalTrabalho>());
+    var painelOportunidades = ViewBag.PainelOportunidades as PainelOportunidades;
+    var oportunidades = (IReadOnlyCollection<OportunidadeResumo>)(ViewBag.OportunidadesRecentes ?? Array.Empty<OportunidadeResumo>());
+    var evidencias = (IReadOnlyCollection<EvidenciaResumo>)(ViewBag.EvidenciasRecentes ?? Array.Empty<EvidenciaResumo>());
+    var totalEstados = Math.Max(1, Model.Ativos + Model.Reuniao + Model.Ociosos + Model.Bloqueados + Model.Offline);
+    var maiorApp = Math.Max(1L, Model.AplicativosHoje.Select(a => a.Segundos).DefaultIfEmpty(1).Max());
+    var escritorio = locais.FirstOrDefault(x => x.Codigo == "escritorio");
+    var home = locais.FirstOrDefault(x => x.Codigo == "home");
+    string Tempo(long segundos) { var t = TimeSpan.FromSeconds(Math.Max(0, segundos)); return t.TotalHours >= 1 ? $"{(int)t.TotalHours}h {t.Minutes:00}m" : $"{t.Minutes}m"; }
+    string EstadoVisual(string? estado) => (estado ?? "").ToLowerInvariant() switch { "ativo" => "Ativo", "ocioso" => "Ocioso", "reuniao" => "Reunião", "offline" => "Offline", "bloqueado" => "Bloqueado", _ => estado ?? "Online" };
+    string ClasseEstado(string? estado) => (estado ?? "").ToLowerInvariant() switch { "ativo" => "verde", "ocioso" => "amarelo", "reuniao" => "roxo", "offline" => "vermelho", "bloqueado" => "cinza", _ => "azul" };
+}
+<section class="cabecalho-pagina cabecalho-clara">
+    <div><span class="sobrelinha">VISÃO OPERACIONAL</span><h1>Agora</h1><p>O que está acontecendo nas estações monitoradas neste momento.</p></div>
+    <div class="cabecalho-status"><small>Última atualização: @DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss")</small><span class="selo-tempo-real"><i></i>Atualização por heartbeat</span></div>
+</section>
+
+<section class="cards-indicadores seis-colunas">
+    <a class="card-indicador" href="/estacoes?filtro=online" data-drilldown-url="/indicadores/detalhes?tipo=estado&valor=Online"><span class="rotulo"><i class="ponto verde"></i>Online</span><strong>@Model.Online</strong><small>de @Model.TotalAgentes estações</small><b>Ver lista →</b><span class="icone-card verde">▣</span></a>
+    <a class="card-indicador" href="/estacoes?filtro=ativo" data-drilldown-url="/indicadores/detalhes?tipo=estado&valor=Ativo"><span class="rotulo"><i class="ponto azul"></i>Ativos</span><strong>@Model.Ativos</strong><small>em atividade</small><b>Ver lista →</b><span class="icone-card azul">♙</span></a>
+    <a class="card-indicador" href="/estacoes?filtro=reuniao" data-drilldown-url="/indicadores/detalhes?tipo=estado&valor=Reunião"><span class="rotulo"><i class="ponto roxo"></i>Reunião</span><strong>@Model.Reuniao</strong><small>Teams/Zoom/Webex</small><b>Ver lista →</b><span class="icone-card roxo">▣</span></a>
+    <a class="card-indicador" href="/estacoes?filtro=ocioso" data-drilldown-url="/indicadores/detalhes?tipo=estado&valor=Ocioso"><span class="rotulo"><i class="ponto amarelo"></i>Ociosos</span><strong>@Model.Ociosos</strong><small>acima do limite</small><b>Ver lista →</b><span class="icone-card amarelo">◷</span></a>
+    <a class="card-indicador" href="/estacoes?filtro=offline" data-drilldown-url="/indicadores/detalhes?tipo=estado&valor=Offline"><span class="rotulo"><i class="ponto vermelho"></i>Offline</span><strong>@Model.Offline</strong><small>sem heartbeat</small><b>Ver lista →</b><span class="icone-card vermelho">▣</span></a>
+    <a class="card-indicador" href="/estacoes?filtro=pendente" data-drilldown-url="/indicadores/detalhes?tipo=estado&valor=Cadastro%20pendente"><span class="rotulo"><i class="ponto cinza"></i>Cadastro pendente</span><strong>@Model.CadastroIncompleto</strong><small>completar patrimônio</small><b>Ver lista →</b><span class="icone-card cinza">＋</span></a>
+</section>
+
+<section class="grade-agora-principal">
+    <article class="painel-clara painel-distribuicao-agora">
+        <div class="titulo-painel"><div><span class="sobrelinha">DISTRIBUIÇÃO ATUAL</span><h2>Estado das estações</h2></div><strong>@Model.TotalAgentes monitoradas</strong></div>
+        <div class="barra-distribuicao grande">
+            @if(Model.Ativos>0){<a href="#" data-drilldown-url="/indicadores/detalhes?tipo=estado&valor=Ativo" class="seg-ativo" style="width:@(Model.Ativos*100.0/totalEstados)%"></a>}
+            @if(Model.Reuniao>0){<a href="#" data-drilldown-url="/indicadores/detalhes?tipo=estado&valor=Reunião" class="seg-reuniao" style="width:@(Model.Reuniao*100.0/totalEstados)%"></a>}
+            @if(Model.Ociosos>0){<a href="#" data-drilldown-url="/indicadores/detalhes?tipo=estado&valor=Ocioso" class="seg-ocioso" style="width:@(Model.Ociosos*100.0/totalEstados)%"></a>}
+            @if(Model.Bloqueados>0){<a href="#" data-drilldown-url="/indicadores/detalhes?tipo=estado&valor=Bloqueado" class="seg-bloqueado" style="width:@(Model.Bloqueados*100.0/totalEstados)%"></a>}
+            @if(Model.Offline>0){<a href="#" data-drilldown-url="/indicadores/detalhes?tipo=estado&valor=Offline" class="seg-offline" style="width:@(Model.Offline*100.0/totalEstados)%"></a>}
+        </div>
+        <div class="legenda-distribuicao">
+            <a href="#" data-drilldown-url="/indicadores/detalhes?tipo=estado&valor=Online"><i class="leg-online"></i>Online @Model.Online (@(Model.TotalAgentes>0?Math.Round(Model.Online*100d/Model.TotalAgentes):0)%)</a>
+            <a href="#" data-drilldown-url="/indicadores/detalhes?tipo=estado&valor=Ativo"><i class="leg-ativo"></i>Ativos @Model.Ativos</a>
+            <a href="#" data-drilldown-url="/indicadores/detalhes?tipo=estado&valor=Reunião"><i class="leg-reuniao"></i>Reunião @Model.Reuniao</a>
+            <a href="#" data-drilldown-url="/indicadores/detalhes?tipo=estado&valor=Ocioso"><i class="leg-ocioso"></i>Ociosos @Model.Ociosos</a>
+            <a href="#" data-drilldown-url="/indicadores/detalhes?tipo=estado&valor=Offline"><i class="leg-offline"></i>Offline @Model.Offline</a>
+        </div>
+    </article>
+    <article class="painel-clara comparativo-resumo">
+        <span class="sobrelinha">HOME X ESCRITÓRIO</span><h2>Comparativo de produtividade</h2>
+        <p>@(ViewBag.InsightLocais ?? "Aguardando dados suficientes para o comparativo.")</p>
+        <a class="linha-comparativo" href="#" data-drilldown-url="/indicadores/detalhes?tipo=local&valor=escritorio"><span>Escritório</span><i><b style="width:@(escritorio?.Produtividade ?? 0)%"></b></i><strong>@(escritorio?.Produtividade ?? 0)/100</strong></a>
+        <a class="linha-comparativo" href="#" data-drilldown-url="/indicadores/detalhes?tipo=local&valor=home"><span>Home office</span><i><b style="width:@(home?.Produtividade ?? 0)%"></b></i><strong>@(home?.Produtividade ?? 0)/100</strong></a>
+    </article>
+</section>
+
+<section class="grade-agora-secundaria">
+    <article class="painel-clara">
+        <div class="titulo-painel"><div><span class="sobrelinha">TEMPO REAL</span><h2>Estações <small>(últimas comunicações)</small></h2></div><a href="/estacoes">Ver todas →</a></div>
+        <div class="tabela-responsiva"><table class="tabela-clara tabela-compacta"><thead><tr><th>Estação</th><th>Pessoa</th><th>Estado</th><th>Atividade atual</th><th>Local</th><th>Última comunicação</th></tr></thead><tbody>
+        @foreach(var a in Model.Agentes.Take(5)){
+            <tr><td><a class="link-forte" href="/estacoes/@a.AtivoId">▣ &nbsp;@a.Hostname</a></td><td>@(a.Responsavel ?? "—")</td><td><span class="status-linha"><i class="ponto @ClasseEstado(a.EstadoAtual)"></i>@EstadoVisual(a.EstadoAtual)</span></td><td>@(a.ProcessoAtual ?? "—")</td><td>@a.LocalTrabalho</td><td>@(a.UltimaComunicacaoUtc?.ToLocalTime().ToString("dd/MM HH:mm:ss") ?? "—")</td></tr>
+        }
+        </tbody></table></div>
+    </article>
+    <article class="painel-clara">
+        <div class="titulo-painel"><div><span class="sobrelinha">APLICATIVOS HOJE</span><h2>Mais utilizados</h2></div><a href="/aplicativos">Ver todos →</a></div>
+        <div class="lista-apps-agora">
+        @foreach(var app in Model.AplicativosHoje){
+            var largura = Math.Max(4, (int)Math.Round(app.Segundos*100d/maiorApp));
+            <a href="#" data-drilldown-url="/indicadores/detalhes?tipo=aplicativo&valor=@Uri.EscapeDataString(app.ProcessoExecutavel)&dias=1"><span class="app-icone">▦</span><strong>@app.ProcessoExecutavel</strong><i><b style="width:@largura%"></b></i><span>@Tempo(app.Segundos)</span></a>
+        }
+        </div>
+    </article>
+</section>
+
+<section class="grade-agora-secundaria rodape-agora">
+    <article class="painel-clara">
+        <div class="titulo-painel"><div><span class="sobrelinha">OPORTUNIDADES</span><h2>Pontos de atenção identificados</h2></div><a href="/oportunidades">Ver todas →</a></div>
+        <div class="mini-oportunidades">
+        @if(painelOportunidades is not null){foreach(var item in painelOportunidades.Indicadores){
+            <a href="#" data-drilldown-url="/indicadores/detalhes?tipo=oportunidade&valor=@item.Codigo&dias=7"><span class="mini-icone">◎</span><strong>@item.Quantidade</strong><b>@item.Titulo</b><small>@item.Complemento</small></a>
+        }}
+        </div>
+    </article>
+    <article class="painel-clara">
+        <div class="titulo-painel"><div><span class="sobrelinha">EVIDÊNCIAS RECENTES</span><h2>Insights do ambiente</h2></div><a href="/evidencias">Ver todas →</a></div>
+        <div class="lista-evidencias-mini">
+        @foreach(var e in evidencias){<a href="#" data-drilldown-url="/indicadores/detalhes?tipo=evidencia&valor=@Uri.EscapeDataString(e.Categoria)&dias=30"><i class="ponto @(e.Gravidade=="Alta"?"vermelho":e.Gravidade=="Positiva"?"verde":"amarelo")"></i><span><strong>@e.Resumo</strong><small>@e.ObservadaEmUtc.ToLocalTime().ToString("Hoje HH:mm")</small></span></a>}
+        </div>
+    </article>
+</section>
+
+<details class="painel-clara painel-onboarding">
+    <summary><strong>Instalação do agente</strong><span>Download, QR Code e token temporário em um único local</span></summary>
+    @if (User.HasClaim("modulo", "instalacao-agente") && User.IsInRole("Administrador"))
+    {
+        <p>Use o portal administrativo para baixar o instalador da versão publicada, conferir o consumo do plano e gerar o token de uso único.</p>
+        <a class="botao-primario" href="/administracao/instalacao">Abrir portal de instalação →</a>
+    }
+    else
+    {
+        <p>Escolha a empresa e gere um token de instalação. O agente identifica automaticamente hostname, usuário, serial, fabricante, modelo e Windows.</p>
+        <form method="post" action="/administracao/gerar-token" class="formulario-token">@Html.AntiForgeryToken()<label>Empresa<select name="empresaId" required>@foreach(var empresa in empresas){<option value="@empresa.Id">@empresa.Nome</option>}</select></label><button type="submit">Gerar instalação</button></form>
+    }
+</details>

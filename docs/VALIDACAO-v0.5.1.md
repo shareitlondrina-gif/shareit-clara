@@ -1,4 +1,4 @@
-# Validação — Share IT .Clara v0.5.1
+# Validação — Clara v0.5.1
 
 A v0.5.1 deve ser publicada pelo fluxo oficial `PUBLICAR-CLARA.cmd` no Windows.
 
@@ -17,7 +17,7 @@ O publicador deve confirmar:
 9. Git sincronizado sem force push;
 10. `HEAD` local igual ao SHA da branch remota após push;
 11. `/api/health/live` com `versao=0.5.1` e `buildId` igual ao da execução;
-12. `/api/health` com o mesmo `buildId`, `banco=ok`, `nomeBanco=shareit_clara` e `migracoes=6`;
+12. `/api/health` com o mesmo `buildId`, `banco=ok`, `nomeBanco=clara` e `migracoes=6`;
 13. `/api/versao` com `versao=0.5.1` e o mesmo `buildId`.
 
 ## Evidências locais esperadas
@@ -36,7 +36,7 @@ artifacts\logs\Publicador-Launcher.log
 
 Se Git local/remoto estiverem no mesmo commit da v0.5.1, mas `/api/health/live` continuar respondendo `0.3.2`, o problema fica isolado entre o disparo/configuração do Render e o deploy do Web Service. Nesse caso, revisar no Render:
 
-- repositório conectado ao serviço `shareit-clara`;
+- repositório conectado ao serviço `clara`;
 - branch conectada (`main`);
 - Auto Deploy;
 - último deploy e seu status/log;

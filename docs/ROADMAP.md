@@ -1,11 +1,11 @@
-# Roadmap consolidado — Share IT .Clara
+# Roadmap consolidado — Clara
 
 O projeto prefere marcos maiores, acumulando alterações relacionadas para evitar microversões.
 
 ## v0.1.2 — Baseline operacional — HOMOLOGADA
 
 - C#/ASP.NET Core/.NET 10;
-- PostgreSQL `shareit_clara`;
+- PostgreSQL `clara`;
 - login/multiempresa inicial;
 - Windows Service + processo de sessão;
 - token de instalação;
@@ -172,6 +172,6 @@ Somente depois de RBAC, auditoria, política, retenção, armazenamento protegid
 
 - preserva a v0.5.8-RC2 e suas 9 migrations;
 - adiciona validação local separada antes da publicação;
-- adiciona diagnóstico de coexistência .Clara + .VISÃO;
+- adiciona diagnóstico de coexistência Clara + VISÃO;
 - formaliza o gate para v0.6.0-RC e v1.0.0;
 - não libera evidências restritas nem conectores OAuth externos.

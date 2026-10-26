@@ -1,0 +1,20 @@
+CLARA v0.6.0-RC1-R5 — VALIDACAO ESTATICA
+
+Resumo: 12/12 verificacoes aprovadas.
+
+[OK] RELEASE.txt = 0.6.0-RC1-R5
+[OK] VERSAO.txt = 0.6.0
+[OK] 12 migrations
+[OK] logo horizontal legado ausente
+[OK] layout usa icone Clara
+[OK] layout marca revisão
+[OK] endpoints expõem revisão
+[OK] publicador exige revisão
+[OK] publicador exige Build ID
+[OK] publicador exige migrations
+[OK] C# autoria Paulo Andrade
+[OK] sem identidade anterior no código ativo
+
+[OK] Cabeçalho Paulo Andrade em 85/85 arquivos C#.
+[INFO] Migrations 0001-0012 preservadas byte a byte em relação à R4.
+[INFO] Restore/build/test definitivos serão executados automaticamente pelo PUBLICAR-CLARA.cmd no Windows.

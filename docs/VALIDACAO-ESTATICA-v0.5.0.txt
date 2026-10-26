@@ -1,4 +1,4 @@
-Share IT .Clara v0.5.0 - RELATORIO DE VALIDACAO ESTATICA
+Clara v0.5.0 - RELATORIO DE VALIDACAO ESTATICA
 ================================================================
 
 Resultado: APROVADA NA VALIDACAO ESTATICA
@@ -15,24 +15,24 @@ CHECAGENS
 - OK: Directory.Build.props version consistent
 - OK: JSON parsed (3 files)
 - OK: XML/project parsed (13 files)
-- OK: ProjectReference exists: src/ShareIT.Clara.NavegadorHost/ShareIT.Clara.NavegadorHost.csproj -> ../ShareIT.Clara.Dominio/ShareIT.Clara.Dominio.csproj
-- OK: ProjectReference exists: src/ShareIT.Clara.Dados/ShareIT.Clara.Dados.csproj -> ../ShareIT.Clara.Dominio/ShareIT.Clara.Dominio.csproj
-- OK: ProjectReference exists: src/ShareIT.Clara.Dados/ShareIT.Clara.Dados.csproj -> ../ShareIT.Clara.Comum/ShareIT.Clara.Comum.csproj
-- OK: ProjectReference exists: src/ShareIT.Clara.Agente/ShareIT.Clara.Agente.csproj -> ../ShareIT.Clara.Dominio/ShareIT.Clara.Dominio.csproj
-- OK: ProjectReference exists: src/ShareIT.Clara.Agente/ShareIT.Clara.Agente.csproj -> ../ShareIT.Clara.Comum/ShareIT.Clara.Comum.csproj
-- OK: ProjectReference exists: src/ShareIT.Clara.Sessao/ShareIT.Clara.Sessao.csproj -> ../ShareIT.Clara.Dominio/ShareIT.Clara.Dominio.csproj
-- OK: ProjectReference exists: src/ShareIT.Clara.Sessao/ShareIT.Clara.Sessao.csproj -> ../ShareIT.Clara.Comum/ShareIT.Clara.Comum.csproj
-- OK: ProjectReference exists: src/ShareIT.Clara.Web/ShareIT.Clara.Web.csproj -> ../ShareIT.Clara.Dominio/ShareIT.Clara.Dominio.csproj
-- OK: ProjectReference exists: src/ShareIT.Clara.Web/ShareIT.Clara.Web.csproj -> ../ShareIT.Clara.Comum/ShareIT.Clara.Comum.csproj
-- OK: ProjectReference exists: src/ShareIT.Clara.Web/ShareIT.Clara.Web.csproj -> ../ShareIT.Clara.Dados/ShareIT.Clara.Dados.csproj
-- OK: Solution project exists: src/ShareIT.Clara.Dominio/ShareIT.Clara.Dominio.csproj
-- OK: Solution project exists: src/ShareIT.Clara.Comum/ShareIT.Clara.Comum.csproj
-- OK: Solution project exists: src/ShareIT.Clara.Dados/ShareIT.Clara.Dados.csproj
-- OK: Solution project exists: src/ShareIT.Clara.Web/ShareIT.Clara.Web.csproj
-- OK: Solution project exists: src/ShareIT.Clara.Agente/ShareIT.Clara.Agente.csproj
-- OK: Solution project exists: src/ShareIT.Clara.Sessao/ShareIT.Clara.Sessao.csproj
-- OK: Solution project exists: src/ShareIT.Clara.Atualizador/ShareIT.Clara.Atualizador.csproj
-- OK: Solution project exists: src/ShareIT.Clara.NavegadorHost/ShareIT.Clara.NavegadorHost.csproj
+- OK: ProjectReference exists: src/Clara.NavegadorHost/Clara.NavegadorHost.csproj -> ../Clara.Dominio/Clara.Dominio.csproj
+- OK: ProjectReference exists: src/Clara.Dados/Clara.Dados.csproj -> ../Clara.Dominio/Clara.Dominio.csproj
+- OK: ProjectReference exists: src/Clara.Dados/Clara.Dados.csproj -> ../Clara.Comum/Clara.Comum.csproj
+- OK: ProjectReference exists: src/Clara.Agente/Clara.Agente.csproj -> ../Clara.Dominio/Clara.Dominio.csproj
+- OK: ProjectReference exists: src/Clara.Agente/Clara.Agente.csproj -> ../Clara.Comum/Clara.Comum.csproj
+- OK: ProjectReference exists: src/Clara.Sessao/Clara.Sessao.csproj -> ../Clara.Dominio/Clara.Dominio.csproj
+- OK: ProjectReference exists: src/Clara.Sessao/Clara.Sessao.csproj -> ../Clara.Comum/Clara.Comum.csproj
+- OK: ProjectReference exists: src/Clara.Web/Clara.Web.csproj -> ../Clara.Dominio/Clara.Dominio.csproj
+- OK: ProjectReference exists: src/Clara.Web/Clara.Web.csproj -> ../Clara.Comum/Clara.Comum.csproj
+- OK: ProjectReference exists: src/Clara.Web/Clara.Web.csproj -> ../Clara.Dados/Clara.Dados.csproj
+- OK: Solution project exists: src/Clara.Dominio/Clara.Dominio.csproj
+- OK: Solution project exists: src/Clara.Comum/Clara.Comum.csproj
+- OK: Solution project exists: src/Clara.Dados/Clara.Dados.csproj
+- OK: Solution project exists: src/Clara.Web/Clara.Web.csproj
+- OK: Solution project exists: src/Clara.Agente/Clara.Agente.csproj
+- OK: Solution project exists: src/Clara.Sessao/Clara.Sessao.csproj
+- OK: Solution project exists: src/Clara.Atualizador/Clara.Atualizador.csproj
+- OK: Solution project exists: src/Clara.NavegadorHost/Clara.NavegadorHost.csproj
 - OK: Migration 0001 immutable (ed572fe355fb)
 - OK: Migration 0002 immutable (92c622cff008)
 - OK: Migration 0003 immutable (3fab0587f2c8)
@@ -43,7 +43,7 @@ CHECAGENS
 - OK: C# lexical scan (71 files)
 - OK: Extension manifest version consistent
 - OK: Extension ID stable (diidcakejmmckhhbggepbblogonddjml)
-- OK: Extension ID propagated in src/ShareIT.Clara.Agente/Servicos/ServicoConectorNavegador.cs
+- OK: Extension ID propagated in src/Clara.Agente/Servicos/ServicoConectorNavegador.cs
 - OK: Extension ID propagated in Ferramentas/Instalacao/Instalar-Agente.ps1
 - OK: Native Messaging length framing present
 - OK: Demo marker: Horizonte Contabilidade

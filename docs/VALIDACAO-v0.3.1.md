@@ -1,4 +1,4 @@
-# Validação estrutural - Share IT .Clara v0.3.1
+# Validação estrutural - Clara v0.3.1
 
 ## Publicação
 
@@ -10,13 +10,13 @@
 ## Render
 
 1. `/api/health/live` deve responder HTTP 200 na v0.3.1 mesmo enquanto o banco estiver inicializando.
-2. O retorno de liveness deve indicar produto `Share IT .Clara`, versão `0.3.1` e aplicação `ok`.
+2. O retorno de liveness deve indicar produto `Clara`, versão `0.3.1` e aplicação `ok`.
 3. `/api/health` pode responder 503 durante a inicialização do banco.
 4. Após concluir a inicialização, `/api/health` deve responder:
    - versão `0.3.1`;
    - aplicação `ok`;
    - banco `ok`;
-   - nomeBanco `shareit_clara`;
+   - nomeBanco `clara`;
    - migrations `4`.
 5. Se o banco falhar, a Web/API deve permanecer acessível em `/api/health/live` e o erro detalhado deve estar nos Logs do Render.
 

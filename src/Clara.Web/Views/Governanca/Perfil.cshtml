@@ -1,0 +1,46 @@
+@* Clara | Programador: Paulo Andrade | Origem: ViewModel/Controller | Destino: interface web | Boas práticas: saída codificada, sem segredos e ações protegidas. *@
+@model Clara.Dominio.Contratos.PerfilUsuarioResumo
+@{
+    ViewData["Title"] = "Meu perfil";
+    var tema = (string)(ViewBag.Tema ?? "Sistema");
+    var vinculo = string.IsNullOrWhiteSpace(Model.Empresa) ? Model.Administradora : $"{Model.Administradora} · {Model.Empresa}";
+}
+@if(TempData["Mensagem"] is string msg){<div class="mensagem-sucesso">@msg</div>}
+@if(TempData["Erro"] is string erro){<div class="erro">@erro</div>}
+<section class="cabecalho-pagina cabecalho-clara">
+  <div><span class="sobrelinha">CONTA E PREFERÊNCIAS</span><h1>Meu perfil</h1><p>Informações pessoais da conta e preferências de aparência.</p></div>
+</section>
+<section class="painel perfil-identidade">
+  <div class="titulo-painel"><div><h2>Dados do perfil</h2><p>A foto e o nome aparecem no canto superior da Clara. O e-mail de acesso é protegido e não é alterado por esta tela.</p></div></div>
+  <form method="post" action="/perfil/dados" enctype="multipart/form-data" class="form-perfil-usuario">
+    @Html.AntiForgeryToken()
+    <div class="perfil-foto-coluna">
+      <img class="foto-perfil-grande" src="/perfil/foto" alt="Foto de perfil de @Model.Nome" />
+      <label class="botao-upload-foto">Alterar foto<input type="file" name="foto" accept="image/jpeg,image/png,image/webp" /></label>
+      <small>JPG, PNG ou WebP · máximo 2 MB.</small>
+      @if(Model.PossuiFoto){<label class="remover-foto"><input type="checkbox" name="removerFoto" value="true" /> Remover foto atual</label>}
+    </div>
+    <div class="perfil-campos">
+      <div class="grade-formulario perfil-grade-dados">
+        <label>Nome<input name="nome" value="@Model.Nome" maxlength="200" required /></label>
+        <label>Cargo / função<input name="cargo" value="@Model.Cargo" maxlength="120" placeholder="Ex.: Coordenador de Operações" /></label>
+        <label>Telefone<input name="telefone" value="@Model.Telefone" maxlength="30" inputmode="tel" placeholder="(00) 00000-0000" /></label>
+        <label>E-mail de acesso<input value="@Model.Email" readonly class="campo-somente-leitura" /></label>
+      </div>
+      <div class="dados-conta-resumo">
+        <div><small>Perfil de acesso</small><strong>@(Model.PerfilAcesso ?? Model.PerfilSistema)</strong></div>
+        <div><small>Vínculo</small><strong>@vinculo</strong></div>
+      </div>
+      <div class="acoes-form"><button type="submit">Salvar perfil</button></div>
+    </div>
+  </form>
+</section>
+<section class="painel perfil-preferencias">
+  <div class="titulo-painel"><div><h2>Aparência</h2><p>O tema é salvo por usuário e não altera a experiência dos demais.</p></div></div>
+  <form method="post" action="/perfil/tema" class="grade-temas">@Html.AntiForgeryToken()
+    <label class="opcao-tema @(tema=="Claro"?"selecionado":"")"><input type="radio" name="tema" value="Claro" checked="@(tema=="Claro" ? "checked" : null)"/><span class="preview-tema claro"><i></i><b></b></span><strong>Claro</strong><small>Superfícies claras, contraste alto e azul institucional.</small></label>
+    <label class="opcao-tema @(tema=="Escuro"?"selecionado":"")"><input type="radio" name="tema" value="Escuro" checked="@(tema=="Escuro" ? "checked" : null)"/><span class="preview-tema escuro"><i></i><b></b></span><strong>Escuro</strong><small>Grafite azulado com cards escuros e leitura confortável.</small></label>
+    <label class="opcao-tema @(tema=="Sistema"?"selecionado":"")"><input type="radio" name="tema" value="Sistema" checked="@(tema=="Sistema" ? "checked" : null)"/><span class="preview-tema sistema"><i></i><b></b></span><strong>Usar tema do sistema</strong><small>Acompanha automaticamente a preferência do navegador.</small></label>
+    <div class="acoes-form"><button type="submit">Salvar preferência</button></div>
+  </form>
+</section>

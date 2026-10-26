@@ -1,4 +1,4 @@
-# Alterações — Share IT .Clara v0.5.0
+# Alterações — Clara v0.5.0
 
 ## Objetivo da versão
 
@@ -8,10 +8,10 @@ Concentrar o máximo possível das pendências concretas da Clara após a revis�
 
 ### 1. Contexto web real e limitado a domínio
 
-- novo `ShareIT.Clara.NavegadorHost` para Native Messaging;
+- novo `Clara.NavegadorHost` para Native Messaging;
 - nova extensão Manifest V3 para Chrome/Edge;
 - transmissão somente de domínio ativo, navegador, usuário Windows e intervalo agregado;
-- Named Pipe `ShareIT.Clara.Navegador` entre sessão e Windows Service;
+- Named Pipe `Clara.Navegador` entre sessão e Windows Service;
 - fila offline própria no agente;
 - endpoint `POST /api/v1/agentes/navegacao`;
 - persistência em `sites_utilizados`;

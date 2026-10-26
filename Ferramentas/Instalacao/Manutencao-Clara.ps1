@@ -1,3 +1,10 @@
+# Clara
+# Programador: Paulo Andrade
+# Objetivo: automação operacional controlada da Clara.
+# Origem: parâmetros/configuração local e ambiente autorizado.
+# Destino: processo local, publicação ou manutenção correspondente.
+# Boas práticas: falhar cedo, não registrar segredos e validar pré-condições antes de alterar o ambiente.
+
 [CmdletBinding()]
 param(
     [Parameter(Mandatory=$true)][ValidateSet('Parar','Reparar','Desinstalar')][string]$Operacao,
@@ -7,10 +14,10 @@ $ErrorActionPreference='Stop'
 if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
     throw 'Execute a manutenção como Administrador.'
 }
-$Dados='C:\ProgramData\ShareIT\Clara'
-$Destino='C:\Program Files\Share IT\Clara'
-$Servico='ShareIT.Clara.Agente'
-$Tarefa='Share IT .Clara - Sessao'
+$Dados='C:\ProgramData\Clara'
+$Destino='C:\Program Files\Clara'
+$Servico='Clara.Agente'
+$Tarefa='Clara - Sessao'
 $Identidade=Join-Path $Dados 'segredos\identidade.dat'
 $Config=Join-Path $Dados 'configuracao-agente.json'
 if(-not(Test-Path $Identidade)){throw 'Identidade do dispositivo não encontrada. Use o portal da Clara para suporte.'}
@@ -30,19 +37,19 @@ if(-not $resp.autorizado){throw 'Operação não autorizada pelo servidor.'}
 switch($Operacao){
  'Parar' {
    Stop-Service -Name $Servico -Force -ErrorAction Stop
-   Write-Host 'Serviço Clara parado com autorização administrativa.' -ForegroundColor Yellow
+   Write-Host 'Serviça Clara parado com autorização administrativa.' -ForegroundColor Yellow
  }
  'Reparar' {
    Set-Service -Name $Servico -StartupType Automatic
    Restart-Service -Name $Servico -Force
    try{Start-ScheduledTask -TaskName $Tarefa}catch{}
-   Write-Host 'Serviço Clara reparado/reiniciado com autorização administrativa.' -ForegroundColor Green
+   Write-Host 'Serviça Clara reparado/reiniciado com autorização administrativa.' -ForegroundColor Green
  }
  'Desinstalar' {
    Stop-Service -Name $Servico -Force -ErrorAction SilentlyContinue
    & sc.exe delete $Servico | Out-Null
    Unregister-ScheduledTask -TaskName $Tarefa -Confirm:$false -ErrorAction SilentlyContinue
-   foreach($k in @('HKLM:\SOFTWARE\Google\Chrome\NativeMessagingHosts\br.com.shareit.clara','HKLM:\SOFTWARE\Microsoft\Edge\NativeMessagingHosts\br.com.shareit.clara')){Remove-Item $k -Recurse -Force -ErrorAction SilentlyContinue}
+   foreach($k in @('HKLM:\SOFTWARE\Google\Chrome\NativeMessagingHosts\br.com.clara.agent','HKLM:\SOFTWARE\Microsoft\Edge\NativeMessagingHosts\br.com.clara.agent')){Remove-Item $k -Recurse -Force -ErrorAction SilentlyContinue}
    $cleanup=Join-Path $env:TEMP ('clara-cleanup-'+[guid]::NewGuid().ToString('N')+'.cmd')
    @"
 @echo off

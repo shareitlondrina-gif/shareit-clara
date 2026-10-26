@@ -1,0 +1,81 @@
+@* Clara | Programador: Paulo Andrade | Origem: ViewModel/Controller | Destino: interface web | Boas práticas: saída codificada, sem segredos e ações protegidas. *@
+@model IReadOnlyCollection<Clara.Dominio.Contratos.EmpresaMasterResumo>
+@{
+    ViewData["Title"] = "Administradoras";
+    var integracoesVisao = ViewBag.IntegracoesVisao as Dictionary<Guid, IntegracaoProdutoResumo> ?? new();
+}
+<div class="cabecalho-pagina">
+    <div><span class="sobretitulo">ADMINISTRAÇÃO MASTER</span><h1>Administradoras</h1><p>O Master cadastra somente as Administradoras da Clara. Cada Administradora cadastra suas próprias empresas e dispositivos.</p></div>
+</div>
+@if (TempData["Mensagem"] is string mensagem) { <div class="mensagem-sucesso">@mensagem</div> }
+@if (TempData["Erro"] is string erro) { <div class="erro">@erro</div> }
+@if (TempData["VisaoToken"] is string tokenVisao) { <div class="aviso-config"><span>!</span><div><strong>Token de integração VISÃO — copie agora</strong><small>Este segredo será exibido somente nesta resposta. Configure-o no conector do VISÃO e não envie por chamado/e-mail.</small><code style="word-break:break-all">@tokenVisao</code></div></div> }
+<section class="cartao-clara">
+    <h2>Nova Administradora</h2>
+    <form method="post" action="/master/empresas/criar" class="grade-formulario">
+        @Html.AntiForgeryToken()
+        <label>Administradora<input name="nomeEmpresa" required maxlength="200" placeholder="Nome da Administradora" /></label>
+        <label>CNPJ/Documento<input name="documento" maxlength="30" placeholder="Opcional" /></label>
+        <label>Administrador<input name="nomeAdministrador" required maxlength="200" placeholder="Nome do administrador" /></label>
+        <label>E-mail do administrador<input name="emailAdministrador" type="email" required maxlength="320" /></label>
+        <label>Senha inicial<input name="senhaAdministrador" type="password" required minlength="8" autocomplete="new-password" /></label>
+        <div class="campo-acao"><button type="submit">Criar Administradora</button></div>
+    </form>
+</section>
+<section class="cartao-clara destaque-demo">
+    <div class="titulo-cartao"><div><h2>Empresa demonstração</h2><p>Gera 15 estações e um cenário gerencial fictício completo: atividade, aplicativos, locais, oportunidades, evidências, reuniões e métricas agregadas para apresentação comercial.</p></div><span class="selo-neutro">Dados fictícios</span></div>
+    <form method="post" action="/master/demonstracao/criar">
+        @Html.AntiForgeryToken()
+        <button type="submit">Criar / atualizar demonstração</button>
+    </form>
+    <p class="texto-secundario"><strong>Login:</strong> demonstracao@clara.local &nbsp; <strong>Senha:</strong> demonstracao</p>
+</section>
+<section class="cartao-clara">
+    <div class="titulo-cartao"><div><h2>Administradoras cadastradas</h2><p>Cada Administradora possui tenant isolado e administra suas próprias empresas. O Master acompanha licenciamento e saúde, não a telemetria operacional.</p></div><span class="selo-neutro">@Model.Count administradora(s)</span></div>
+    <div class="tabela-responsiva">
+        <table class="tabela-clara tabela-master-saas">
+            <thead><tr><th>Empresa</th><th>Plano</th><th>Consumo</th><th>Usuários</th><th>Assinatura</th><th>Ações</th></tr></thead>
+            <tbody>
+            @foreach (var item in Model)
+            {
+                var percentual = item.LimiteEstacoes > 0 ? Math.Min(100, (int)Math.Round(item.Estacoes * 100d / item.LimiteEstacoes)) : 0;
+                <tr>
+                    <td><strong>@item.Nome</strong><small>@item.Identificador · @(item.Documento ?? "sem documento")</small></td>
+                    <td><strong>@item.Plano</strong><small>Limite @item.LimiteEstacoes estações</small></td>
+                    <td><strong>@item.Estacoes / @item.LimiteEstacoes</strong><div class="barra-mini"><i style="width:@percentual%"></i></div></td>
+                    <td>@item.Usuarios</td>
+                    <td><span class="status-pill @(item.StatusAssinatura == "Ativa" ? "status-ok" : item.StatusAssinatura == "Trial" ? "status-trial" : item.StatusAssinatura == "Suspensa" ? "status-warning" : item.StatusAssinatura == "Cancelada" ? "status-danger" : "status-off")">@item.StatusAssinatura</span><small>@(item.Vencimento.HasValue ? $"vence {item.Vencimento:dd/MM/yyyy}" : "sem vencimento")</small></td>
+                    <td><details class="detalhes-inline"><summary>Gerenciar</summary><form method="post" action="/master/empresas/@item.TenantId/assinatura" class="form-assinatura-master">@Html.AntiForgeryToken()
+                        <label>Plano<input name="plano" value="@item.Plano" maxlength="80" /></label>
+                        <label>Status<select name="status">
+                            @if (item.StatusAssinatura == "Ativa") { <option value="Ativa" selected>Ativa</option> } else { <option value="Ativa">Ativa</option> }
+                            @if (item.StatusAssinatura == "Trial") { <option value="Trial" selected>Trial</option> } else { <option value="Trial">Trial</option> }
+                            @if (item.StatusAssinatura == "Suspensa") { <option value="Suspensa" selected>Suspensa</option> } else { <option value="Suspensa">Suspensa</option> }
+                            @if (item.StatusAssinatura == "Cancelada") { <option value="Cancelada" selected>Cancelada</option> } else { <option value="Cancelada">Cancelada</option> }
+                        </select></label>
+                        <label>Limite de estações<input name="limiteEstacoes" type="number" min="1" max="100000" value="@item.LimiteEstacoes" /></label>
+                        <label>Retenção (dias)<input name="retencaoDias" type="number" min="1" max="3650" value="@item.RetencaoDias" /></label>
+                        <label>Armazenamento (GB)<input name="armazenamentoGb" type="number" min="1" max="100000" value="@item.ArmazenamentoGb" /></label>
+                        <label>Vencimento<input name="vencimento" type="date" value="@(item.Vencimento?.ToString("yyyy-MM-dd"))" /></label>
+                        <label class="campo-largo">Observação<input name="observacao" maxlength="500" value="@item.ObservacaoAssinatura" placeholder="Opcional" /></label>
+                        <button type="submit">Salvar plano</button>
+                    </form>
+                    @{ integracoesVisao.TryGetValue(item.TenantId, out var iv); iv ??= new IntegracaoProdutoResumo("Visao",false,false,null,null,null); }
+                    <hr/>
+                    <form method="post" action="/master/empresas/@item.TenantId/visao" class="form-assinatura-master">@Html.AntiForgeryToken()
+                        <strong>Integração opcional VISÃO</strong>
+                        <small>Aparece na Clara somente quando o cliente também contratou o produto/serviço que fornece o contexto técnico.</small>
+                        <label><input type="checkbox" name="contratado" value="true" checked="@iv.Contratado"/> Produto/serviço VISÃO contratado</label>
+                        <label><input type="checkbox" name="integracaoAtiva" value="true" checked="@iv.IntegracaoAtiva"/> Integração técnica ativa</label>
+                        <label class="campo-largo">URL base opcional<input name="urlBase" maxlength="500" value="@iv.UrlBase" placeholder="URL da API/serviço VISÃO" /></label>
+                        <label><input type="checkbox" name="gerarNovoToken" value="true"/> Gerar/rotacionar token de integração</label>
+                        <small>Último contexto: @(iv.UltimoSucessoUtc?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "nunca recebido")</small>
+                        <button type="submit">Salvar VISÃO</button>
+                    </form></details></td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</section>
+

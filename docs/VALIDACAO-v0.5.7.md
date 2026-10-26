@@ -1,4 +1,4 @@
-# Validação — Share IT .Clara v0.5.7
+# Validação — Clara v0.5.7
 
 ## Escopo
 
@@ -22,7 +22,7 @@ A validação realizada neste ambiente é **estática**. O SDK .NET 10 e PowerSh
 
 - `/api/versao`: versão `0.5.7` e Build ID da execução;
 - `/api/health/live`: aplicação online;
-- `/api/health`: `banco=ok`, `nomeBanco=shareit_clara`, `migracoes=8`;
+- `/api/health`: `banco=ok`, `nomeBanco=clara`, `migracoes=8`;
 - Central de Notificações abre ao clicar no sino;
 - Meu perfil alterna Claro/Escuro/Sistema;
 - Administração > Alertas cria regra e mostra histórico;
@@ -31,4 +31,4 @@ A validação realizada neste ambiente é **estática**. O SDK .NET 10 e PowerSh
 
 ## Observação
 
-SMTP somente enviará mensagens depois que `monitoramento.clara@shareitbrasil.com.br` (ou outra identidade aprovada) estiver provisionado no provedor e as variáveis SMTP forem configuradas no Render.
+SMTP somente enviará mensagens depois que `no-reply@clara.local` (ou outra identidade aprovada) estiver provisionado no provedor e as variáveis SMTP forem configuradas no Render.

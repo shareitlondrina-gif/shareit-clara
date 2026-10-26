@@ -1,4 +1,4 @@
-# Alterações - Share IT .Clara v0.5.6
+# Alterações - Clara v0.5.6
 
 ## Objetivo
 

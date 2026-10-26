@@ -1,4 +1,4 @@
-# Validação — Share IT .Clara v0.5.2
+# Validação — Clara v0.5.2
 
 Executar a homologação no Windows por `PUBLICAR-CLARA.cmd`.
 
@@ -15,7 +15,7 @@ Executar a homologação no Windows por `PUBLICAR-CLARA.cmd`.
 9. indisponibilidade transitória de `ls-remote` não pode encerrar a publicação se o push concluiu;
 10. divergência real/persistente de SHA deve continuar bloqueando;
 11. `/api/health/live` deve responder `versao=0.5.2` e `buildId` da execução;
-12. `/api/health` deve responder o mesmo build, `banco=ok`, `nomeBanco=shareit_clara` e `migracoes=6`;
+12. `/api/health` deve responder o mesmo build, `banco=ok`, `nomeBanco=clara` e `migracoes=6`;
 13. `/api/versao` deve responder `versao=0.5.2` e o mesmo Build ID.
 
 ## Logs esperados

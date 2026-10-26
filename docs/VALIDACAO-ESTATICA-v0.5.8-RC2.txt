@@ -1,4 +1,4 @@
-SHARE IT .CLARA v0.5.8-RC2 — VALIDAÇÃO ESTÁTICA DE HOTFIX
+CLARA v0.5.8-RC2 — VALIDAÇÃO ESTÁTICA DE HOTFIX
 
 [OK] VERSAO.txt permanece 0.5.8.
 [OK] Directory.Build.props permanece Version 0.5.8.

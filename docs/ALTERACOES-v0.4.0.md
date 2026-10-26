@@ -1,4 +1,4 @@
-# Alterações — Share IT .Clara v0.4.0
+# Alterações — Clara v0.4.0
 
 ## Consolidação
 

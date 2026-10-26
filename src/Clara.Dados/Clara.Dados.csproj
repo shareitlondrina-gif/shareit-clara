@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Clara.Dados</AssemblyName>
+    <RootNamespace>Clara.Dados</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Npgsql" />
+    <ProjectReference Include="..\Clara.Dominio\Clara.Dominio.csproj" />
+    <ProjectReference Include="..\Clara.Comum\Clara.Comum.csproj" />
+    <EmbeddedResource Include="..\..\database\migrations\*.sql" Link="Migrations\%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>

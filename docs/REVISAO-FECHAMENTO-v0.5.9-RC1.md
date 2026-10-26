@@ -1,4 +1,4 @@
-# Revisão de fechamento — Share IT .Clara v0.5.9-RC1
+# Revisão de fechamento — Clara v0.5.9-RC1
 
 ## Status do núcleo
 
@@ -12,7 +12,7 @@
 | Capacidade / utilização / IA / automação | Implementado como leitura gerencial factual |
 | Retenção | Serviço automático implementado; validar expurgo real |
 | Atualização do agente | Implementada com backup/rollback/watchdog; validar end-to-end |
-| .Clara + .VISÃO | Independentes; correlação opcional condicionada à contratação |
+| Clara + VISÃO | Independentes; correlação opcional condicionada à contratação |
 | SMTP | Estrutura pronta; depende de credencial/provedor real |
 | Governança | Fundação implementada |
 
@@ -22,7 +22,7 @@
 2. Áudio/webcam: manter bloqueados até implementação e validação excepcional.
 3. Conectores corporativos Microsoft/Google/Zoom: dependem de credenciais e OAuth reais.
 4. Assinatura criptográfica dos pacotes: hardening dependente de chave privada de produção.
-5. Homologação física da coexistência com .VISÃO, atualização automática e rollback.
+5. Homologação física da coexistência com VISÃO, atualização automática e rollback.
 
 ## Caminho proposto
 

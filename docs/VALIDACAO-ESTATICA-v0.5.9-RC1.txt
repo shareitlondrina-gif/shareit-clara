@@ -1,4 +1,4 @@
-SHARE IT .CLARA v0.5.9-RC1 — VALIDACAO ESTATICA
+CLARA v0.5.9-RC1 — VALIDACAO ESTATICA
 
 [OK] VERSAO.txt = 0.5.9
 [OK] Directory.Build.props = 0.5.9
@@ -21,19 +21,19 @@ SHARE IT .CLARA v0.5.9-RC1 — VALIDACAO ESTATICA
 [OK] migration preservada 0008_governanca_jornada_alertas_relatorios_tema.sql
 [OK] migration preservada 0009_fechamento_operacional_coexistencia_gestao.sql
 [OK] json global.json
-[OK] json src/ShareIT.Clara.Web/appsettings.json
-[OK] json src/ShareIT.Clara.NavegadorExtensao/manifest.json
+[OK] json src/Clara.Web/appsettings.json
+[OK] json src/Clara.NavegadorExtensao/manifest.json
 [OK] SobrescritaEstacao removido
 [OK] PossuiSobrescrita presente
 [OK] Razor Model properties reconhecidas — []
 [OK] sem arquivos reais de segredo — []
-[OK] versao ativa src/ShareIT.Clara.Agente/Comunicacao/ClienteApiClara.cs
-[OK] versao ativa src/ShareIT.Clara.Web/Servicos/ServicoRelogioDemonstracao.cs
-[OK] versao ativa src/ShareIT.Clara.Web/Views/Shared/_Layout.cshtml
-[OK] versao ativa src/ShareIT.Clara.Web/Program.cs
-[OK] versao ativa src/ShareIT.Clara.Web/Controllers/PainelController.cs
-[OK] versao ativa src/ShareIT.Clara.NavegadorExtensao/manifest.json
-[OK] versao ativa src/ShareIT.Clara.NavegadorExtensao/LEIA-ME.txt
+[OK] versao ativa src/Clara.Agente/Comunicacao/ClienteApiClara.cs
+[OK] versao ativa src/Clara.Web/Servicos/ServicoRelogioDemonstracao.cs
+[OK] versao ativa src/Clara.Web/Views/Shared/_Layout.cshtml
+[OK] versao ativa src/Clara.Web/Program.cs
+[OK] versao ativa src/Clara.Web/Controllers/PainelController.cs
+[OK] versao ativa src/Clara.NavegadorExtensao/manifest.json
+[OK] versao ativa src/Clara.NavegadorExtensao/LEIA-ME.txt
 [OK] versao ativa database/demo/CRIAR-EMPRESA-DEMONSTRACAO.sql
 
 Resumo: 35/35 verificacoes aprovadas.
