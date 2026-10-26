@@ -111,7 +111,7 @@ public sealed class ServicoRelogioDemonstracao(
         var evidencias = leitor.GetInt32(1);
         var visuais = leitor.GetInt32(2);
         var versaoAgente = leitor.GetString(3);
-        var versaoAtual = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.5.8";
+        var versaoAtual = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.6.0";
 
         return oportunidades < 15 || evidencias < 10 || visuais < 4 || !string.Equals(versaoAgente, versaoAtual, StringComparison.OrdinalIgnoreCase);
     }

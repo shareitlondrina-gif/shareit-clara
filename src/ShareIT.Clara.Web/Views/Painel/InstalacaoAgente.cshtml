@@ -1,16 +1,17 @@
 @model ShareIT.Clara.Web.Modelos.PainelInstalacaoAgente
 @{
-    ViewData["Title"] = "Instalação do agente";
+    ViewData["Title"] = "Registro de dispositivos";
     var token = TempData["TokenInstalacao"] as string;
     var expira = TempData["TokenExpira"] as string;
     var servidor = (TempData["TokenServidor"] as string) ?? Model.UrlServidor;
+    var tipoToken = (TempData["TokenTipo"] as string) ?? "Windows";
     var percentual = Model.Assinatura.LimiteEstacoes > 0 ? Math.Min(100, (int)Math.Round(Model.EstacoesAtivas * 100d / Model.Assinatura.LimiteEstacoes)) : 0;
     var podeInstalar = Model.Assinatura.Status is "Ativa" or "Trial" && (!Model.Assinatura.Vencimento.HasValue || Model.Assinatura.Vencimento.Value >= DateOnly.FromDateTime(DateTime.Today)) && Model.EstacoesAtivas < Model.Assinatura.LimiteEstacoes;
 }
 @if (TempData["Mensagem"] is string mensagem) { <div class="mensagem-sucesso">@mensagem</div> }
 @if (TempData["Erro"] is string erro) { <div class="erro">@erro</div> }
 <section class="cabecalho-pagina cabecalho-clara">
-    <div><span class="sobrelinha">ADMINISTRAÇÃO</span><h1>Instalação do agente</h1><p>Baixe o instalador, gere um token temporário e cadastre a estação automaticamente no tenant correto.</p></div>
+    <div><span class="sobrelinha">ADMINISTRAÇÃO</span><h1>Registro de dispositivos</h1><p>Todo dispositivo precisa obter um código temporário com o Administrador antes de se registrar. Windows e Android usam a mesma autorização administrativa.</p></div>
     <div class="cabecalho-status"><span class="selo-tempo-real"><i></i>Agente v@Model.VersaoAgente</span></div>
 </section>
 
@@ -29,20 +30,28 @@
 </section>
 
 <section class="painel-clara bloco-token-instalacao">
-    <div class="titulo-painel"><div><span class="passo-numero">2</span><h2>Gerar token temporário</h2><p>O token é de uso único e expira em 30 minutos. Ele vincula a nova estação à empresa selecionada sem exigir configuração técnica manual.</p></div></div>
+    <div class="titulo-painel"><div><span class="passo-numero">2</span><h2>Gerar código de registro</h2><p>O código é de uso único e expira em 15 minutos. Ele vincula o dispositivo à empresa selecionada e não pode ser reaproveitado em outro cadastro.</p></div></div>
     <form method="post" action="/administracao/instalacao/gerar-token" class="form-token-instalacao">
         @Html.AntiForgeryToken()
         <label>Empresa<select name="empresaId" required>@foreach (var e in Model.Empresas) { <option value="@e.Id">@e.Nome</option> }</select></label>
-        <button type="submit" disabled="@(!podeInstalar)">Gerar token de instalação</button>
+        <label>Tipo de dispositivo<select name="tipoDispositivo"><option value="Windows">Windows</option><option value="Android">Android corporativo</option></select></label>
+        <button type="submit" disabled="@(!podeInstalar)">Gerar código de registro</button>
     </form>
 
     @if (!string.IsNullOrWhiteSpace(token))
     {
         var comando = $"INSTALAR-AGENTE.cmd \"{token}\" \"{servidor}\"";
         <div class="token-gerado">
-            <div><span>Token temporário</span><code>@token</code><small>Expira em @expira</small></div>
+            <div><span>Código de registro · @tipoToken</span><code>@token</code><small>Uso único · expira em @expira</small></div>
             <div><span>Servidor</span><code>@servidor</code></div>
-            <div class="campo-comando"><span>Comando pronto</span><input id="comandoInstalacao" readonly value="@comando" /><button type="button" data-copiar-alvo="comandoInstalacao">Copiar comando</button></div>
+            @if(tipoToken == "Windows")
+            {
+                <div class="campo-comando"><span>Comando pronto</span><input id="comandoInstalacao" readonly value="@comando" /><button type="button" data-copiar-alvo="comandoInstalacao">Copiar comando</button></div>
+            }
+            else
+            {
+                <div class="campo-comando"><span>Android corporativo</span><small>O código já está reservado para o fluxo Android Enterprise. O enrolamento por QR será ativado no marco Android da v0.7.0.</small></div>
+            }
         </div>
     }
 </section>
@@ -50,8 +59,8 @@
 <section class="painel-clara instrucoes-instalacao">
     <div class="titulo-painel"><div><span class="passo-numero">3</span><h2>Instalar e validar</h2></div></div>
     <div class="grade-passos-finais">
-        <div><strong>1. Executar como Administrador</strong><p>Extraia o ZIP e rode <code>INSTALAR-AGENTE.cmd</code> usando o token temporário.</p></div>
-        <div><strong>2. Aguardar o primeiro registro</strong><p>O agente coleta inventário técnico, registra a máquina e consome o token. Depois disso usa credencial própria protegida localmente.</p></div>
+        <div><strong>1. Executar como Administrador</strong><p>Extraia o ZIP e rode <code>INSTALAR-AGENTE.cmd</code> usando o código fornecido pelo Administrador.</p></div>
+        <div><strong>2. Aguardar o primeiro registro</strong><p>O agente coleta inventário técnico, registra a máquina e consome o código. Depois do primeiro registro o código deixa de funcionar. Depois disso usa credencial própria protegida localmente.</p></div>
         <div><strong>3. Contexto web opcional</strong><p>O host nativo é registrado automaticamente. Em homologação, carregue a extensão da pasta <code>NavegadorExtensao</code> no Chrome/Edge; em produção, distribua por política corporativa.</p></div>
         <div><strong>4. Conferir no .Clara</strong><p>A nova estação deve aparecer em Estações. Complete patrimônio, responsável, unidade e departamento quando necessário.</p></div>
     </div>

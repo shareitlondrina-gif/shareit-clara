@@ -18,6 +18,18 @@ echo [INFO] Diagnostico: logs\DIAGNOSTICO-PUBLICACAO-ULTIMO.txt
 echo ====================================================
 echo.
 
+echo [ETAPA 0] Executando validacao obrigatoria antes da publicacao...
+call "%~dp0Ferramentas\Validacao\VALIDAR-ANTES-DE-PUBLICAR.cmd"
+if errorlevel 1 (
+  echo.
+  echo [ERRO] Publicacao bloqueada porque a validacao pre-publicacao falhou.
+  >>"%LAUNCHER_LOG%" echo [%date% %time%] ERRO: gate pre-publicacao falhou.
+  pause
+  exit /b 1
+)
+echo [OK] Gate pre-publicacao aprovado.
+echo.
+
 where powershell.exe >nul 2>&1
 if errorlevel 1 (
   echo [ERRO] Windows PowerShell nao encontrado.

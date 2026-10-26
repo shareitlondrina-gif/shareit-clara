@@ -17,6 +17,9 @@
     var totalAppsHoje = Math.Max(1L, appsHoje.Sum(x => x.Segundos));
     var jornada = ViewBag.Jornada as ConfiguracaoJornadaEstacao;
     var podeEditarJornada = User.IsInRole("Administrador") && User.HasClaim("modulo", "estacoes");
+    var codigoManutencao = TempData["CodigoManutencao"] as string;
+    var operacaoManutencao = TempData["CodigoManutencaoOperacao"] as string;
+    var expiraManutencao = TempData["CodigoManutencaoExpira"] as string;
 }
 @if(TempData["Mensagem"] is string mensagem){<div class="mensagem-sucesso">@mensagem</div>}
 <section class="cabecalho-estacao">
@@ -147,6 +150,24 @@
         <button type="submit">Salvar cadastro</button>
     </form>
 </details>
+
+@if(User.IsInRole("Administrador"))
+{
+<details class="painel-clara detalhes-colapsados" open="@(!string.IsNullOrWhiteSpace(codigoManutencao))">
+    <summary>Manutenção protegida</summary>
+    <p class="texto-secundario">Parar, reparar ou desinstalar pelo fluxo oficial exige um código temporário gerado pelo Administrador. Cada código vale para esta máquina, uma única operação e expira em 15 minutos.</p>
+    <form method="post" action="/estacoes/@Model.Estacao.AtivoId/manutencao/codigo" class="grade-formulario">
+        @Html.AntiForgeryToken()
+        <label>Operação<select name="operacao"><option value="Parar">Parar serviço</option><option value="Reparar">Reparar instalação</option><option value="Desinstalar">Desinstalar Clara</option></select></label>
+        <label>Motivo<input name="motivo" maxlength="300" placeholder="Ex.: troca de equipamento" /></label>
+        <button type="submit">Gerar código de manutenção</button>
+    </form>
+    @if(!string.IsNullOrWhiteSpace(codigoManutencao))
+    {
+        <div class="token-gerado"><div><span>@operacaoManutencao</span><code>@codigoManutencao</code><small>Expira em @expiraManutencao · uso único</small></div></div>
+    }
+</details>
+}
 
 <details class="painel-clara detalhes-colapsados">
     <summary>Ver detalhes técnicos</summary>

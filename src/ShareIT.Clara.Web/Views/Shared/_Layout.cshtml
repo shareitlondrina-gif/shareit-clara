@@ -86,6 +86,8 @@
                     @if (Pode("perfis")) { <a class='@Ativo("/administracao/perfis")' href="/administracao/perfis"><span class="icone-menu">☷</span>Perfis</a> }
                     @if (Pode("configuracoes")) { <a class='@Ativo("/administracao/configuracoes")' href="/administracao/configuracoes"><span class="icone-menu">⚙</span>Configurações</a> }
                     @if (Pode("instalacao-agente")) { <a class='@Ativo("/administracao/instalacao")' href="/administracao/instalacao"><span class="icone-menu">⇩</span>Instalação</a> }
+                    <a class='@Ativo("/administracao/empresas")' href="/administracao/empresas"><span class="icone-menu">▤</span>Empresas</a>
+                    <a class='@Ativo("/administracao/armazenamento")' href="/administracao/armazenamento"><span class="icone-menu">▣</span>Armazenamento</a>
                     @if (Pode("alertas")) { <a class='@Ativo("/administracao/alertas")' href="/administracao/alertas"><span class="icone-menu">!</span>Alertas e regras</a> }
                     @if (Pode("governanca")) { <a class='@Ativo("/administracao/governanca")' href="/administracao/governanca"><span class="icone-menu">◆</span>Governança</a> }
                 }
@@ -94,11 +96,11 @@
         <div class="rodape-menu">
             @if (!master)
             {
-                <div class="empresa-rodape"><strong>@(empresaNome ?? tenantNome)</strong>@if (demonstracao){<small>Ambiente de demonstração</small>}<small>Share IT .Clara v0.5.8</small></div>
+                <div class="empresa-rodape"><strong>@(empresaNome ?? tenantNome)</strong>@if (demonstracao){<small>Ambiente de demonstração</small>}<small>Share IT .Clara v0.6.0</small></div>
             }
             else
             {
-                <div class="empresa-rodape"><strong>Share IT .Clara</strong><small>Master da plataforma</small><small>v0.5.8</small></div>
+                <div class="empresa-rodape"><strong>Share IT .Clara</strong><small>Master da plataforma</small><small>v0.6.0</small></div>
             }
             <form method="post" action="/sair">@Html.AntiForgeryToken()<button class="botao-sair" type="submit">Sair</button></form>
         </div>

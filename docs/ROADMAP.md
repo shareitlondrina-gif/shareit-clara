@@ -166,3 +166,12 @@ Somente depois de RBAC, auditoria, política, retenção, armazenamento protegid
 - Governança e Privacidade com documentos, SHA-256, ciência e aprovação jurídica;
 - migration 0008;
 - recursos restritos continuam tecnicamente bloqueados até homologação específica.
+
+
+## v0.5.9-RC1 — fechamento do núcleo
+
+- preserva a v0.5.8-RC2 e suas 9 migrations;
+- adiciona validação local separada antes da publicação;
+- adiciona diagnóstico de coexistência .Clara + .VISÃO;
+- formaliza o gate para v0.6.0-RC e v1.0.0;
+- não libera evidências restritas nem conectores OAuth externos.

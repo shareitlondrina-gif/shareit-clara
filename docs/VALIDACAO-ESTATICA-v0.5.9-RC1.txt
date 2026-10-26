@@ -1,0 +1,40 @@
+SHARE IT .CLARA v0.5.9-RC1 — VALIDACAO ESTATICA
+
+[OK] VERSAO.txt = 0.5.9
+[OK] Directory.Build.props = 0.5.9
+[OK] BUILD = RC1
+[OK] 9 migrations — 9
+[OK] arquivo Ferramentas/Validacao/VALIDAR-ANTES-DE-PUBLICAR.cmd
+[OK] arquivo Ferramentas/Validacao/Validar-Clara.ps1
+[OK] arquivo Ferramentas/Diagnostico/DIAGNOSTICAR-COEXISTENCIA-CLARA-VISAO.cmd
+[OK] arquivo Ferramentas/Diagnostico/Diagnosticar-Coexistencia-Clara-Visao.ps1
+[OK] arquivo docs/ALTERACOES-v0.5.9-RC1.md
+[OK] arquivo docs/REVISAO-FECHAMENTO-v0.5.9-RC1.md
+[OK] arquivo docs/CHECKLIST-HOMOLOGACAO-v0.5.9-RC1.md
+[OK] migration preservada 0001_base_operacional.sql
+[OK] migration preservada 0002_indices_dashboard.sql
+[OK] migration preservada 0003_contexto_inventario_integracoes.sql
+[OK] migration preservada 0004_multiempresa_perfis_acesso.sql
+[OK] migration preservada 0005_inteligencia_configuracoes_demonstracao.sql
+[OK] migration preservada 0006_distribuicao_navegacao_saas.sql
+[OK] migration preservada 0007_evidencias_visuais_demonstracao.sql
+[OK] migration preservada 0008_governanca_jornada_alertas_relatorios_tema.sql
+[OK] migration preservada 0009_fechamento_operacional_coexistencia_gestao.sql
+[OK] json global.json
+[OK] json src/ShareIT.Clara.Web/appsettings.json
+[OK] json src/ShareIT.Clara.NavegadorExtensao/manifest.json
+[OK] SobrescritaEstacao removido
+[OK] PossuiSobrescrita presente
+[OK] Razor Model properties reconhecidas — []
+[OK] sem arquivos reais de segredo — []
+[OK] versao ativa src/ShareIT.Clara.Agente/Comunicacao/ClienteApiClara.cs
+[OK] versao ativa src/ShareIT.Clara.Web/Servicos/ServicoRelogioDemonstracao.cs
+[OK] versao ativa src/ShareIT.Clara.Web/Views/Shared/_Layout.cshtml
+[OK] versao ativa src/ShareIT.Clara.Web/Program.cs
+[OK] versao ativa src/ShareIT.Clara.Web/Controllers/PainelController.cs
+[OK] versao ativa src/ShareIT.Clara.NavegadorExtensao/manifest.json
+[OK] versao ativa src/ShareIT.Clara.NavegadorExtensao/LEIA-ME.txt
+[OK] versao ativa database/demo/CRIAR-EMPRESA-DEMONSTRACAO.sql
+
+Resumo: 35/35 verificacoes aprovadas.
+Observacao: este ambiente nao possui .NET SDK 10/PowerShell. A compilacao e os testes definitivos devem ser executados no Windows pelo validador e pelo publicador.

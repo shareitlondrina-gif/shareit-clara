@@ -1,4 +1,4 @@
-Share IT .Clara — Contexto Web v0.5.8
+Share IT .Clara — Contexto Web v0.6.0
 
 A extensão coleta SOMENTE o domínio da aba ativa (ex.: exemplo.com), o navegador e o instante da observação.
 Ela NÃO coleta caminho/URL completa, parâmetros, título da página, conteúdo, formulários, senhas ou texto digitado.

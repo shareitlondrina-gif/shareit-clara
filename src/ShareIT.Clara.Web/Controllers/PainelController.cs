@@ -67,11 +67,12 @@ public sealed class PainelController(
         try
         {
             var token = await administracao.CriarTokenInstalacaoAsync(
-                ObterTenant(), ObterGuid(System.Security.Claims.ClaimTypes.NameIdentifier), empresaId, ct);
+                ObterTenant(), ObterGuid(System.Security.Claims.ClaimTypes.NameIdentifier), empresaId, "Windows", ct);
             TempData["TokenInstalacao"] = token.Token;
             TempData["TokenExpira"] = token.ExpiraEmUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss");
             TempData["TokenServidor"] = token.UrlServidor;
-            TempData["Mensagem"] = "Token temporário gerado. Ele pode ser usado uma única vez e expira em 30 minutos.";
+            TempData["TokenTipo"] = token.TipoDispositivo;
+            TempData["Mensagem"] = $"Código de registro {token.TipoDispositivo} gerado. Uso único; expira em 15 minutos.";
         }
         catch (InvalidOperationException ex)
         {
@@ -94,16 +95,17 @@ public sealed class PainelController(
 
     [HttpPost("administracao/instalacao/gerar-token")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> GerarTokenInstalacao(Guid empresaId, CancellationToken ct)
+    public async Task<IActionResult> GerarTokenInstalacao(Guid empresaId, string tipoDispositivo = "Windows", CancellationToken ct = default)
     {
         if (!TemModulo("instalacao-agente") || !User.IsInRole("Administrador")) return Forbid();
         try
         {
-            var token = await administracao.CriarTokenInstalacaoAsync(ObterTenant(), ObterGuid(System.Security.Claims.ClaimTypes.NameIdentifier), empresaId, ct);
+            var token = await administracao.CriarTokenInstalacaoAsync(ObterTenant(), ObterGuid(System.Security.Claims.ClaimTypes.NameIdentifier), empresaId, tipoDispositivo, ct);
             TempData["TokenInstalacao"] = token.Token;
             TempData["TokenExpira"] = token.ExpiraEmUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss");
             TempData["TokenServidor"] = token.UrlServidor;
-            TempData["Mensagem"] = "Token temporário gerado. Ele pode ser usado uma única vez e expira em 30 minutos.";
+            TempData["TokenTipo"] = token.TipoDispositivo;
+            TempData["Mensagem"] = $"Código de registro {token.TipoDispositivo} gerado. Uso único; expira em 15 minutos.";
         }
         catch (InvalidOperationException ex)
         {
@@ -175,6 +177,23 @@ public sealed class PainelController(
         if (!TemModulo("estacoes")) return Forbid();
         await administracao.AtualizarCadastroEstacaoAsync(ObterTenant(), ativoId, empresaId, unidadeId, departamentoId, patrimonio, responsavel, ct);
         TempData["Mensagem"] = "Cadastro da estação atualizado.";
+        return RedirectToAction(nameof(Estacao), new { ativoId });
+    }
+
+    [HttpPost("estacoes/{ativoId:guid}/manutencao/codigo")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> GerarCodigoManutencao(Guid ativoId, string operacao, string? motivo, CancellationToken ct)
+    {
+        if (!TemModulo("estacoes") || !User.IsInRole("Administrador")) return Forbid();
+        try
+        {
+            var codigo = await administracao.CriarCodigoManutencaoAsync(ObterTenant(), ObterGuid(System.Security.Claims.ClaimTypes.NameIdentifier), ativoId, operacao, motivo, ct);
+            TempData["CodigoManutencao"] = codigo.Codigo;
+            TempData["CodigoManutencaoOperacao"] = codigo.Operacao;
+            TempData["CodigoManutencaoExpira"] = codigo.ExpiraEmUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss");
+            TempData["Mensagem"] = $"Código temporário para {codigo.Operacao.ToLowerInvariant()} gerado. Uso único; expira em 15 minutos.";
+        }
+        catch (Exception ex) { TempData["Erro"] = ex.Message; }
         return RedirectToAction(nameof(Estacao), new { ativoId });
     }
 
@@ -520,7 +539,7 @@ public sealed class PainelController(
     }
 
     private static string ObterVersaoAplicacao()
-        => Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.5.8";
+        => Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.6.0";
 
     private async Task PrepararDemonstracaoAsync(Guid tenant, CancellationToken ct)
         => await relogioDemonstracao.AtualizarSeNecessarioAsync(tenant, ct);

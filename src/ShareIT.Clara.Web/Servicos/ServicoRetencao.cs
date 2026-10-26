@@ -14,6 +14,7 @@ namespace ShareIT.Clara.Web.Servicos;
 public sealed class ServicoRetencao(
     FabricaConexoesClara fabrica,
     EstadoInicializacaoBanco estadoBanco,
+    ServicoArmazenamentoEvidencias armazenamento,
     ILogger<ServicoRetencao> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -79,8 +80,13 @@ public sealed class ServicoRetencao(
             }
         }
 
-        long total = 0;
+        var evidenciasVisuaisExternas = 0;
+        try { evidenciasVisuaisExternas = await armazenamento.ExcluirExpiradasAsync(tenantId, evidencias, ct); }
+        catch (InvalidOperationException) { /* tenant sem armazenamento externo configurado: segue com metadados legados */ }
+
+        long total = evidenciasVisuaisExternas;
         var detalhe = new Dictionary<string, int>();
+        if (evidenciasVisuaisExternas > 0) detalhe["evidencias_visuais_armazenamento"] = evidenciasVisuaisExternas;
         async Task Apagar(string nome, string sql, int dias)
         {
             await using var cmd = new NpgsqlCommand(sql, conexao, transacao);
@@ -95,7 +101,7 @@ public sealed class ServicoRetencao(
         await Apagar("sites_utilizados", "DELETE FROM sites_utilizados WHERE tenant_id=@tenant AND fim_utc < now()-(@dias*interval '1 day')", telemetria);
         await Apagar("sessoes_usuario", "DELETE FROM sessoes_usuario WHERE tenant_id=@tenant AND COALESCE(fim_utc,inicio_utc) < now()-(@dias*interval '1 day')", telemetria);
         await Apagar("contexto_tecnico_visao", "DELETE FROM contexto_tecnico_visao WHERE tenant_id=@tenant AND observado_em_utc < now()-(@dias*interval '1 day')", telemetria);
-        await Apagar("evidencias_visuais", "DELETE FROM evidencias_visuais WHERE tenant_id=@tenant AND demonstrativa=false AND capturada_em_utc < now()-(@dias*interval '1 day')", evidencias);
+        await Apagar("evidencias_visuais_legadas", "DELETE FROM evidencias_visuais WHERE tenant_id=@tenant AND demonstrativa=false AND capturada_em_utc < now()-(@dias*interval '1 day') AND chave_objeto IS NULL", evidencias);
         await Apagar("evidencias_contextuais", "DELETE FROM evidencias_contextuais WHERE tenant_id=@tenant AND observada_em_utc < now()-(@dias*interval '1 day')", evidencias);
         await Apagar("oportunidades_concluidas", "DELETE FROM oportunidades WHERE tenant_id=@tenant AND status='Concluida' AND atualizada_em_utc < now()-(@dias*interval '1 day')", evidencias);
         await Apagar("notificacoes", "DELETE FROM notificacoes WHERE tenant_id=@tenant AND criada_em_utc < now()-(@dias*interval '1 day')", notificacoes);

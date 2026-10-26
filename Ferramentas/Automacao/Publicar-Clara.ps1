@@ -479,6 +479,8 @@ try {
     $arquivosObrigatoriosInstalador = @(
         'Ferramentas\Instalacao\INSTALAR-AGENTE.cmd',
         'Ferramentas\Instalacao\Instalar-Agente.ps1',
+        'Ferramentas\Instalacao\MANUTENCAO-CLARA.cmd',
+        'Ferramentas\Instalacao\Manutencao-Clara.ps1',
         'Ferramentas\Diagnostico\DIAGNOSTICAR-AGENTE.cmd',
         'Ferramentas\Diagnostico\Diagnosticar-Agente.ps1'
     )
@@ -501,6 +503,8 @@ try {
     $NavegadorExtensaoOut = Join-Path $PacoteRoot 'NavegadorExtensao'
     $WebOut = Join-Path $Release 'Web'
     New-Item -ItemType Directory -Force -Path $AgenteOut,$SessaoOut,$AtualizadorOut,$NavegadorHostOut,$NavegadorExtensaoOut,$WebOut | Out-Null
+
+    Info 'Gate local: o build ocorre antes de Git/Render; qualquer erro de compilacao interrompe a publicacao sem alterar o ambiente online.'
 
     Etapa 'Restore, compilacao e testes'
     Push-Location $Raiz
@@ -551,6 +555,8 @@ try {
         Copy-Item $PacoteRoot (Join-Path $Instalador 'Pacote') -Recurse -Force
         Copy-Item (Join-Path $Raiz 'Ferramentas\Instalacao\INSTALAR-AGENTE.cmd') $Instalador
         Copy-Item (Join-Path $Raiz 'Ferramentas\Instalacao\Instalar-Agente.ps1') $Instalador
+        Copy-Item (Join-Path $Raiz 'Ferramentas\Instalacao\MANUTENCAO-CLARA.cmd') $Instalador
+        Copy-Item (Join-Path $Raiz 'Ferramentas\Instalacao\Manutencao-Clara.ps1') $Instalador
         Copy-Item (Join-Path $Raiz 'Ferramentas\Diagnostico\DIAGNOSTICAR-AGENTE.cmd') $Instalador
         Copy-Item (Join-Path $Raiz 'Ferramentas\Diagnostico\Diagnosticar-Agente.ps1') $Instalador
         $ZipInstalador = Join-Path $Release ("Clara-Instalador-v{0}.zip" -f $Versao)

@@ -1,0 +1,8 @@
+@model IReadOnlyCollection<ShareIT.Clara.Dados.Repositorios.EmpresaAdministradaResumo>
+@{ViewData["Title"]="Empresas";}
+@if(TempData["Mensagem"] is string m){<div class="mensagem-sucesso">@m</div>}
+@if(TempData["Erro"] is string e){<div class="erro">@e</div>}
+<section class="cabecalho-pagina cabecalho-clara"><div><span class="sobrelinha">ADMINISTRAÇÃO</span><h1>Empresas administradas</h1><p>A Administradora cadastra aqui as empresas que utilizarão a Clara. Os dispositivos sempre são registrados dentro de uma dessas empresas.</p></div></section>
+<section class="painel-clara"><div class="titulo-painel"><div><h2>Nova empresa</h2><p>Para uso interno, cadastre a própria Administradora como uma empresa. Para prestação de serviço, adicione cada cliente separadamente.</p></div></div>
+<form method="post" action="/administracao/empresas/criar" class="grade-formulario">@Html.AntiForgeryToken()<label>Empresa<input name="nome" maxlength="200" required /></label><label>CNPJ / documento<input name="documento" maxlength="30" /></label><button type="submit">Cadastrar empresa</button></form></section>
+<section class="painel-clara"><div class="titulo-painel"><div><h2>Empresas cadastradas</h2></div><span class="selo-neutro">@Model.Count</span></div><div class="tabela-responsiva"><table class="tabela-clara"><thead><tr><th>Empresa</th><th>Documento</th><th>Dispositivos</th><th>Status</th></tr></thead><tbody>@foreach(var x in Model){<tr><td><strong>@x.Nome</strong></td><td>@(x.Documento??"—")</td><td>@x.Dispositivos</td><td><span class="status-pill @(x.Ativa?"status-ok":"status-off")">@(x.Ativa?"Ativa":"Inativa")</span></td></tr>}</tbody></table></div></section>

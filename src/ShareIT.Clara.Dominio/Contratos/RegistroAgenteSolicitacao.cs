@@ -10,3 +10,5 @@ public sealed record RegistroAgenteResposta(
     string TokenDispositivo,
     Guid AtivoId,
     Guid TenantId);
+
+public sealed record AutorizacaoManutencaoSolicitacao(string Codigo, string Operacao);

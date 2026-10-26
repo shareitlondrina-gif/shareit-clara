@@ -38,6 +38,9 @@ builder.Services.AddHostedService<ServicoRetencao>();
 builder.Services.AddHostedService<ServicoRelatoriosAgendados>();
 builder.Services.AddScoped<ServicoEmpresaDemonstracao>();
 builder.Services.AddScoped<ServicoRelogioDemonstracao>();
+builder.Services.AddSingleton<CriptografiaSegredosClara>();
+builder.Services.AddSingleton<ServicoArmazenamentoEvidencias>();
+builder.Services.AddHttpClient();
 
 builder.Services.AddSingleton<IXmlRepository, RepositorioChavesProtecaoDados>();
 builder.Services.AddDataProtection().SetApplicationName("ShareIT.Clara");
@@ -248,7 +251,7 @@ else
 await app.WaitForShutdownAsync();
 
 static string ObterVersaoAplicacao()
-    => Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.5.8";
+    => Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.6.0";
 
 static string ObterIdentificadorBuild()
 {

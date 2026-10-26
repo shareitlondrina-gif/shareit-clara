@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Share IT .Clara — Contexto Web",
-  "version": "0.5.8",
+  "version": "0.6.0",
   "description": "Envia ao agente local somente o domínio da aba ativa, quando autorizado pela política da empresa.",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAhHs3Sbxpnx3qAQGS5g5wVmAMAI9fi0WyIpA1IdeizjRlKiZExAe5AT5xdW9IJ2cgCLxqeDCPQj6EqYmudl9c+tWKpQpJbdYOOJqKvejzV2umhMfZYCzM1SXR1qcpFr904KetHIEEMx0qW67syL1BxOJmTnjUAJaX6ORwtG7ED/BNkaw8cwL8O0mPnMu5I0BKVIkvZaRSXvl/nvTb9ObEtnVuSNX7lsVUSMx9rx+im2V7pqk1v2HLaXut7d5s36qqjCm9IYfHA+jelTpYdy18nGlEMvZFndsSNOj6SHRjM0x3hQwCxx98z9tkTdJW4/9wIrBlreD+A7g4Nh3rSfMLlQIDAQAB",
   "permissions": ["tabs", "nativeMessaging", "alarms"],

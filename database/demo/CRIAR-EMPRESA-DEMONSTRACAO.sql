@@ -1,5 +1,5 @@
 -- ============================================================================
--- Share IT .Clara v0.5.8 - Empresa Demonstração
+-- Share IT .Clara v0.6.0 - Empresa Demonstração
 -- Requer migrations até 0009_fechamento_operacional_coexistencia_gestao.sql.
 --
 -- Login de demonstração:
@@ -232,7 +232,7 @@ BEGIN
             id,tenant_id,ativo_id,identificador_agente,token_hash,versao,hostname,usuario_windows,
             sistema_operacional,fabricante,modelo,ultima_comunicacao_utc,status,ativo,registrado_em_utc,atualizado_em_utc,
             numero_serie,uuid_equipamento,arquitetura,memoria_total_bytes,disco_total_bytes,endereco_ip_local,endereco_ip_publico,processo_atual)
-        SELECT v_agente,v_tenant,v_ativo,gen_random_uuid(),encode(digest(gen_random_uuid()::text,'sha256'),'hex'),'0.5.8',
+        SELECT v_agente,v_tenant,v_ativo,gen_random_uuid(),encode(digest(gen_random_uuid()::text,'sha256'),'hex'),'0.6.0',
                a.hostname,v_usuario_windows,a.sistema_operacional,a.fabricante,a.modelo,
                CASE WHEN v_i IN (6,12,15) THEN now()-interval '2 hours'-(v_i||' minutes')::interval ELSE now()-(v_i||' seconds')::interval END,
                CASE WHEN v_i IN (6,12,15) THEN 'Offline' ELSE 'Online' END,true,now()-interval '45 days',now(),
@@ -475,7 +475,7 @@ BEGIN
     VALUES(v_tenant,NULL,NULL,'Administrativo','HomeOffice','Média de ociosidade maior em dias de home office','Medio','Revisar diretrizes, definir metas claras e rotina de acompanhamento.','Pendente','Regra demonstrativa',now()-interval '1 day 2 hours');
 
 
-    -- v0.5.8-RC: contexto executivo e integração opcional .VISÃO apenas para a empresa de demonstração.
+    -- v0.6.0-RC: contexto executivo e integração opcional .VISÃO apenas para a empresa de demonstração.
     INSERT INTO integracoes_produtos_shareit(tenant_id,produto,contratado,integracao_ativa,url_base,ultimo_sucesso_utc,atualizado_em_utc)
     VALUES(v_tenant,'Visao',true,true,'https://visao.demo.local',now()-interval '9 minutes',now())
     ON CONFLICT(tenant_id,produto) DO UPDATE SET contratado=true,integracao_ativa=true,url_base=EXCLUDED.url_base,ultimo_sucesso_utc=EXCLUDED.ultimo_sucesso_utc,atualizado_em_utc=now();

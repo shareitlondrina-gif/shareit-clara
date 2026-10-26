@@ -31,6 +31,17 @@ public sealed class RepositorioAdministracao(FabricaConexoesClara fabrica, Confi
         return lista;
     }
 
+    public async Task<IReadOnlyCollection<EmpresaAdministradaResumo>> ListarEmpresasDetalhadasAsync(Guid tenantId, CancellationToken ct = default)
+    {
+        const string sql="""SELECT e.id,e.nome,e.documento,e.ativo,(SELECT count(*) FROM ativos a WHERE a.tenant_id=e.tenant_id AND a.empresa_id=e.id AND a.ativo=true) FROM empresas e WHERE e.tenant_id=@tenant ORDER BY e.nome""";
+        var lista=new List<EmpresaAdministradaResumo>();await using var c=fabrica.Criar();await c.OpenAsync(ct);await using var q=new NpgsqlCommand(sql,c);q.Parameters.AddWithValue("tenant",tenantId);await using var r=await q.ExecuteReaderAsync(ct);while(await r.ReadAsync(ct))lista.Add(new(r.GetGuid(0),r.GetString(1),r.IsDBNull(2)?null:r.GetString(2),r.GetBoolean(3),Convert.ToInt32(r.GetInt64(4))));return lista;
+    }
+
+    public async Task<Guid> CriarEmpresaClienteAsync(Guid tenantId,string nome,string? documento,CancellationToken ct=default)
+    {
+        if(string.IsNullOrWhiteSpace(nome))throw new ArgumentException("Nome da empresa é obrigatório.");var id=Guid.NewGuid();await using var c=fabrica.Criar();await c.OpenAsync(ct);await using var q=new NpgsqlCommand("INSERT INTO empresas(id,tenant_id,nome,documento) SELECT @id,t.id,@nome,@doc FROM tenants t WHERE t.id=@tenant AND t.ativo=true",c);q.Parameters.AddWithValue("id",id);q.Parameters.AddWithValue("tenant",tenantId);q.Parameters.AddWithValue("nome",nome.Trim());q.Parameters.AddWithValue("doc",(object?)Limpar(documento)??DBNull.Value);if(await q.ExecuteNonQueryAsync(ct)!=1)throw new InvalidOperationException("Administradora não encontrada ou inativa.");return id;
+    }
+
     public async Task<(AssinaturaTenantResumo Assinatura, int EstacoesAtivas)> ObterAssinaturaAsync(Guid tenantId, CancellationToken ct = default)
     {
         const string sql = """
@@ -51,18 +62,20 @@ public sealed class RepositorioAdministracao(FabricaConexoesClara fabrica, Confi
         return (assinatura, Convert.ToInt32(leitor.GetInt64(7)));
     }
 
-    public async Task<TokenInstalacaoGerado> CriarTokenInstalacaoAsync(Guid tenantId, Guid usuarioId, Guid empresaId, CancellationToken ct = default)
+    public async Task<TokenInstalacaoGerado> CriarTokenInstalacaoAsync(Guid tenantId, Guid usuarioId, Guid empresaId, string tipoDispositivo = "Windows", CancellationToken ct = default)
     {
-        var token = Convert.ToHexString(RandomNumberGenerator.GetBytes(24)).ToLowerInvariant();
-        var hash = HashSeguro.Sha256Texto(token);
-        var expira = DateTimeOffset.UtcNow.AddMinutes(30);
+        tipoDispositivo = tipoDispositivo.Equals("Android", StringComparison.OrdinalIgnoreCase) ? "Android" : "Windows";
+        var numero = RandomNumberGenerator.GetInt32(0, 1_000_000_000).ToString("D9");
+        var token = $"{numero[..3]}-{numero[3..6]}-{numero[6..]}";
+        var hash = HashSeguro.Sha256Texto(NormalizarCodigo(token));
+        var expira = DateTimeOffset.UtcNow.AddMinutes(15);
 
         await using var conexao = fabrica.Criar();
         await conexao.OpenAsync(ct);
         await ValidarAssinaturaParaNovaEstacaoAsync(conexao, tenantId, ct);
         await using var comando = new NpgsqlCommand("""
-            INSERT INTO tokens_instalacao(tenant_id,empresa_id,ativo_id,token_hash,expira_em_utc,criado_por_usuario_id)
-            SELECT @tenant,e.id,NULL,@hash,@expira,@usuario
+            INSERT INTO tokens_instalacao(tenant_id,empresa_id,ativo_id,token_hash,expira_em_utc,criado_por_usuario_id,tipo_dispositivo,descricao)
+            SELECT @tenant,e.id,NULL,@hash,@expira,@usuario,@tipo,@descricao
             FROM empresas e
             WHERE e.id=@empresa AND e.tenant_id=@tenant AND e.ativo=true;
             """, conexao);
@@ -71,10 +84,39 @@ public sealed class RepositorioAdministracao(FabricaConexoesClara fabrica, Confi
         comando.Parameters.AddWithValue("hash", hash);
         comando.Parameters.AddWithValue("expira", expira);
         comando.Parameters.AddWithValue("usuario", usuarioId);
+        comando.Parameters.AddWithValue("tipo", tipoDispositivo);
+        comando.Parameters.AddWithValue("descricao", $"Registro {tipoDispositivo}");
         if (await comando.ExecuteNonQueryAsync(ct) != 1)
             throw new InvalidOperationException("Empresa não encontrada para este tenant.");
-        return new TokenInstalacaoGerado(token, expira, configuracao.Servidor.UrlPublica);
+        return new TokenInstalacaoGerado(token, expira, configuracao.Servidor.UrlPublica, tipoDispositivo);
     }
+
+    public async Task<CodigoManutencaoGerado> CriarCodigoManutencaoAsync(Guid tenantId, Guid usuarioId, Guid ativoId, string operacao, string? motivo, CancellationToken ct = default)
+    {
+        operacao = operacao switch { "Parar" => "Parar", "Reparar" => "Reparar", _ => "Desinstalar" };
+        var numero = RandomNumberGenerator.GetInt32(0, 1_000_000_000).ToString("D9");
+        var codigo = $"{numero[..3]}-{numero[3..6]}-{numero[6..]}";
+        var hash = HashSeguro.Sha256Texto(NormalizarCodigo(codigo));
+        var expira = DateTimeOffset.UtcNow.AddMinutes(15);
+        await using var conexao = fabrica.Criar();
+        await conexao.OpenAsync(ct);
+        await using var comando = new NpgsqlCommand("""
+            INSERT INTO codigos_manutencao(tenant_id,ativo_id,operacao,codigo_hash,motivo,expira_em_utc,criado_por_usuario_id)
+            SELECT @tenant,a.id,@operacao,@hash,@motivo,@expira,@usuario
+            FROM ativos a WHERE a.id=@ativo AND a.tenant_id=@tenant AND a.ativo=true;
+            """, conexao);
+        comando.Parameters.AddWithValue("tenant", tenantId);
+        comando.Parameters.AddWithValue("ativo", ativoId);
+        comando.Parameters.AddWithValue("operacao", operacao);
+        comando.Parameters.AddWithValue("hash", hash);
+        comando.Parameters.AddWithValue("motivo", (object?)Limpar(motivo) ?? DBNull.Value);
+        comando.Parameters.AddWithValue("expira", expira);
+        comando.Parameters.AddWithValue("usuario", usuarioId);
+        if (await comando.ExecuteNonQueryAsync(ct) != 1) throw new InvalidOperationException("Dispositivo não encontrado para este tenant.");
+        return new CodigoManutencaoGerado(codigo, operacao, expira);
+    }
+
+    private static string NormalizarCodigo(string codigo) => new(codigo.Where(char.IsLetterOrDigit).Select(char.ToUpperInvariant).ToArray());
 
     public async Task<PainelEstacoes> ListarEstacoesAsync(Guid tenantId, CancellationToken ct = default)
     {
@@ -285,4 +327,6 @@ public sealed class RepositorioAdministracao(FabricaConexoesClara fabrica, Confi
 }
 
 public sealed record EmpresaBasica(Guid Id, string Nome);
-public sealed record TokenInstalacaoGerado(string Token, DateTimeOffset ExpiraEmUtc, string UrlServidor);
+public sealed record EmpresaAdministradaResumo(Guid Id,string Nome,string? Documento,bool Ativa,int Dispositivos);
+public sealed record TokenInstalacaoGerado(string Token, DateTimeOffset ExpiraEmUtc, string UrlServidor, string TipoDispositivo);
+public sealed record CodigoManutencaoGerado(string Codigo, string Operacao, DateTimeOffset ExpiraEmUtc);

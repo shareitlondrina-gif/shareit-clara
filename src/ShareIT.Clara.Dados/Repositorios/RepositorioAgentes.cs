@@ -21,7 +21,7 @@ public sealed class RepositorioAgentes(FabricaConexoesClara fabrica)
     public async Task<RegistroAgenteResposta?> RegistrarAsync(RegistroAgenteSolicitacao solicitacao, string? enderecoIpPublico, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(solicitacao.TokenInstalacao) || string.IsNullOrWhiteSpace(solicitacao.Inventario.Hostname)) return null;
-        var tokenHash = HashSeguro.Sha256Texto(solicitacao.TokenInstalacao);
+        var tokenHash = HashSeguro.Sha256Texto(NormalizarCodigo(solicitacao.TokenInstalacao));
         await using var conexao = fabrica.Criar();
         await conexao.OpenAsync(ct);
         await using var transacao = await conexao.BeginTransactionAsync(ct);
@@ -29,7 +29,7 @@ public sealed class RepositorioAgentes(FabricaConexoesClara fabrica)
         const string buscarToken = """
             SELECT t.tenant_id, t.empresa_id, t.ativo_id
             FROM tokens_instalacao t
-            WHERE t.token_hash=@hash AND t.usado_em_utc IS NULL AND t.expira_em_utc > now()
+            WHERE t.token_hash=@hash AND t.usado_em_utc IS NULL AND t.revogado_em_utc IS NULL AND t.expira_em_utc > now() AND t.tipo_dispositivo='Windows' 
             FOR UPDATE;
             """;
         Guid tenantId;
@@ -47,6 +47,14 @@ public sealed class RepositorioAgentes(FabricaConexoesClara fabrica)
 
         var ativoId = ativoIdToken ?? await LocalizarOuCriarAtivoAsync(conexao, transacao, tenantId, empresaId, solicitacao.Inventario, enderecoIpPublico, ct);
         await AtualizarInventarioAtivoAsync(conexao, transacao, tenantId, ativoId, empresaId, solicitacao.Inventario, enderecoIpPublico, ct);
+        await using (var dispositivo = new NpgsqlCommand("""
+            INSERT INTO dispositivos(tenant_id,empresa_id,ativo_legado_id,tipo,nome,plataforma,status,ultima_comunicacao_utc,ativo)
+            VALUES(@tenant,@empresa,@ativo,'Windows',@nome,@plataforma,'Online',now(),true)
+            ON CONFLICT(ativo_legado_id) DO UPDATE SET empresa_id=excluded.empresa_id,nome=excluded.nome,plataforma=excluded.plataforma,status='Online',ultima_comunicacao_utc=now(),ativo=true,atualizado_em_utc=now();
+            """, conexao, transacao))
+        {
+            dispositivo.Parameters.AddWithValue("tenant",tenantId);dispositivo.Parameters.AddWithValue("empresa",empresaId);dispositivo.Parameters.AddWithValue("ativo",ativoId);dispositivo.Parameters.AddWithValue("nome",solicitacao.Inventario.Hostname);dispositivo.Parameters.AddWithValue("plataforma",solicitacao.Inventario.SistemaOperacional ?? "Windows");await dispositivo.ExecuteNonQueryAsync(ct);
+        }
 
         var identificadorAgente = Guid.NewGuid();
         var tokenDispositivo = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
@@ -300,6 +308,43 @@ public sealed class RepositorioAgentes(FabricaConexoesClara fabrica)
         var d=dominio.Trim().Trim('.').ToLowerInvariant();
         return exclusoes["Dominio"].Any(x=>{var e=x.Trim().Trim('.').ToLowerInvariant();return d==e||d.EndsWith("."+e,StringComparison.OrdinalIgnoreCase);});
     }
+
+    public async Task<bool> AutorizarManutencaoAsync(ContextoAgente contexto, string codigo, string operacao, CancellationToken ct = default)
+    {
+        operacao = operacao switch { "Parar" => "Parar", "Reparar" => "Reparar", "Desinstalar" => "Desinstalar", _ => string.Empty };
+        if (string.IsNullOrWhiteSpace(operacao) || string.IsNullOrWhiteSpace(codigo)) return false;
+        var hash = HashSeguro.Sha256Texto(NormalizarCodigo(codigo));
+        await using var conexao = fabrica.Criar();
+        await conexao.OpenAsync(ct);
+        await using var transacao = await conexao.BeginTransactionAsync(ct);
+        await using var comando = new NpgsqlCommand("""
+            SELECT id FROM codigos_manutencao
+            WHERE tenant_id=@tenant AND ativo_id=@ativo AND operacao=@operacao AND codigo_hash=@hash
+              AND usado_em_utc IS NULL AND revogado_em_utc IS NULL AND expira_em_utc>now()
+            FOR UPDATE;
+            """, conexao, transacao);
+        comando.Parameters.AddWithValue("tenant", contexto.TenantId);
+        comando.Parameters.AddWithValue("ativo", contexto.AtivoId);
+        comando.Parameters.AddWithValue("operacao", operacao);
+        comando.Parameters.AddWithValue("hash", hash);
+        var id = await comando.ExecuteScalarAsync(ct);
+        if (id is not Guid codigoId) { await transacao.RollbackAsync(ct); return false; }
+        await using var usar = new NpgsqlCommand("UPDATE codigos_manutencao SET usado_em_utc=now() WHERE id=@id", conexao, transacao);
+        usar.Parameters.AddWithValue("id", codigoId);
+        await usar.ExecuteNonQueryAsync(ct);
+        await using var auditar = new NpgsqlCommand("""
+            INSERT INTO auditoria(tenant_id,usuario_id,acao,entidade,entidade_id,detalhe)
+            VALUES(@tenant,NULL,'ManutencaoAutorizada','Ativo',@ativo,CAST(@detalhes AS jsonb));
+            """, conexao, transacao);
+        auditar.Parameters.AddWithValue("tenant", contexto.TenantId);
+        auditar.Parameters.AddWithValue("ativo", contexto.AtivoId.ToString());
+        auditar.Parameters.AddWithValue("detalhes", System.Text.Json.JsonSerializer.Serialize(new { operacao, agenteId=contexto.AgenteId }));
+        await auditar.ExecuteNonQueryAsync(ct);
+        await transacao.CommitAsync(ct);
+        return true;
+    }
+
+    private static string NormalizarCodigo(string codigo) => new(codigo.Where(char.IsLetterOrDigit).Select(char.ToUpperInvariant).ToArray());
 
     public async Task RegistrarStatusAtualizacaoAsync(ContextoAgente contexto, StatusAtualizacaoAgente status, CancellationToken ct = default)
     {

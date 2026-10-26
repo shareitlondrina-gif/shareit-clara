@@ -1,19 +1,19 @@
 @model IReadOnlyCollection<ShareIT.Clara.Dominio.Contratos.EmpresaMasterResumo>
 @{
-    ViewData["Title"] = "Empresas";
+    ViewData["Title"] = "Administradoras";
     var integracoesVisao = ViewBag.IntegracoesVisao as Dictionary<Guid, IntegracaoProdutoShareItResumo> ?? new();
 }
 <div class="cabecalho-pagina">
-    <div><span class="sobretitulo">ADMINISTRAÇÃO MASTER</span><h1>Empresas</h1><p>Crie clientes do .Clara e defina o primeiro administrador de cada empresa.</p></div>
+    <div><span class="sobretitulo">ADMINISTRAÇÃO MASTER</span><h1>Administradoras</h1><p>O Master cadastra somente as Administradoras da Clara. Cada Administradora cadastra suas próprias empresas e dispositivos.</p></div>
 </div>
 @if (TempData["Mensagem"] is string mensagem) { <div class="mensagem-sucesso">@mensagem</div> }
 @if (TempData["Erro"] is string erro) { <div class="erro">@erro</div> }
 @if (TempData["VisaoToken"] is string tokenVisao) { <div class="aviso-config"><span>!</span><div><strong>Token de integração .VISÃO — copie agora</strong><small>Este segredo será exibido somente nesta resposta. Configure-o no conector do .VISÃO e não envie por chamado/e-mail.</small><code style="word-break:break-all">@tokenVisao</code></div></div> }
 <section class="cartao-clara">
-    <h2>Nova empresa</h2>
+    <h2>Nova Administradora</h2>
     <form method="post" action="/master/empresas/criar" class="grade-formulario">
         @Html.AntiForgeryToken()
-        <label>Empresa<input name="nomeEmpresa" required maxlength="200" placeholder="Nome da empresa" /></label>
+        <label>Empresa<input name="nomeEmpresa" required maxlength="200" placeholder="Nome da Administradora" /></label>
         <label>CNPJ/Documento<input name="documento" maxlength="30" placeholder="Opcional" /></label>
         <label>Administrador<input name="nomeAdministrador" required maxlength="200" placeholder="Nome do administrador" /></label>
         <label>E-mail do administrador<input name="emailAdministrador" type="email" required maxlength="320" /></label>
@@ -30,7 +30,7 @@
     <p class="texto-secundario"><strong>Login:</strong> demonstracao@clara.local &nbsp; <strong>Senha:</strong> demonstracao</p>
 </section>
 <section class="cartao-clara">
-    <div class="titulo-cartao"><div><h2>Empresas cadastradas</h2><p>Cada cliente possui tenant isolado, plano, limite de estações e usuários próprios.</p></div><span class="selo-neutro">@Model.Count empresa(s)</span></div>
+    <div class="titulo-cartao"><div><h2>Administradoras cadastradas</h2><p>Cada Administradora possui tenant isolado e administra suas próprias empresas. O Master acompanha licenciamento e saúde, não a telemetria operacional.</p></div><span class="selo-neutro">@Model.Count administradora(s)</span></div>
     <div class="tabela-responsiva">
         <table class="tabela-clara tabela-master-saas">
             <thead><tr><th>Empresa</th><th>Plano</th><th>Consumo</th><th>Usuários</th><th>Assinatura</th><th>Ações</th></tr></thead>

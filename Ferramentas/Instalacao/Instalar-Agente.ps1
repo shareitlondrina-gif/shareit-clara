@@ -22,6 +22,8 @@ $Segredos = Join-Path $Dados 'segredos'
 New-Item -ItemType Directory -Force -Path $Segredos | Out-Null
 & icacls.exe $Segredos /inheritance:r /grant:r 'SYSTEM:(OI)(CI)F' 'Administrators:(OI)(CI)F' | Out-Null
 Copy-Item (Join-Path $Origem '*') $Destino -Recurse -Force
+Copy-Item (Join-Path $PSScriptRoot 'MANUTENCAO-CLARA.cmd') $Destino -Force -ErrorAction SilentlyContinue
+Copy-Item (Join-Path $PSScriptRoot 'Manutencao-Clara.ps1') $Destino -Force -ErrorAction SilentlyContinue
 $config = [ordered]@{
     urlServidor=$UrlServidor.TrimEnd('/')
     intervaloHeartbeatSegundos=60

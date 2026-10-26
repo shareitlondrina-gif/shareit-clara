@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using ShareIT.Clara.Comum.Configuracao;
 using ShareIT.Clara.Dados.Repositorios;
 using ShareIT.Clara.Dominio.Contratos;
+using ShareIT.Clara.Web.Servicos;
 
 namespace ShareIT.Clara.Web.Controllers;
 
@@ -21,6 +22,7 @@ namespace ShareIT.Clara.Web.Controllers;
 public sealed class ApiAgentesController(
     RepositorioAgentes repositorio,
     RepositorioInteligencia inteligencia,
+    ServicoArmazenamentoEvidencias armazenamento,
     ConfiguracaoClara configuracao,
     IWebHostEnvironment ambiente) : ControllerBase
 {
@@ -58,6 +60,20 @@ public sealed class ApiAgentesController(
         return Ok(new { recebidos = lote.Periodos.Count });
     }
 
+    [HttpPost("evidencias/imagem")]
+    [RequestSizeLimit(16 * 1024 * 1024)]
+    public async Task<IActionResult> EnviarEvidenciaImagem(IFormFile arquivo, string? titulo, string? descricao, DateTimeOffset? capturadaEmUtc, CancellationToken ct)
+    {
+        var contexto = await AutenticarAsync(ct);
+        if (contexto is null) return Unauthorized();
+        var politica = await inteligencia.ObterConfiguracoesAsync(contexto.TenantId, ct);
+        if (!politica.CapturaScreenshots) return StatusCode(StatusCodes.Status403Forbidden, new { erro = "Captura de screenshots desabilitada pela política da empresa." });
+        if (arquivo is null || arquivo.Length <= 0) return BadRequest(new { erro = "Arquivo ausente." });
+        await using var fluxo = arquivo.OpenReadStream();
+        var item = await armazenamento.GravarEvidenciaAsync(contexto.TenantId, contexto.AtivoId, titulo ?? "Captura autorizada", descricao, arquivo.ContentType, fluxo, capturadaEmUtc ?? DateTimeOffset.UtcNow, ct);
+        return Ok(new { item.Id, item.Tamanho, item.Sha256 });
+    }
+
     [HttpGet("politica")]
     public async Task<IActionResult> Politica(CancellationToken ct)
     {
@@ -89,6 +105,15 @@ public sealed class ApiAgentesController(
         var arquivo = Path.Combine(ambiente.ContentRootPath, "atualizacoes", "agente", versao, $"Clara-Agent-v{versao}.zip");
         if (!System.IO.File.Exists(arquivo)) return NotFound();
         return PhysicalFile(arquivo, "application/zip", Path.GetFileName(arquivo), enableRangeProcessing: true);
+    }
+
+    [HttpPost("manutencao/autorizar")]
+    public async Task<IActionResult> AutorizarManutencao([FromBody] AutorizacaoManutencaoSolicitacao solicitacao, CancellationToken ct)
+    {
+        var contexto = await AutenticarAsync(ct);
+        if (contexto is null) return Unauthorized();
+        var autorizado = await repositorio.AutorizarManutencaoAsync(contexto, solicitacao.Codigo, solicitacao.Operacao, ct);
+        return autorizado ? Ok(new { autorizado = true, operacao = solicitacao.Operacao, servidorUtc = DateTimeOffset.UtcNow }) : Unauthorized(new { erro = "Código inválido, expirado, revogado ou já utilizado." });
     }
 
     [HttpPost("atualizacao/status")]
